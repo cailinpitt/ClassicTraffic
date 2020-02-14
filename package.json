@@ -1,0 +1,24 @@
+{
+  "name": "trafficcameras",
+  "version": "0.0.1",
+  "description": "Twitter bot that tweet images from traffic cameras",
+  "main": "app.js",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "lodash": "^4.17.15",
+    "path": "^0.12.7"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CailinPitt/TrafficCameras.git"
+  },
+  "author": "Cailin Pitt <cailinpitt1@gmail.com> (https://cailinpitt.com)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CailinPitt/TrafficCameras/issues"
+  },
+  "homepage": "https://github.com/CailinPitt/TrafficCameras#readme"
+}
