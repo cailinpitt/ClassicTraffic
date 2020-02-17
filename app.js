@@ -28,7 +28,7 @@ const download = async () => {
 
     writer.on('finish', () => {
 
-        const file = Fs.readFileSync('./camera.jpg', { encoding: 'base64' });
+        const file = Fs.readFileSync(__dirname + '/camera.jpg', { encoding: 'base64' });
 
         T.post('media/upload', { media_data: file }, function (err, data, response) {
             const media_id = data.media_id_string;
