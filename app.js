@@ -54,7 +54,7 @@ const createGIF = async () => {
     const ctx = canvas.getContext('2d');
     encoder.start();
     encoder.setRepeat(0);   // 0 for repeat, -1 for no-repeat
-    encoder.setDelay(500);  // frame delay in ms
+    encoder.setDelay(200);  // frame delay in ms
     encoder.setQuality(10); // image quality. 10 is default.
 
     for (let i = 0; i < 5; i++) {
