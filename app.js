@@ -1,16 +1,15 @@
 const cameras = require('./cameras.js');
 const keys = require('./keys.js');
+
 const Path = require('path');
 const Axios = require('axios');
 const Fs = require('fs');
 const _ = require('lodash');
 const Twitter = require('twitter');
-
+const Moment = require('moment');
 const GIFEncoder = require('gifencoder');
-
 const { createCanvas, loadImage } = require('canvas');
 const sizeOf = require('image-size');
-
 
 const pathToFile = __dirname + '/camera.gif';
 const chosenCamera =  _.sample(cameras);
@@ -39,10 +38,7 @@ const retrieveImage = async (index) => {
     response.data.pipe(writer);
 };
 
-const download = async () => {
-    let index = 0;
-    
-
+const download = async () => {  
     for (let i = 0; i < 5; i++) {
         await retrieveImage(i);
         await sleep(6000);
@@ -56,13 +52,10 @@ const createGIF = async () => {
     const encoder = new GIFEncoder(dimensions.width, dimensions.height);
     const canvas = createCanvas(dimensions.width, dimensions.height);
     const ctx = canvas.getContext('2d');
-
-    encoder.createReadStream().pipe(Fs.createWriteStream('camera.gif'));
- 
     encoder.start();
     encoder.setRepeat(0);   // 0 for repeat, -1 for no-repeat
     encoder.setDelay(500);  // frame delay in ms
-    encoder.setQuality(5); // image quality. 10 is default.
+    encoder.setQuality(10); // image quality. 10 is default.
 
     for (let i = 0; i < 5; i++) {
         const image = await loadImage(__dirname + `/camera-${i}.jpg`);
@@ -72,77 +65,66 @@ const createGIF = async () => {
     
     encoder.finish();
 
+    const buffer = encoder.out.getData();
+    Fs.writeFileSync('camera.gif', buffer);
+
     tweet(chosenCamera);
 };
 
 /*
- * Taken from https://coderrocketfuel.com/article/publish-text-image-gif-and-video-twitter-posts-with-node-js
+ * Taken from https://github.com/desmondmorris/node-twitter/tree/master/examples#chunked-media
  */
-function initializeMediaUpload() {
-    const mediaType = "image/gif";
-    const mediaSize = Fs.statSync(pathToFile).size;
- 
-    return new Promise(function(resolve, reject) {
-        client.post("media/upload", {
-        command: "INIT",
-        total_bytes: mediaSize,
-        media_type: mediaType
-        }, function(error, data, response) {
-            console.log(data)
-        if (error) {
-            console.log(error)
-            reject(error)
-        } else {
-            resolve(data.media_id_string)
-        }
-        })
-    })
-}
- 
-function appendFileChunk(mediaId) {
+/**
+   * Step 1 of 3: Initialize a media upload
+   * @return Promise resolving to String mediaId
+   */
+const initUpload = () => {
+  const mediaType = "image/gif";
+  const mediaSize = Fs.statSync(pathToFile).size;
 
-const mediaData = Fs.readFileSync(pathToFile);
-  return new Promise(function(resolve, reject) {
-    client.post("media/upload", {
-      command: "APPEND",
-      media_id: mediaId,
-      media: mediaData,
-      segment_index: 0
-    }, function(error, data, response) {
-      if (error) {
-        console.log(error)
-        reject(error)
-      } else {
-        resolve(mediaId)
-      }
-    })
-  })
-}
+  return makePost('media/upload', {
+    command    : 'INIT',
+    total_bytes: mediaSize,
+    media_type : mediaType,
+  }).then(data => data.media_id_string);
+};
+
+/**
+ * Step 2 of 3: Append file chunk
+ * @param String mediaId    Reference to media object being uploaded
+ * @return Promise resolving to String mediaId (for chaining)
+ */
+const appendUpload = (mediaId) => {
+  const mediaData = Fs.readFileSync(pathToFile);
+
+  return makePost('media/upload', {
+    command      : 'APPEND',
+    media_id     : mediaId,
+    media        : mediaData,
+    segment_index: 0
+  }).then(data => mediaId);
+};
  
-function finalizeUpload(mediaId) {
-  return new Promise(function(resolve, reject) {
-    client.post("media/upload", {
-      command: "FINALIZE",
-      media_id: mediaId
-    }, function(error, data, response) {
-      if (error) {
-        console.log(error)
-        reject(error)
-      } else {
-        resolve(mediaId)
-      }
-    })
-  })
-}
+/**
+ * Step 3 of 3: Finalize upload
+ * @param String mediaId   Reference to media
+ * @return Promise resolving to mediaId (for chaining)
+ */
+const finalizeUpload = (mediaId) => {
+  return makePost('media/upload', {
+    command : 'FINALIZE',
+    media_id: mediaId
+  }).then(data => mediaId);
+};
  
-function publishStatusUpdate(mediaId) {
+const publishStatusUpdate = (mediaId) => {
   return new Promise(function(resolve, reject) {
     client.post("statuses/update", {
-      status: chosenCamera.name,
+      status: chosenCamera.name + '\n\n' + Moment().format('hh:mm a'),
       media_ids: mediaId
     }, function(error, data, response) {
       if (error) {
-        console.log(error)
+        console.log(145, error)
         reject(error)
       } else {
         console.log("Successfully uploaded media and tweeted!")
@@ -152,11 +134,29 @@ function publishStatusUpdate(mediaId) {
   })
 }
 
+/**
+ * (Utility function) Send a POST request to the Twitter API
+ * @param String endpoint  e.g. 'statuses/upload'
+ * @param Object params    Params object to send
+ * @return Promise         Rejects if response is error
+ */
+const makePost = (endpoint, params) => {
+  return new Promise((resolve, reject) => {
+    client.post(endpoint, params, (error, data, response) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+};
+
 const tweet = () => {
-    initializeMediaUpload()
-        .then(appendFileChunk)
-        .then(finalizeUpload)
-        .then(publishStatusUpdate);
+  initUpload() // Declare that you wish to upload some media
+    .then(appendUpload) // Send the data for the media
+    .then(finalizeUpload) // Declare that you are done uploading chunks
+    .then(publishStatusUpdate);
 };
 
 download();

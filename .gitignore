@@ -1,3 +1,4 @@
 keys.js
-camera.jpg
+*.jpg
+*.gif
 node_modules/

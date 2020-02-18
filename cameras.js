@@ -54,6 +54,26 @@ const cameras = [
         "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV087a.jpg",
         "city": "Cincinnati",
     },
+    {
+        "name": "I-74 at Montana Ave",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV142.jpg",
+        "city": "Cincinnati",
+    },
+    {
+        "name": "I-275 at East of Kellogg Ave",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV4110-5.jpg",
+        "city": "Cincinnati",
+    },
+    {
+        "name": "I-71 at Montgomery Rd (Kenwood)",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV074a.jpg",
+        "city": "Cincinnati",
+    },
+    {
+        "name": "Colerain Ave at Springdale Rd",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/Colerain_Ave_at_Springdale.jpg",
+        "city": "Cincinnati",
+    },
 ];
 
 module.exports = cameras;
