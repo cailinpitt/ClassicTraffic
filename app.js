@@ -9,10 +9,11 @@ const Moment = require('moment');
 const GIFEncoder = require('gifencoder');
 const { createCanvas, loadImage } = require('canvas');
 const sizeOf = require('image-size');
+const argv = require('minimist')(process.argv.slice(2));
 
 const assetDirectory = './assets';
 const pathToGIF = __dirname + '/assets/camera.gif';
-const chosenCamera = _.sample(cameras);
+let chosenCamera = _.sample(cameras);
 
 const retrieveImage = async (index) => {
   const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
@@ -28,6 +29,12 @@ const retrieveImage = async (index) => {
 };
 
 const start = async () => {
+  if (!_.isUndefined(argv.id))
+    chosenCamera = _.find(cameras, { 'id': argv.id });
+
+  if (_.isUndefined(chosenCamera))
+    return;
+
   Fs.ensureDirSync(assetDirectory);
 
   // Retrieve 10 images from chosen traffic camera

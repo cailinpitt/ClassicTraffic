@@ -13,9 +13,8 @@ const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-/*
- * Taken from https://github.com/desmondmorris/node-twitter/tree/master/examples#chunked-media
- */
+// Taken from https://github.com/desmondmorris/node-twitter/tree/master/examples#chunked-media
+
 /**
  * (Utility function) Send a POST request to the Twitter API
  * @param String endpoint  e.g. 'statuses/upload'
