@@ -39,7 +39,7 @@ const retrieveImage = async (index) => {
 };
 
 const download = async () => {  
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
         await retrieveImage(i);
         await sleep(6000);
     }
@@ -57,7 +57,7 @@ const createGIF = async () => {
     encoder.setDelay(200);  // frame delay in ms
     encoder.setQuality(10); // image quality. 10 is default.
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
         const image = await loadImage(__dirname + `/camera-${i}.jpg`);
         ctx.drawImage(image, 0, 0, dimensions.width, dimensions.height);
         encoder.addFrame(ctx);
