@@ -1,86 +1,80 @@
 const cameras = require('./cameras.js');
-const keys = require('./keys.js');
+const { client, makePost, sleep } = require('./util.js');
 
 const Path = require('path');
 const Axios = require('axios');
-const Fs = require('fs');
+const Fs = require('fs-extra');
 const _ = require('lodash');
-const Twitter = require('twitter');
 const Moment = require('moment');
 const GIFEncoder = require('gifencoder');
 const { createCanvas, loadImage } = require('canvas');
 const sizeOf = require('image-size');
 
-const pathToFile = __dirname + '/camera.gif';
-const chosenCamera =  _.sample(cameras);
-
-const client = new Twitter({
-    consumer_key: keys.consumer_key,
-    consumer_secret: keys.consumer_secret,
-    access_token_key: keys.access_token,
-    access_token_secret: keys.access_token_secret,
-  });
-
-const sleep = (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+const assetDirectory = './assets';
+const pathToGIF = __dirname + '/assets/camera.gif';
+const chosenCamera = _.sample(cameras);
 
 const retrieveImage = async (index) => {
-    const path = Path.resolve(__dirname, `camera-${index}.jpg`)
-    const writer = Fs.createWriteStream(path)
+  const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
+  const writer = Fs.createWriteStream(path)
 
-    const response = await Axios({
-        url: chosenCamera.url,
-        method: 'GET',
-        responseType: 'stream'
-    });
+  const response = await Axios({
+    url: chosenCamera.url,
+    method: 'GET',
+    responseType: 'stream'
+  });
 
-    response.data.pipe(writer);
+  response.data.pipe(writer);
 };
 
-const download = async () => {  
-    for (let i = 0; i < 10; i++) {
-        await retrieveImage(i);
-        await sleep(6000);
-    }
-    
-    createGIF();
+const start = async () => {
+  Fs.ensureDirSync(assetDirectory);
+
+  // Retrieve 10 images from chosen traffic camera
+  for (let i = 0; i < 10; i++) {
+    await retrieveImage(i);
+
+    // Cameras refresh about every 5 seconds, so wait until querying again
+    await sleep(6000);
+  }
+  
+  createGIF();
 };
 
 const createGIF = async () => {
-    const dimensions = sizeOf(__dirname + '/camera-0.jpg');
-    const encoder = new GIFEncoder(dimensions.width, dimensions.height);
-    const canvas = createCanvas(dimensions.width, dimensions.height);
-    const ctx = canvas.getContext('2d');
-    encoder.start();
-    encoder.setRepeat(0);   // 0 for repeat, -1 for no-repeat
-    encoder.setDelay(200);  // frame delay in ms
-    encoder.setQuality(10); // image quality. 10 is default.
+  const pathToFirstImage = Path.resolve(__dirname, `assets/camera-0.jpg`);
+  const dimensions = sizeOf(pathToFirstImage);
+  const encoder = new GIFEncoder(dimensions.width, dimensions.height);
+  const canvas = createCanvas(dimensions.width, dimensions.height);
+  const ctx = canvas.getContext('2d');
 
-    for (let i = 0; i < 10; i++) {
-        const image = await loadImage(__dirname + `/camera-${i}.jpg`);
-        ctx.drawImage(image, 0, 0, dimensions.width, dimensions.height);
-        encoder.addFrame(ctx);
-    }
-    
-    encoder.finish();
+  encoder.start();
+  encoder.setRepeat(0);   // 0 for repeat, -1 for no-repeat
+  encoder.setDelay(200);  // frame delay in ms
+  encoder.setQuality(10); // image quality. 10 is default.
 
-    const buffer = encoder.out.getData();
-    Fs.writeFileSync('camera.gif', buffer);
+  for (let i = 0; i < 10; i++) {
+    const image = await loadImage(__dirname + `/assets/camera-${i}.jpg`);
+    ctx.drawImage(image, 0, 0, dimensions.width, dimensions.height);
+    encoder.addFrame(ctx);
+  }
+  
+  encoder.finish();
 
-    tweet(chosenCamera);
+  Fs.writeFileSync('assets/camera.gif', encoder.out.getData());
+
+  tweet();
 };
 
-/*
- * Taken from https://github.com/desmondmorris/node-twitter/tree/master/examples#chunked-media
- */
+// Taken from https://github.com/desmondmorris/node-twitter/tree/master/examples#chunked-media
+
 /**
    * Step 1 of 3: Initialize a media upload
    * @return Promise resolving to String mediaId
    */
 const initUpload = () => {
   const mediaType = "image/gif";
-  const mediaSize = Fs.statSync(pathToFile).size;
+  const mediaSize = Fs.statSync(pathToGIF).size;
 
   return makePost('media/upload', {
     command    : 'INIT',
@@ -95,7 +89,7 @@ const initUpload = () => {
  * @return Promise resolving to String mediaId (for chaining)
  */
 const appendUpload = (mediaId) => {
-  const mediaData = Fs.readFileSync(pathToFile);
+  const mediaData = Fs.readFileSync(pathToGIF);
 
   return makePost('media/upload', {
     command      : 'APPEND',
@@ -116,7 +110,7 @@ const finalizeUpload = (mediaId) => {
     media_id: mediaId
   }).then(data => mediaId);
 };
- 
+
 const publishStatusUpdate = (mediaId) => {
   return new Promise(function(resolve, reject) {
     client.post("statuses/update", {
@@ -124,7 +118,7 @@ const publishStatusUpdate = (mediaId) => {
       media_ids: mediaId
     }, function(error, data, response) {
       if (error) {
-        console.log(145, error)
+        console.log(error)
         reject(error)
       } else {
         console.log("Successfully uploaded media and tweeted!")
@@ -132,31 +126,18 @@ const publishStatusUpdate = (mediaId) => {
       }
     })
   })
-}
+};
 
-/**
- * (Utility function) Send a POST request to the Twitter API
- * @param String endpoint  e.g. 'statuses/upload'
- * @param Object params    Params object to send
- * @return Promise         Rejects if response is error
- */
-const makePost = (endpoint, params) => {
-  return new Promise((resolve, reject) => {
-    client.post(endpoint, params, (error, data, response) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(data);
-      }
-    });
-  });
+const cleanup = () => {
+  Fs.removeSync(assetDirectory);
 };
 
 const tweet = () => {
   initUpload() // Declare that you wish to upload some media
     .then(appendUpload) // Send the data for the media
     .then(finalizeUpload) // Declare that you are done uploading chunks
-    .then(publishStatusUpdate);
+    .then(publishStatusUpdate) // Make tweet containing uploaded gif
+    .then(cleanup); // Remove uneeded files
 };
 
-download();
+start();
