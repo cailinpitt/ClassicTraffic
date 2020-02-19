@@ -3,3 +3,4 @@ keys.js
 camera.gif
 .DS_Store
 node_modules/
+log/

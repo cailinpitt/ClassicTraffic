@@ -1,5 +1,6 @@
 const keys = require('./keys.js');
 
+const compress_images = require('compress-images');
 const Twitter = require('twitter');
 
 const client = new Twitter({
@@ -8,6 +9,24 @@ const client = new Twitter({
   access_token_key: keys.access_token,
   access_token_secret: keys.access_token_secret,
 });
+
+const compressGIF = (input, outputFolder) => {
+  return new Promise((resolve, reject) => {
+    compress_images(input, outputFolder, {compress_force: true, autoupdate: true}, false,
+        {jpg: {engine: 'mozjpeg', command: ['-quality', '60']}},
+        {png: {engine: 'pngquant', command: ['--quality=20-50']}},
+        {svg: {engine: 'svgo', command: '--multipass'}},
+        {gif: {engine: 'gifsicle', command: ['--colors', '96', '--optimize', '-O3']}}, (error, completed) => {
+          if (error) {
+              reject(error);
+          }
+          else {
+              resolve(completed);
+          }
+        }
+    );
+  });
+};
 
 const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -35,6 +54,7 @@ const makePost = (endpoint, params) => {
 
 module.exports = {
   client,
+  compressGIF,
   sleep,
   makePost,
 };

@@ -27,5 +27,8 @@
   "bugs": {
     "url": "https://github.com/CailinPitt/TrafficCameras/issues"
   },
-  "homepage": "https://github.com/CailinPitt/TrafficCameras#readme"
+  "homepage": "https://github.com/CailinPitt/TrafficCameras#readme",
+  "devDependencies": {
+    "compress-images": "^1.6.0"
+  }
 }

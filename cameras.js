@@ -10,7 +10,7 @@ const cameras = [
         "name": "I-75 at 3rd St",
         "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV022.jpg",
         "city": "Cincinnati",
-        "numImages": 4,
+        "priority": true,
     },
     {
         "id": 2,
@@ -29,6 +29,7 @@ const cameras = [
         "name": "I-75 at North of Mitchell Ave",
         "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV014a.jpg",
         "city": "Cincinnati",
+        "priority": true,
     },
     {
         "id": 5,
@@ -47,6 +48,7 @@ const cameras = [
         "name": "I-75 at N of Union Centre Blvd",
         "url": "https://itscameras.dot.state.oh.us/images/cincinnati/I-75_at_Union_Centre_Blvd.jpg",
         "city": "Cincinnati",
+        "priority": true,
     },
     {
         "id": 8,

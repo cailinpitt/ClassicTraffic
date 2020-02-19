@@ -1,5 +1,5 @@
 const cameras = require('./cameras.js');
-const { client, makePost, sleep } = require('./util.js');
+const { client, compressGIF, makePost, sleep } = require('./util.js');
 
 const Path = require('path');
 const Axios = require('axios');
@@ -11,10 +11,10 @@ const { createCanvas, loadImage } = require('canvas');
 const sizeOf = require('image-size');
 const argv = require('minimist')(process.argv.slice(2));
 
-const assetDirectory = './assets';
-const pathToGIF = __dirname + '/assets/camera.gif';
+const assetDirectory = './assets/';
+const pathToGIF = './assets/camera.gif';
 let chosenCamera = _.sample(cameras);
-let numImages = 10;
+const numImages = 10;
 
 const retrieveImage = async (index) => {
   const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
@@ -30,27 +30,24 @@ const retrieveImage = async (index) => {
 };
 
 const start = async () => {
-  if (!_.isUndefined(argv.id))
-    chosenCamera = _.find(cameras, { 'id': argv.id });
+//   if (!_.isUndefined(argv.id))
+//     chosenCamera = _.find(cameras, { 'id': argv.id });
 
-  if (_.isUndefined(chosenCamera))
-    return;
+//   if (_.isUndefined(chosenCamera))
+//     return;
 
-  if (!_.isUndefined(chosenCamera.numImages))
-    numImages = chosenCamera.numImages;
+//   Fs.ensureDirSync(assetDirectory);
 
-  Fs.ensureDirSync(assetDirectory);
+//   // Retrieve 10 images from chosen traffic camera
+//   for (let i = 0; i < numImages; i++) {
+//     await retrieveImage(i);
 
-  // Retrieve 10 images from chosen traffic camera
-
-  for (let i = 0; i < numImages; i++) {
-    await retrieveImage(i);
-
-    // Cameras refresh about every 5 seconds, so wait until querying again
-    await sleep(6000);
-  }
+//     // Cameras refresh about every 5 seconds, so wait until querying again
+//     await sleep(6000);
+//   }
   
-  createGIF();
+//   createGIF();
+cleanup()
 };
 
 const createGIF = async () => {
@@ -74,6 +71,12 @@ const createGIF = async () => {
   encoder.finish();
 
   Fs.writeFileSync('assets/camera.gif', encoder.out.getData());
+
+  if (Fs.statSync(pathToGIF).size > 5000000) {
+      // Twitter GIF files must be less than 5MB
+      // We'll compress the GIF once to attempt to get the size down
+    await compressGIF(pathToGIF, assetDirectory);
+  }
 
   tweet();
 };
@@ -141,7 +144,9 @@ const publishStatusUpdate = (mediaId) => {
 };
 
 const cleanup = () => {
-  Fs.removeSync(assetDirectory);
+  if (!_.isUndefined(argv.persist) && argv.persist !== true) {
+    Fs.removeSync(assetDirectory);
+  }
 };
 
 const tweet = () => {
