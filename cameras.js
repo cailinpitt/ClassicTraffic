@@ -179,6 +179,24 @@ const cameras = [
         "url": "http://www.trimarc.org/images/milestone/CCTV_06_75_1812.jpg",
         "city": "Cincinnati",
     },
+    {
+        "id": 30,
+        "name": "I-71/I-75 at 12th St",
+        "url": "http://www.trimarc.org/images/milestone/CCTV_06_75_1908.jpg",
+        "city": "Cincinnati",
+    },
+    {
+        "id": 31,
+        "name": "I-71/I-75 N on Brent Spence Bridge",
+        "url": "http://www.trimarc.org/images/milestone/CCTV_06_75_1911.jpg",
+        "city": "Cincinnati",
+    },
+    {
+        "id": 32,
+        "name": "I-71 at Dana Ave",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV082a.jpg",
+        "city": "Cincinnati",
+    },
 ];
 
 module.exports = cameras;
