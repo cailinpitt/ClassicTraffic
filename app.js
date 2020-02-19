@@ -14,6 +14,7 @@ const argv = require('minimist')(process.argv.slice(2));
 const assetDirectory = './assets';
 const pathToGIF = __dirname + '/assets/camera.gif';
 let chosenCamera = _.sample(cameras);
+let numImages = 10;
 
 const retrieveImage = async (index) => {
   const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
@@ -35,10 +36,14 @@ const start = async () => {
   if (_.isUndefined(chosenCamera))
     return;
 
+  if (!_.isUndefined(chosenCamera.numImages))
+    numImages = chosenCamera.numImages;
+
   Fs.ensureDirSync(assetDirectory);
 
   // Retrieve 10 images from chosen traffic camera
-  for (let i = 0; i < 10; i++) {
+
+  for (let i = 0; i < numImages; i++) {
     await retrieveImage(i);
 
     // Cameras refresh about every 5 seconds, so wait until querying again
@@ -60,7 +65,7 @@ const createGIF = async () => {
   encoder.setDelay(200);  // frame delay in ms
   encoder.setQuality(10); // image quality. 10 is default.
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < numImages; i++) {
     const image = await loadImage(__dirname + `/assets/camera-${i}.jpg`);
     ctx.drawImage(image, 0, 0, dimensions.width, dimensions.height);
     encoder.addFrame(ctx);

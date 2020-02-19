@@ -10,6 +10,7 @@ const cameras = [
         "name": "I-75 at 3rd St",
         "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV022.jpg",
         "city": "Cincinnati",
+        "numImages": 4,
     },
     {
         "id": 2,
