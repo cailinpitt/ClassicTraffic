@@ -30,24 +30,23 @@ const retrieveImage = async (index) => {
 };
 
 const start = async () => {
-//   if (!_.isUndefined(argv.id))
-//     chosenCamera = _.find(cameras, { 'id': argv.id });
+  if (!_.isUndefined(argv.id))
+    chosenCamera = _.find(cameras, { 'id': argv.id });
 
-//   if (_.isUndefined(chosenCamera))
-//     return;
+  if (_.isUndefined(chosenCamera))
+    return;
 
-//   Fs.ensureDirSync(assetDirectory);
+  Fs.ensureDirSync(assetDirectory);
 
-//   // Retrieve 10 images from chosen traffic camera
-//   for (let i = 0; i < numImages; i++) {
-//     await retrieveImage(i);
+  // Retrieve 10 images from chosen traffic camera
+  for (let i = 0; i < numImages; i++) {
+    await retrieveImage(i);
 
-//     // Cameras refresh about every 5 seconds, so wait until querying again
-//     await sleep(6000);
-//   }
+    // Cameras refresh about every 5 seconds, so wait 6 seconds until querying again
+    await sleep(6000);
+  }
   
-//   createGIF();
-cleanup()
+  createGIF();
 };
 
 const createGIF = async () => {

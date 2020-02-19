@@ -15,3 +15,7 @@ To run:
 To run and tweet a gif from a specific traffic camera:
 
 `node app.js --id 20`
+
+To run without deleting `assets` folder (contains downloaded images and generated gif):
+
+`node app.js --persist`
