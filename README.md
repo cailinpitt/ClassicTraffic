@@ -48,6 +48,30 @@ const keys = {
 module.exports = keys;
 ```
 
+Then, create `cameras.js` containing an array of objects with the information of each camera you want to tweet gifs from. Make sure to export the array:
+
+```js
+// Example:
+const cameras = [
+    {
+        "id": 0,
+        "name": "I-71 at I-75",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV035a-L.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": true,
+    },
+    {
+        "id": 1,
+        "name": "I-75 at 3rd St",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV022.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": true,
+    },
+];
+
+module.exports = cameras;
+```
+
 Then, install dependencies:
 
 `npm ci`
