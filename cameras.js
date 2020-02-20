@@ -230,6 +230,13 @@ const cameras = [
         "city": "Cincinnati",
         "rushHourPriority": true,
     },
+    {
+        "id": 33,
+        "name": "I-75 at Mitchell Ave",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV015a.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": true,
+    },
 ];
 
 module.exports = cameras;
