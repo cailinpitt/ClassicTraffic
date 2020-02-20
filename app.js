@@ -31,6 +31,7 @@ const retrieveImage = async (index) => {
 
 const start = async () => {
   if (isRushHour()) {
+    console.log("Rush Hour priority...\n")
     chosenCamera = _.sample(_.pickBy(cameras, { 'rushHourPriority': true }));
   }
 
@@ -42,6 +43,7 @@ const start = async () => {
 
   Fs.ensureDirSync(assetDirectory);
 
+  console.log("Downloading traffic camera images...")
   // Retrieve 10 images from chosen traffic camera
   for (let i = 0; i < numImages; i++) {
     await retrieveImage(i);
@@ -49,6 +51,7 @@ const start = async () => {
     // Cameras refresh about every 5 seconds, so wait 6 seconds until querying again
     await sleep(6000);
   }
+  console.log("Download complete\n")
   
   createGIF();
 };
@@ -59,6 +62,8 @@ const createGIF = async () => {
   const encoder = new GIFEncoder(dimensions.width, dimensions.height);
   const canvas = createCanvas(dimensions.width, dimensions.height);
   const ctx = canvas.getContext('2d');
+
+  console.log("Generate GIF...")
 
   encoder.start();
   encoder.setRepeat(0);   // 0 for repeat, -1 for no-repeat
@@ -75,10 +80,14 @@ const createGIF = async () => {
 
   Fs.writeFileSync('assets/camera.gif', encoder.out.getData());
 
+  console.log("GIF generated\n")
+
   if (Fs.statSync(pathToGIF).size > 5000000) {
       // Twitter GIF files must be less than 5MB
       // We'll compress the GIF once to attempt to get the size down
+    console.log("GIF is too big, Compressing...")
     await compressGIF(pathToGIF, assetDirectory);
+    console.log("GIF compressed\n")
   }
 
   tweet();
@@ -93,6 +102,8 @@ const createGIF = async () => {
 const initUpload = () => {
   const mediaType = "image/gif";
   const mediaSize = Fs.statSync(pathToGIF).size;
+
+  console.log("Start tweet upload")
 
   return makePost('media/upload', {
     command    : 'INIT',
@@ -147,8 +158,9 @@ const publishStatusUpdate = (mediaId) => {
 };
 
 const cleanup = () => {
-  if (!_.isUndefined(argv.persist) && argv.persist !== true) {
+  if ((!_.isUndefined(argv.persist) && argv.persist !== true) || (_.isUndefined(argv.persist))) {
     Fs.removeSync(assetDirectory);
+    console.log(assetDirectory + " removed")
   }
 };
 
