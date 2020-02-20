@@ -1,5 +1,5 @@
 const cameras = require('./cameras.js');
-const { client, compressGIF, makePost, sleep } = require('./util.js');
+const { client, compressGIF, isRushHour, makePost, sleep } = require('./util.js');
 
 const Path = require('path');
 const Axios = require('axios');
@@ -30,6 +30,10 @@ const retrieveImage = async (index) => {
 };
 
 const start = async () => {
+  if (isRushHour()) {
+    chosenCamera = _.sample(_.pickBy(cameras, { 'rushHourPriority': true }));
+  }
+
   if (!_.isUndefined(argv.id))
     chosenCamera = _.find(cameras, { 'id': argv.id });
 
