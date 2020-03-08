@@ -265,6 +265,62 @@ const cameras = [
         "city": "Cincinnati",
         "rushHourPriority": false,
     },
+    {
+        "id": 38,
+        "name": "I-71/I-75 north of Richwood Rd",
+        "url": "http://www.trimarc.org/images/milestone/CCTV_06_75_1758.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 39,
+        "name": "I-275 East of Turkeyfoot Road Mile 81.2",
+        "url": "http://www.trimarc.org/images/milestone/CCTV_06_275_0812.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 40,
+        "name": "I-275 East of Johns Hill Road",
+        "url": "http://www.trimarc.org/images/milestone/CCTV_06_275_0762.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 41,
+        "name": "I-275 at US-27 Overpass",
+        "url": "http://www.trimarc.org/images/milestone/CCTV_06_275_0741.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 42,
+        "name": "I-471 SB at Highland Ave Overpass",
+        "url": "http://www.trimarc.org/images/milestone/CCTV_06_471_0023.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 43,
+        "name": "I-71 at Robertson Ave",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV080a.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 44,
+        "name": "I-71 at Euclid Ave",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV4075.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 45,
+        "name": "SR-126 at I-71 SB Ramp",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV073_Signal.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
 ];
 
 module.exports = cameras;
