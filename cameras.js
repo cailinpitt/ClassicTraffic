@@ -230,6 +230,41 @@ const cameras = [
         "city": "Cincinnati",
         "rushHourPriority": true,
     },
+    {
+        "id": 33,
+        "name": "I-74 at North Bend Rd",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV144.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 34,
+        "name": "I-74 at Harrison Ave",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV147.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 35,
+        "name": "I-275 at US-42",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV001a-L.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
+    {
+        "id": 36,
+        "name": "I-71 at US-50 (Lyte Tunnel)",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV042a.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": true,
+    },
+    {
+        "id": 37,
+        "name": "I-275 at SR-125",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV4152.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": false,
+    },
 ];
 
 module.exports = cameras;

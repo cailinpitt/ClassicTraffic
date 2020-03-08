@@ -90,7 +90,7 @@ const createGIF = async () => {
     console.log("GIF compressed\n")
   }
 
-  tweet();
+    tweet();
 };
 
 // Taken from https://github.com/desmondmorris/node-twitter/tree/master/examples#chunked-media
