@@ -55,7 +55,13 @@ const makePost = (endpoint, params) => {
 
 const isRushHour = () => {
   // Is the current time between 7:00 AM - 9:00 AM or 4:00 PM - 7:00 PM?
-  return Moment().isBetween(Moment({ hour: 7, minute: 0}), Moment({ hour: 9, minute: 0})) || Moment().isBetween(Moment({ hour: 16, minute: 0}), Moment({ hour: 19, minute: 0}));
+  const isRushHour = Moment().isBetween(Moment({ hour: 7, minute: 0}), Moment({ hour: 9, minute: 0})) ||
+    Moment().isBetween(Moment({ hour: 16, minute: 0}), Moment({ hour: 19, minute: 0}));
+
+  // Is today Saturday or Sunday?
+  const isNotWeekend = Moment().day() !== 6 && Moment().day() !== 7;
+
+  return isRushHour && isNotWeekend;
 };
 
 module.exports = {
