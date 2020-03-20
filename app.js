@@ -14,7 +14,7 @@ const argv = require('minimist')(process.argv.slice(2));
 const assetDirectory = './assets/';
 const pathToGIF = './assets/camera.gif';
 let chosenCamera = _.sample(cameras);
-const numImages = 10;
+const numImages = 20;
 
 const retrieveImage = async (index) => {
   const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
@@ -67,8 +67,8 @@ const createGIF = async () => {
 
   encoder.start();
   encoder.setRepeat(0);   // 0 for repeat, -1 for no-repeat
-  encoder.setDelay(200);  // frame delay in ms
-  encoder.setQuality(10); // image quality. 10 is default.
+  encoder.setDelay(150);  // frame delay in ms
+  encoder.setQuality(5); // image quality. 10 is default.
 
   for (let i = 0; i < numImages; i++) {
     const image = await loadImage(__dirname + `/assets/camera-${i}.jpg`);
@@ -82,7 +82,7 @@ const createGIF = async () => {
 
   console.log("GIF generated\n")
 
-  if (Fs.statSync(pathToGIF).size > 5000000) {
+  if (Fs.statSync(pathToGIF).size > 5100000) {
       // Twitter GIF files must be less than 5MB
       // We'll compress the GIF once to attempt to get the size down
     console.log("GIF is too big, Compressing...")
