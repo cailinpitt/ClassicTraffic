@@ -5,7 +5,6 @@ const Path = require('path');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
-const Moment = require('moment');
 const GIFEncoder = require('gifencoder');
 const { createCanvas, loadImage } = require('canvas');
 const sizeOf = require('image-size');
@@ -143,7 +142,7 @@ const finalizeUpload = (mediaId) => {
 const publishStatusUpdate = (mediaId) => {
   return new Promise(function(resolve, reject) {
     client.post("statuses/update", {
-      status: chosenCamera.name + '\n\n' + Moment().format('hh:mm a'),
+      status: chosenCamera.name,
       media_ids: mediaId
     }, function(error, data, response) {
       if (error) {
