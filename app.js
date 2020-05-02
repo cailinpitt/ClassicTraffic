@@ -164,11 +164,11 @@ const cleanup = () => {
 };
 
 const tweet = () => {
-  initUpload() // Declare that you wish to upload some media
-    .then(appendUpload) // Send the data for the media
-    .then(finalizeUpload) // Declare that you are done uploading chunks
+  initUpload()                 // Declare that you wish to upload some media
+    .then(appendUpload)        // Send the data for the media
+    .then(finalizeUpload)      // Declare that you are done uploading chunks
     .then(publishStatusUpdate) // Make tweet containing uploaded gif
-    .then(cleanup); // Remove downloaded images and generated gif
+    .then(cleanup);            // Remove downloaded images and generated gif
 };
 
 start();
