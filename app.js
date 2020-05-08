@@ -13,7 +13,7 @@ const argv = require('minimist')(process.argv.slice(2));
 const assetDirectory = './assets/';
 const pathToGIF = './assets/camera.gif';
 let chosenCamera = _.sample(cameras);
-const numImages = 20;
+const numImages = 15;
 
 const retrieveImage = async (index) => {
   const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
