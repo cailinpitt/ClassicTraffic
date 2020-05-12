@@ -503,6 +503,13 @@ const cameras = [
         "city": "Cincinnati",
         "rushHourPriority": false,
     },
+    {
+        "id": 72,
+        "name": "I-75 at I-74",
+        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV049a-L.jpg",
+        "city": "Cincinnati",
+        "rushHourPriority": true,
+    },
 ];
 
 module.exports = cameras;
