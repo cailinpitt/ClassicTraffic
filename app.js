@@ -1,21 +1,30 @@
 const cameras = require('./cameras.js');
-const { client, compressGIF, isRushHour, makePost, sleep } = require('./util.js');
+const {
+  client,
+  compressGIF,
+  isRushHour,
+  makePost,
+  sleep,
+} = require('./util.js');
 
 const Path = require('path');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 const GIFEncoder = require('gifencoder');
-const { createCanvas, loadImage } = require('canvas');
+const {
+  createCanvas,
+  loadImage,
+} = require('canvas');
 const sizeOf = require('image-size');
 const argv = require('minimist')(process.argv.slice(2));
 
 const assetDirectory = './assets/';
 const pathToGIF = './assets/camera.gif';
 let chosenCamera = _.sample(cameras);
-const numImages = 15;
+const numImages = 10;
 
-const retrieveImage = async (index) => {
+const downloadImage = async (index) => {
   const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
   const writer = Fs.createWriteStream(path)
 
@@ -25,17 +34,18 @@ const retrieveImage = async (index) => {
     responseType: 'stream'
   });
 
-  response.data.pipe(writer);
+  return new Promise(resolve => response.data.pipe(writer).on('finish', resolve));
 };
 
 const start = async () => {
-  if (isRushHour()) {
+  if (!_.isUndefined(argv.id)) {
+    chosenCamera = _.find(cameras, { id: argv.id });
+    console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}\n`)
+  }
+  else if (isRushHour()) {
     console.log("Rush Hour priority...\n")
     chosenCamera = _.sample(_.pickBy(cameras, { 'rushHourPriority': true }));
   }
-
-  if (!_.isUndefined(argv.id))
-    chosenCamera = _.find(cameras, { 'id': argv.id });
 
   if (_.isUndefined(chosenCamera))
     return;
@@ -44,11 +54,14 @@ const start = async () => {
 
   console.log("Downloading traffic camera images...")
   // Retrieve 10 images from chosen traffic camera
-  for (let i = 0; i < numImages; i++) {
-    await retrieveImage(i);
+  const delay = chosenCamera.delay ? chosenCamera.delay * 1000 : 6000;
 
-    // Cameras refresh about every 5 seconds, so wait 6 seconds until querying again
-    await sleep(6000);
+  for (let i = 0; i < numImages; i++) {
+    await downloadImage(i);
+
+    // Cameras refresh every few seconds, so wait until querying again
+    if (i < numImages - 1)
+      await sleep(delay);
   }
   console.log("Download complete\n")
   
@@ -144,7 +157,7 @@ const publishStatusUpdate = (mediaId) => {
     client.post("statuses/update", {
       status: chosenCamera.name,
       media_ids: mediaId
-    }, function(error, data, response) {
+    }, function(error, data) {
       if (error) {
         console.log(error)
         reject(error)
