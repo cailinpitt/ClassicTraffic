@@ -200,20 +200,10 @@ const finalizeUpload = (mediaId) => {
 };
 
 const publishStatusUpdate = (mediaId) => {
-  return new Promise(function(resolve, reject) {
-    client.post("statuses/update", {
+  return makePost('statuses/update', {
       status: chosenCamera.name,
       media_ids: mediaId
-    }, function(error, data) {
-      if (error) {
-        console.log(error)
-        reject(error)
-      } else {
-        console.log("Successfully uploaded media and tweeted!")
-        resolve(data)
-      }
-    })
-  })
+    });
 };
 
 const cleanup = () => {
