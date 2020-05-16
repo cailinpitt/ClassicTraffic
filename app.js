@@ -1,4 +1,5 @@
 const cameras = require('./cameras.js');
+const keys = require('./keys.js');
 const {
   client,
   compressGIF,
@@ -21,7 +22,7 @@ const argv = require('minimist')(process.argv.slice(2));
 
 const assetDirectory = './assets/';
 const pathToGIF = './assets/camera.gif';
-let chosenCamera = _.sample(cameras);
+let chosenCamera;
 const numImages = 10;
 
 const downloadImage = async (index) => {
@@ -37,22 +38,68 @@ const downloadImage = async (index) => {
   return new Promise(resolve => response.data.pipe(writer).on('finish', resolve));
 };
 
+const downloadCamera = async (id) => {
+  const headers = {
+    'Authorization': 'APIKEY ' + keys.ohgo_key,
+  };
+  const params = {
+    'page-all': true,
+  };
+  const formattedCamera = {};
+
+  if (_.isUndefined(id)) {
+    const response = await Axios.get('https://publicapi.ohgo.com/api/v1/cameras', { headers, params });
+    const ohgoCamera = _.sample(response.data.results);
+    
+    formattedCamera.id = ohgoCamera.id;
+    formattedCamera.name = ohgoCamera.location;
+
+    // a camera can have multiple directions (W, N, E, S), just choose one
+    formattedCamera.url = _.sample(ohgoCamera.cameraViews).largeUrl;
+  }
+  else {
+    const response = await Axios.get(`https://publicapi.ohgo.com/api/v1/cameras/${id}`, { headers });
+    const ohgoCamera = response.data.results[0];
+    console.log(ohgoCamera)
+    formattedCamera.id = ohgoCamera.id;
+    formattedCamera.name = ohgoCamera.location;
+
+    // a camera can have multiple directions (W, N, E, S), just choose one
+    formattedCamera.url = _.sample(ohgoCamera.cameraViews).largeUrl;
+  }
+
+  return formattedCamera;
+};
+
 const start = async () => {
-  if (!_.isUndefined(argv.id)) {
+  if (!_.isUndefined(argv.api)) {
+    // download ohio camera from API
+
+    console.log("Choose camera from OHGO API");
+    chosenCamera = await downloadCamera(argv.id);
+  }
+  else if (!_.isUndefined(argv.id)) {
+    // local camera by ID
     chosenCamera = _.find(cameras, { id: argv.id });
-    console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}\n`)
   }
   else if (isRushHour()) {
-    console.log("Rush Hour priority...\n")
+    // local camera that has rush hour priority
+    console.log("Rush Hour priority...\n");
     chosenCamera = _.sample(_.pickBy(cameras, { 'rushHourPriority': true }));
   }
+  else {
+    // random local camera
+    chosenCamera = _.sample(cameras);
+  }
+
+  console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}\n`);
 
   if (_.isUndefined(chosenCamera))
     return;
 
   Fs.ensureDirSync(assetDirectory);
 
-  console.log("Downloading traffic camera images...")
+  console.log("Downloading traffic camera images...");
   // Retrieve 10 images from chosen traffic camera
   const delay = chosenCamera.delay ? chosenCamera.delay * 1000 : 6000;
 
@@ -63,7 +110,7 @@ const start = async () => {
     if (i < numImages - 1)
       await sleep(delay);
   }
-  console.log("Download complete\n")
+  console.log("Download complete\n");
   
   createGIF();
 };

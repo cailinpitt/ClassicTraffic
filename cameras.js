@@ -527,7 +527,7 @@ const cameras = [
     {
         id: 73,
         name: "I-275 at Five Mile Rd",
-        url: "https://itscameras.dot.state.oh.us/images/artimis/CCTV4150.jpg",
+        url: "https://itscameras.dot.state.oh.us/images/CMH/CMH054.jpg",
         city: "Cincinnati",
         rushHourPriority: false,
     },
