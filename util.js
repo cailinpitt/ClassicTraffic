@@ -2,14 +2,6 @@ const keys = require('./keys.js');
 
 const compress_images = require('compress-images');
 const Moment = require('moment');
-const Twitter = require('twitter');
-
-const client = new Twitter({
-  consumer_key: keys.consumer_key,
-  consumer_secret: keys.consumer_secret,
-  access_token_key: keys.access_token,
-  access_token_secret: keys.access_token_secret,
-});
 
 const compressGIF = (input, outputFolder) => {
   return new Promise((resolve, reject) => {
@@ -41,9 +33,9 @@ const sleep = (ms) => {
  * @param Object params    Params object to send
  * @return Promise         Rejects if response is error
  */
-const makePost = (endpoint, params) => {
+const makePost = (endpoint, client, params) => {
   return new Promise((resolve, reject) => {
-    client.post(endpoint, params, (error, data, response) => {
+    client.post(endpoint, params, (error, data) => {
       if (error) {
         reject(error);
       } else {
@@ -65,7 +57,6 @@ const isRushHour = () => {
 };
 
 module.exports = {
-  client,
   compressGIF,
   isRushHour,
   sleep,

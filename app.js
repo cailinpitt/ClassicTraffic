@@ -1,7 +1,6 @@
 const cameras = require('./cameras.js');
 const keys = require('./keys.js');
 const {
-  client,
   compressGIF,
   isRushHour,
   makePost,
@@ -19,11 +18,14 @@ const {
 } = require('canvas');
 const sizeOf = require('image-size');
 const argv = require('minimist')(process.argv.slice(2));
+const Twitter = require('twitter');
 
 const assetDirectory = './assets/';
 const pathToGIF = './assets/camera.gif';
 let chosenCamera;
 const numImages = 10;
+
+let client; 
 
 const downloadImage = async (index) => {
   const path = Path.resolve(__dirname, `assets/camera-${index}.jpg`);
@@ -50,7 +52,7 @@ const downloadCamera = async (id) => {
   if (_.isUndefined(id)) {
     const response = await Axios.get('https://publicapi.ohgo.com/api/v1/cameras', { headers, params });
     const ohgoCamera = _.sample(response.data.results);
-    
+
     formattedCamera.id = ohgoCamera.id;
     formattedCamera.name = ohgoCamera.location;
 
@@ -72,6 +74,19 @@ const downloadCamera = async (id) => {
 };
 
 const start = async () => {
+  // Get Twitter API keys
+  if (_.isUndefined(argv.location)) {
+    console.log("Location must be passed in");
+    return;
+  }
+
+  client = new Twitter({
+    consumer_key: keys[argv.location].consumer_key,
+    consumer_secret: keys[argv.location].consumer_secret,
+    access_token_key: keys[argv.location].access_token,
+    access_token_secret: keys[argv.location].access_token_secret,
+  });
+
   if (!_.isUndefined(argv.api)) {
     // download ohio camera from API
 
@@ -164,7 +179,7 @@ const initUpload = () => {
 
   console.log("Start tweet upload")
 
-  return makePost('media/upload', {
+  return makePost('media/upload', client, {
     command    : 'INIT',
     total_bytes: mediaSize,
     media_type : mediaType,
@@ -179,7 +194,7 @@ const initUpload = () => {
 const appendUpload = (mediaId) => {
   const mediaData = Fs.readFileSync(pathToGIF);
 
-  return makePost('media/upload', {
+  return makePost('media/upload', client, {
     command      : 'APPEND',
     media_id     : mediaId,
     media        : mediaData,
@@ -193,14 +208,14 @@ const appendUpload = (mediaId) => {
  * @return Promise resolving to mediaId (for chaining)
  */
 const finalizeUpload = (mediaId) => {
-  return makePost('media/upload', {
+  return makePost('media/upload', client, {
     command : 'FINALIZE',
     media_id: mediaId
   }).then(data => mediaId);
 };
 
 const publishStatusUpdate = (mediaId) => {
-  return makePost('statuses/update', {
+  return makePost('statuses/update', client, {
       status: chosenCamera.name,
       media_ids: mediaId
     });
