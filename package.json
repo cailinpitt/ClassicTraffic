@@ -13,7 +13,8 @@
     "minimist": "^1.2.3",
     "moment": "^2.24.0",
     "path": "^0.12.7",
-    "twitter": "^1.7.1"
+    "twitter": "^1.7.1",
+    "uuid": "^8.3.0"
   },
   "scripts": {
     "cincinnati": "node app.js --location cincinnati",
