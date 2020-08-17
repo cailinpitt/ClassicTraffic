@@ -21,15 +21,15 @@ const sizeOf = require('image-size');
 const argv = require('minimist')(process.argv.slice(2));
 const Twitter = require('twitter');
 
-const assetDirectory = `./assets-${uuidv4()}`;
-const pathToGIF = `${assetDirectory}/camera.gif`;
+const assetDirectory = `./assets-${uuidv4()}/`;
+const pathToGIF = `${assetDirectory}camera.gif`;
 let chosenCamera;
 const numImages = 10;
 
 let client; 
 
 const downloadImage = async (index) => {
-  const path = Path.resolve(__dirname, `${assetDirectory}/camera-${index}.jpg`);
+  const path = Path.resolve(__dirname, `${assetDirectory}camera-${index}.jpg`);
   const writer = Fs.createWriteStream(path)
 
   const response = await Axios({
@@ -132,7 +132,7 @@ const start = async () => {
 };
 
 const createGIF = async () => {
-  const pathToFirstImage = Path.resolve(`${assetDirectory}/camera-0.jpg`);
+  const pathToFirstImage = Path.resolve(`${assetDirectory}camera-0.jpg`);
   const dimensions = sizeOf(pathToFirstImage);
   const encoder = new GIFEncoder(dimensions.width, dimensions.height);
   const canvas = createCanvas(dimensions.width, dimensions.height);
@@ -146,14 +146,14 @@ const createGIF = async () => {
   encoder.setQuality(5); // image quality. 10 is default.
 
   for (let i = 0; i < numImages; i++) {
-    const image = await loadImage(`${assetDirectory}/camera-${i}.jpg`);
+    const image = await loadImage(`${assetDirectory}camera-${i}.jpg`);
     ctx.drawImage(image, 0, 0, dimensions.width, dimensions.height);
     encoder.addFrame(ctx);
   }
   
   encoder.finish();
 
-  Fs.writeFileSync(`${assetDirectory}/camera.gif`, encoder.out.getData());
+  Fs.writeFileSync(`${assetDirectory}camera.gif`, encoder.out.getData());
 
   console.log("GIF generated\n")
 
