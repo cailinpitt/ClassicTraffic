@@ -10,6 +10,7 @@ const {
 const Path = require('path');
 const Axios = require('axios');
 const Fs = require('fs-extra');
+const glob = require("glob")
 const _ = require('lodash');
 const { v4: uuidv4 } = require('uuid');
 const GIFEncoder = require('gifencoder');
@@ -224,12 +225,18 @@ const publishStatusUpdate = (mediaId) => {
 
 const cleanup = () => {
   if ((!_.isUndefined(argv.persist) && argv.persist !== true) || (_.isUndefined(argv.persist))) {
-    Fs.removeSync(assetDirectory);
+    glob("assets-*", function (er, folders) {
+      for (const folder of folders) {
+        Fs.removeSync(folder);
+      }
+    })
+    Fs.removeSync('./assets-*');
     console.log(assetDirectory + " removed")
   }
 };
 
 const tweet = () => {
+  cleanup();
   initUpload()                 // Declare that you wish to upload some media
     .then(appendUpload)        // Send the data for the media
     .then(finalizeUpload)      // Declare that you are done uploading chunks
