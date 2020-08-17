@@ -10,7 +10,6 @@ const {
 const Path = require('path');
 const Axios = require('axios');
 const Fs = require('fs-extra');
-const glob = require("glob")
 const _ = require('lodash');
 const { v4: uuidv4 } = require('uuid');
 const GIFEncoder = require('gifencoder');
@@ -225,12 +224,7 @@ const publishStatusUpdate = (mediaId) => {
 
 const cleanup = () => {
   if ((!_.isUndefined(argv.persist) && argv.persist !== true) || (_.isUndefined(argv.persist))) {
-    glob("assets-*", function (er, folders) {
-      for (const folder of folders) {
-        Fs.removeSync(folder);
-      }
-    })
-    Fs.removeSync('./assets-*');
+    Fs.removeSync(assetDirectory);
     console.log(assetDirectory + " removed")
   }
 };
