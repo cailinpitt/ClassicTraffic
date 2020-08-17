@@ -236,7 +236,6 @@ const cleanup = () => {
 };
 
 const tweet = () => {
-  cleanup();
   initUpload()                 // Declare that you wish to upload some media
     .then(appendUpload)        // Send the data for the media
     .then(finalizeUpload)      // Declare that you are done uploading chunks
