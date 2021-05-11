@@ -9,7 +9,7 @@
     "fs-extra": "^8.1.0",
     "gifencoder": "^2.0.1",
     "image-size": "^0.8.3",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.21",
     "minimist": "^1.2.3",
     "moment": "^2.24.0",
     "path": "^0.12.7",
