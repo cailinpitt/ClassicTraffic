@@ -234,7 +234,10 @@ const tweet = () => {
     .then(appendUpload)        // Send the data for the media
     .then(finalizeUpload)      // Declare that you are done uploading chunks
     .then(publishStatusUpdate) // Make tweet containing uploaded gif
-    .finally(cleanup);         // Remove downloaded images and generated gif
 };
 
-start();
+try {
+  start();
+} catch (error) {
+  cleanup();
+}

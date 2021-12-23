@@ -5,7 +5,7 @@
   "main": "app.js",
   "dependencies": {
     "axios": "^0.19.2",
-    "canvas": "^2.6.1",
+    "canvas": "github:Automattic/node-canvas#198080580a0e3938c48daae357b88a1638a9ddcd",
     "fs-extra": "^8.1.0",
     "gifencoder": "^2.0.1",
     "image-size": "^0.8.3",
@@ -13,6 +13,7 @@
     "minimist": "^1.2.3",
     "moment": "^2.24.0",
     "path": "^0.12.7",
+    "pngquant-bin": "^7.0.2",
     "twitter": "^1.7.1",
     "uuid": "^8.3.0"
   },
