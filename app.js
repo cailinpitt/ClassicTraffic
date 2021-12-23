@@ -75,6 +75,9 @@ const downloadCamera = async (id) => {
 };
 
 const start = async () => {
+  // remove failed gifs
+  cleanup();
+
   // Get Twitter API keys
   if (_.isUndefined(argv.location)) {
     console.log("Location must be passed in");
@@ -224,8 +227,12 @@ const publishStatusUpdate = (mediaId) => {
 
 const cleanup = () => {
   if ((!_.isUndefined(argv.persist) && argv.persist !== true) || (_.isUndefined(argv.persist))) {
-    Fs.removeSync(assetDirectory);
-    console.log(assetDirectory + " removed")
+    const path = './'
+    let regex = /assets-*/
+    Fs.readdirSync(path)
+      .filter(f => regex.test(f))
+      .map(f => Fs.removeSync(path + f))
+    console.log("removed old assets")
   }
 };
 
@@ -236,8 +243,4 @@ const tweet = () => {
     .then(publishStatusUpdate) // Make tweet containing uploaded gif
 };
 
-try {
-  start();
-} catch (error) {
-  cleanup();
-}
+start();
