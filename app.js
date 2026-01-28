@@ -1,246 +1,283 @@
-const cameras = require('./cameras.js');
-const keys = require('./keys.js');
-const {
-  compressGIF,
-  isRushHour,
-  makePost,
-  sleep,
-} = require('./util.js');
+const { bluesky } = require('./keys.js');
+const { sleep } = require('./util.js');
 
 const Path = require('path');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 const { v4: uuidv4 } = require('uuid');
-const GIFEncoder = require('gifencoder');
-const {
-  createCanvas,
-  loadImage,
-} = require('canvas');
-const sizeOf = require('image-size');
+const { exec } = require('child_process');
+const { AtpAgent } = require('@atproto/api');
 const argv = require('minimist')(process.argv.slice(2));
-const Twitter = require('twitter');
 
 const assetDirectory = `./assets-${uuidv4()}/`;
-const pathToGIF = `${assetDirectory}camera.gif`;
-let chosenCamera;
-const numImages = 10;
+const pathToVideo = `${assetDirectory}camera.mp4`;
+const numImages = 150;
+const delayBetweenImageFetches = 6000; // 6 seconds
 
-let client; 
+let chosenCamera;
+let agent;
+let repo;
+
+const fetchCameras = async () => {
+  const threeMonthsFromNow = new Date();
+  threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+  
+  // Format as YYYY-M-D (no leading zeros on month/day)
+  const year = threeMonthsFromNow.getFullYear();
+  const month = threeMonthsFromNow.getMonth() + 1; // getMonth() is 0-indexed
+  const day = threeMonthsFromNow.getDate();
+  const dateStr = `${year}-${month}-${day}`;
+  
+  const ohgoUrl = `https://api.ohgo.com/road-markers/multi-markers?before=${dateStr}`;
+  console.log(`Fetching cameras from API (before=${dateStr})...`);
+  
+  try {
+    const response = await Axios.get(ohgoUrl);
+    const cameraMarkers = response.data.CameraMarkers || [];
+    
+    const cameras = [];
+    cameraMarkers.forEach((marker) => {
+      if (marker.Cameras && marker.Cameras.length > 0) {
+        marker.Cameras.forEach((camera, index) => {
+          cameras.push({
+            id: `${marker.Id}-${index}`,
+            name: marker.Description,
+            url: camera.LargeURL,
+            location: marker.Location,
+            latitude: marker.Latitude,
+            longitude: marker.Longitude
+          });
+        });
+      }
+    });
+    
+    console.log(`Fetched ${cameras.length} cameras from API`);
+    return cameras;
+  } catch (error) {
+    console.error('Error fetching cameras:', error.message);
+    return [];
+  }
+};
 
 const downloadImage = async (index) => {
-  const path = Path.resolve(__dirname, `${assetDirectory}camera-${index}.jpg`);
-  const writer = Fs.createWriteStream(path)
+  const path = Path.resolve(`${assetDirectory}camera-${index}.jpg`);
+  const writer = Fs.createWriteStream(path);
 
   const response = await Axios({
     url: chosenCamera.url,
     method: 'GET',
-    responseType: 'stream'
+    responseType: 'stream',
+    timeout: 10000, // 10 second timeout
   });
 
-  return new Promise(resolve => response.data.pipe(writer).on('finish', resolve));
-};
-
-const downloadCamera = async (id) => {
-  const headers = {
-    'Authorization': 'APIKEY ' + keys.ohgo_key,
-  };
-  const params = {
-    'page-all': true,
-  };
-  const formattedCamera = {};
-
-  if (_.isUndefined(id)) {
-    const response = await Axios.get('https://publicapi.ohgo.com/api/v1/cameras', { headers, params });
-    const ohgoCamera = _.sample(response.data.results);
-
-    formattedCamera.id = ohgoCamera.id;
-    formattedCamera.name = ohgoCamera.location;
-
-    // a camera can have multiple directions (W, N, E, S), just choose one
-    formattedCamera.url = _.sample(ohgoCamera.cameraViews).largeUrl;
-  }
-  else {
-    const response = await Axios.get(`https://publicapi.ohgo.com/api/v1/cameras/${id}`, { headers });
-    const ohgoCamera = response.data.results[0];
-    console.log(ohgoCamera)
-    formattedCamera.id = ohgoCamera.id;
-    formattedCamera.name = ohgoCamera.location;
-
-    // a camera can have multiple directions (W, N, E, S), just choose one
-    formattedCamera.url = _.sample(ohgoCamera.cameraViews).largeUrl;
-  }
-
-  return formattedCamera;
-};
-
-const start = async () => {
-  // remove failed gifs
-  cleanup();
-
-  // Get Twitter API keys
-  if (_.isUndefined(argv.location)) {
-    console.log("Location must be passed in");
-    return;
-  }
-
-  client = new Twitter({
-    consumer_key: keys[argv.location].consumer_key,
-    consumer_secret: keys[argv.location].consumer_secret,
-    access_token_key: keys[argv.location].access_token,
-    access_token_secret: keys[argv.location].access_token_secret,
-  });
-
-  if (!_.isUndefined(argv.api)) {
-    // download ohio camera from API
-
-    console.log("Choose camera from OHGO API");
-    chosenCamera = await downloadCamera(argv.id);
-  }
-  else if (!_.isUndefined(argv.id)) {
-    // local camera by ID
-    chosenCamera = _.find(cameras, { id: argv.id });
-  }
-  else if (isRushHour()) {
-    // local camera that has rush hour priority
-    console.log("Rush Hour priority...\n");
-    chosenCamera = _.sample(_.pickBy(cameras, { 'rushHourPriority': true }));
-  }
-  else {
-    // random local camera
-    chosenCamera = _.sample(cameras);
-  }
-
-  console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}\n`);
-
-  if (_.isUndefined(chosenCamera))
-    return;
-
-  Fs.ensureDirSync(assetDirectory);
-
-  console.log("Downloading traffic camera images...");
-  // Retrieve 10 images from chosen traffic camera
-  const delay = chosenCamera.delay ? chosenCamera.delay * 1000 : 6000;
-
-  for (let i = 0; i < numImages; i++) {
-    await downloadImage(i);
-
-    // Cameras refresh every few seconds, so wait until querying again
-    if (i < numImages - 1)
-      await sleep(delay);
-  }
-  console.log("Download complete\n");
-  
-  createGIF();
-};
-
-const createGIF = async () => {
-  const pathToFirstImage = Path.resolve(`${assetDirectory}camera-0.jpg`);
-  const dimensions = sizeOf(pathToFirstImage);
-  const encoder = new GIFEncoder(dimensions.width, dimensions.height);
-  const canvas = createCanvas(dimensions.width, dimensions.height);
-  const ctx = canvas.getContext('2d');
-
-  console.log("Generate GIF...")
-
-  encoder.start();
-  encoder.setRepeat(0);   // 0 for repeat, -1 for no-repeat
-  encoder.setDelay(150);  // frame delay in ms
-  encoder.setQuality(5); // image quality. 10 is default.
-
-  for (let i = 0; i < numImages; i++) {
-    const image = await loadImage(`${assetDirectory}camera-${i}.jpg`);
-    ctx.drawImage(image, 0, 0, dimensions.width, dimensions.height);
-    encoder.addFrame(ctx);
-  }
-  
-  encoder.finish();
-
-  Fs.writeFileSync(`${assetDirectory}camera.gif`, encoder.out.getData());
-
-  console.log("GIF generated\n")
-
-  if (Fs.statSync(pathToGIF).size > 5100000) {
-      // Twitter GIF files must be less than 5MB
-      // We'll compress the GIF once to attempt to get the size down
-    console.log("GIF is too big, Compressing...")
-    await compressGIF(pathToGIF, assetDirectory);
-    console.log("GIF compressed\n")
-  }
-
-    tweet();
-};
-
-// Taken from https://github.com/desmondmorris/node-twitter/tree/master/examples#chunked-media
-
-/**
-   * Step 1 of 3: Initialize a media upload
-   * @return Promise resolving to String mediaId
-   */
-const initUpload = () => {
-  const mediaType = "image/gif";
-  const mediaSize = Fs.statSync(pathToGIF).size;
-
-  console.log("Start tweet upload")
-
-  return makePost('media/upload', client, {
-    command    : 'INIT',
-    total_bytes: mediaSize,
-    media_type : mediaType,
-  }).then(data => data.media_id_string);
-};
-
-/**
- * Step 2 of 3: Append file chunk
- * @param String mediaId    Reference to media object being uploaded
- * @return Promise resolving to String mediaId (for chaining)
- */
-const appendUpload = (mediaId) => {
-  const mediaData = Fs.readFileSync(pathToGIF);
-
-  return makePost('media/upload', client, {
-    command      : 'APPEND',
-    media_id     : mediaId,
-    media        : mediaData,
-    segment_index: 0
-  }).then(data => mediaId);
-};
- 
-/**
- * Step 3 of 3: Finalize upload
- * @param String mediaId   Reference to media
- * @return Promise resolving to mediaId (for chaining)
- */
-const finalizeUpload = (mediaId) => {
-  return makePost('media/upload', client, {
-    command : 'FINALIZE',
-    media_id: mediaId
-  }).then(data => mediaId);
-};
-
-const publishStatusUpdate = (mediaId) => {
-  return makePost('statuses/update', client, {
-      status: chosenCamera.name,
-      media_ids: mediaId
+  return new Promise((resolve, reject) => {
+    response.data.pipe(writer);
+    writer.on('finish', () => {
+      // Give it a moment to fully flush to disk
+      setTimeout(resolve, 100);
     });
+    writer.on('error', reject);
+  });
+};
+
+const createVideo = async () => {
+  console.log('Generating video...');
+
+  // Create MP4 video directly from original images (no optimization needed)
+  // framerate: 5fps for smooth playback
+  // crf: 23 for high quality
+  const cmd = `ffmpeg -y -framerate 5 -i ${assetDirectory}camera-%d.jpg -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${pathToVideo}`;
+
+  await new Promise((resolve, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+
+  // Check file size
+  const stats = Fs.statSync(pathToVideo);
+  const fileSizeInMB = stats.size / (1024 * 1024);
+  console.log(`Video generated: ${pathToVideo} (${fileSizeInMB.toFixed(2)} MB)`);
+};
+
+const getAspectRatio = async () => {
+  return new Promise((resolve, reject) => {
+    const cmd = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 ${pathToVideo}`;
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) return reject(error);
+      const [width, height] = stdout.trim().split(',').map(Number);
+      resolve({ width, height });
+    });
+  });
+};
+
+const postToBluesky = async () => {
+  console.log('Uploading video to Bluesky...');
+
+  const videoBuffer = Fs.readFileSync(pathToVideo);
+  const stats = Fs.statSync(pathToVideo);
+  const fileSizeInMB = stats.size / (1024 * 1024);
+  console.log(`Video file size: ${fileSizeInMB.toFixed(2)} MB`);
+
+  // Step 1: Get service auth token
+  const { data: serviceAuth } = await agent.com.atproto.server.getServiceAuth({
+    aud: `did:web:${agent.dispatchUrl.host}`,
+    lxm: 'com.atproto.repo.uploadBlob',
+    exp: Math.floor(Date.now() / 1000) + 60 * 30, // 30 minutes
+  });
+
+  const token = serviceAuth.token;
+
+  // Step 2: Upload video to Bluesky video service
+  const uploadUrl = new URL('https://video.bsky.app/xrpc/app.bsky.video.uploadVideo');
+  uploadUrl.searchParams.append('did', agent.session.did);
+  uploadUrl.searchParams.append('name', 'camera.mp4');
+
+  console.log('Uploading to video service...');
+  const uploadResponse = await fetch(uploadUrl.toString(), {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'video/mp4',
+      'Content-Length': stats.size.toString(),
+    },
+    body: videoBuffer,
+  });
+
+  if (!uploadResponse.ok) {
+    const error = await uploadResponse.json();
+    throw new Error(`Video upload failed: ${JSON.stringify(error)}`);
+  }
+
+  const jobStatus = await uploadResponse.json();
+  console.log('Video uploaded, processing...');
+
+  // Step 3: Poll for processing completion
+  let blob = jobStatus.blob;
+  const videoServiceAgent = new AtpAgent({ service: 'https://video.bsky.app' });
+
+  while (!blob) {
+    await sleep(1000); // Wait 1 second
+    
+    try {
+      const { data: status } = await videoServiceAgent.app.bsky.video.getJobStatus({
+        jobId: jobStatus.jobId,
+      });
+
+      console.log(`Processing: ${status.jobStatus.state}`, status.jobStatus.progress || '');
+
+      if (status.jobStatus.blob) {
+        blob = status.jobStatus.blob;
+      } else if (status.jobStatus.state === 'JOB_STATE_FAILED') {
+        throw new Error(`Video processing failed: ${status.jobStatus.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      // Check if it's the "already_exists" error
+      if (error.message && error.message.includes('already_exists')) {
+        // The error response should contain the blob
+        blob = error.blob || jobStatus.blob;
+        break;
+      }
+      throw error;
+    }
+  }
+
+  console.log('Video processing complete!');
+
+  const aspectRatio = await getAspectRatio();
+
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${chosenCamera.latitude},${chosenCamera.longitude}`;
+  const coordinates = `${chosenCamera.latitude},${chosenCamera.longitude}`;
+  const postText = `${chosenCamera.name}\n${coordinates}`;
+
+  // Create facets for the hyperlink
+  const byteStart = Buffer.from(`${chosenCamera.name}\n`).length;
+  const byteEnd = byteStart + Buffer.from(coordinates).length;
+
+  await agent.post({
+    text: postText,
+    facets: [
+      {
+        index: {
+          byteStart: byteStart,
+          byteEnd: byteEnd,
+        },
+        features: [
+          {
+            $type: 'app.bsky.richtext.facet#link',
+            uri: googleMapsUrl,
+          },
+        ],
+      },
+    ],
+    embed: {
+      $type: 'app.bsky.embed.video',
+      video: blob,
+      aspectRatio: aspectRatio,
+    },
+  });
+
+  console.log('Posted video to Bluesky successfully');
 };
 
 const cleanup = () => {
-  if ((!_.isUndefined(argv.persist) && argv.persist !== true) || (_.isUndefined(argv.persist))) {
-    const path = './'
-    let regex = /assets-*/
-    Fs.readdirSync(path)
-      .filter(f => regex.test(f))
-      .map(f => Fs.removeSync(path + f))
-    console.log("removed old assets")
-  }
+  if (argv.persist === true) return;
+
+  Fs.readdirSync('./')
+    .filter((f) => f.startsWith('assets-'))
+    .forEach((f) => Fs.removeSync(`./${f}`));
+
+  console.log('Removed old assets');
 };
 
-const tweet = () => {
-  initUpload()                 // Declare that you wish to upload some media
-    .then(appendUpload)        // Send the data for the media
-    .then(finalizeUpload)      // Declare that you are done uploading chunks
-    .then(publishStatusUpdate) // Make tweet containing uploaded gif
+const start = async () => {
+  cleanup();
+
+  agent = new AtpAgent({ service: bluesky.service });
+
+  await agent.login({
+    identifier: bluesky.identifier,
+    password: bluesky.password,
+  });
+
+  repo = agent.session?.did;
+  if (!repo) {
+    console.error('Failed to get DID after login');
+    return;
+  }
+
+  const cameras = await fetchCameras();
+  if (cameras.length === 0) {
+    console.error('No cameras available');
+    return;
+  }
+
+  if (!_.isUndefined(argv.id)) {
+    chosenCamera = _.find(cameras, { id: argv.id });
+  } else {
+    chosenCamera = _.sample(cameras);
+  }
+
+  if (!chosenCamera) {
+    console.error('Could not select a camera');
+    return;
+  }
+
+  console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}`);
+  Fs.ensureDirSync(assetDirectory);
+
+  console.log('Downloading traffic camera images...');
+
+  for (let i = 0; i < numImages; i++) {
+    await downloadImage(i);
+    if (i < numImages - 1) await sleep(delayBetweenImageFetches);
+  }
+
+  console.log('Download complete');
+  await createVideo();
+  await postToBluesky();
 };
 
 start();

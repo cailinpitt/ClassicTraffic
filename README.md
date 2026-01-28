@@ -2,74 +2,28 @@
 
 ![Traffic Cam](example.gif)
 
-A twitter bot that tweets gifs of traffic cameras images.
+A Bluesky bot that posts videos of Ohio traffic camera timelapses.
 
-[@classic_traffic](https://twitter.com/classic_traffic)
+[@classictraffic.bsky.social](https://bsky.app/profile/classictraffic.bsky.social)
+
+Each video consists of 150 images downloaded from a single randomly chosen traffic camera every 6 seconds, so 15 minutes worth of images compressed into 30 seconds.
 
 ## Background
-Classic Traffic uses a `cameras.js` file containing the traffic cameras image url's to download from. The file consists of an array of objects, with each object having the following properties:
-
-```js
-{
-    "id": ...,
-    "name": ...,
-    "url": ...,
-    "city": ...,
-    "rushHourPriority": ...,
-},
-```
-
-### id <number>
-The id of the camera
-
-### name <string>
-The name of the camera, tweeted along with gif
-
-### url <string>
-url of traffic camera image
-
-### city <string> (optional)
-city where traffic camera is located. Not used for anything
-
-### rushHourPriority <boolean>
-if true, Classic Traffic will give the camera priority during the hours of 7:00 AM to 9:00 AM, and 4:00 PM to 7:00 PM. During these hours, Classic Traffic will only tweet gifs from camera's with this property set to `true`
+Classic Traffic downloads available cameras from the [OHGO](https://ohgo.com/) road-markers API
 
 ## Installation
-First, create `keys.js` file with a `keys` object containing the Twitter API keys. Make sure to export the object:
+Create a `keys.js` file and create an object to hold your Bluesky credentials. Make sure to export the object:
 
 ```js
-const keys = {
-    consumer_key: '<consumer_key>',
-    consumer_secret: '<consumer_secret>',
-    access_token: '<access_token>',
-    access_token_secret: '<access_token_secret>'
+const bluesky = {
+  identifier: '....',
+  password: '...',
+  service: 'https://bsky.social',
 };
 
-module.exports = keys;
-```
-
-Then, create `cameras.js` containing an array of objects with the information of each camera you want to tweet gifs from. Make sure to export the array:
-
-```js
-// Example:
-const cameras = [
-    {
-        "id": 0,
-        "name": "I-71 at I-75",
-        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV035a-L.jpg",
-        "city": "Cincinnati",
-        "rushHourPriority": true,
-    },
-    {
-        "id": 1,
-        "name": "I-75 at 3rd St",
-        "url": "https://itscameras.dot.state.oh.us/images/artimis/CCTV022.jpg",
-        "city": "Cincinnati",
-        "rushHourPriority": true,
-    },
-];
-
-module.exports = cameras;
+module.exports = {
+  bluesky
+};
 ```
 
 Then, install dependencies:
@@ -79,12 +33,12 @@ Then, install dependencies:
 ## Run
 To run:
 
-`node app.js`
+`npm run local`
 
-To run and tweet a gif from a specific traffic camera:
+To run and post a gif from a specific traffic camera:
 
-`node app.js --id 20`
+`npm run local --id 00000000001080-0`
 
 To run without deleting `assets` folder (contains downloaded images and generated gif):
 
-`node app.js --persist`
+`npm run local --persist`

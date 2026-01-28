@@ -4,3 +4,4 @@ camera.gif
 .DS_Store
 node_modules/
 log/
+yarn.lock
