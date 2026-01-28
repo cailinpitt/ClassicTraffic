@@ -13,7 +13,7 @@ const crypto = require('crypto');
 
 const assetDirectory = `./assets-${uuidv4()}/`;
 const pathToVideo = `${assetDirectory}camera.mp4`;
-const numImages = 15;
+const numImages = 150;
 const delayBetweenImageFetches = 6000; // 6 seconds
 
 let chosenCamera;
@@ -21,6 +21,8 @@ let agent;
 let repo;
 let imageHashes = new Set(); // Track hashes of downloaded images
 let uniqueImageCount = 0;
+let startTime;
+let endTime;
 
 const fetchCameras = async () => {
   const threeMonthsFromNow = new Date();
@@ -219,12 +221,25 @@ const postToBluesky = async () => {
 
   const aspectRatio = await getAspectRatio();
 
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${chosenCamera.latitude},${chosenCamera.longitude}`;
+  // Format timestamps in Eastern Time (Ohio timezone)
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/New_York'
+    });
+  };
+
+  const timeRange = `${formatTime(startTime)} - ${formatTime(endTime)} EST`;
+
+  const googleMapsUrl = `https://www.google.com/maps?q=${chosenCamera.latitude},${chosenCamera.longitude}`;
   const coordinates = `${chosenCamera.latitude},${chosenCamera.longitude}`;
-  const postText = `${chosenCamera.name}\n\n📍: ${coordinates}`;
+  const postText = `${chosenCamera.name}\n🕒 ${timeRange}\n\n📍: ${coordinates}`;
 
   // Create facets for the hyperlink
-  const byteStart = Buffer.from(`${chosenCamera.name}\n`).length;
+  // Need to account for emoji which is multi-byte
+  const byteStart = Buffer.from(`${chosenCamera.name}\n🕒 ${timeRange}\n\n📍: `).length;
   const byteEnd = byteStart + Buffer.from(coordinates).length;
 
   await agent.post({
@@ -300,11 +315,15 @@ const start = async () => {
   Fs.ensureDirSync(assetDirectory);
 
   console.log('Downloading traffic camera images...');
+  
+  startTime = new Date();
 
   for (let i = 0; i < numImages; i++) {
     await downloadImage(i);
     if (i < numImages - 1) await sleep(delayBetweenImageFetches);
   }
+
+  endTime = new Date();
 
   console.log('Download complete');
   await createVideo();
