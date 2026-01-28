@@ -9,15 +9,18 @@ const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
 const { AtpAgent } = require('@atproto/api');
 const argv = require('minimist')(process.argv.slice(2));
+const crypto = require('crypto');
 
 const assetDirectory = `./assets-${uuidv4()}/`;
 const pathToVideo = `${assetDirectory}camera.mp4`;
-const numImages = 150;
+const numImages = 15;
 const delayBetweenImageFetches = 6000; // 6 seconds
 
 let chosenCamera;
 let agent;
 let repo;
+let imageHashes = new Set(); // Track hashes of downloaded images
+let uniqueImageCount = 0;
 
 const fetchCameras = async () => {
   const threeMonthsFromNow = new Date();
@@ -60,6 +63,11 @@ const fetchCameras = async () => {
   }
 };
 
+const getImageHash = (filePath) => {
+  const fileBuffer = Fs.readFileSync(filePath);
+  return crypto.createHash('md5').update(fileBuffer).digest('hex');
+};
+
 const downloadImage = async (index) => {
   const path = Path.resolve(`${assetDirectory}camera-${index}.jpg`);
   const writer = Fs.createWriteStream(path);
@@ -74,8 +82,19 @@ const downloadImage = async (index) => {
   return new Promise((resolve, reject) => {
     response.data.pipe(writer);
     writer.on('finish', () => {
-      // Give it a moment to fully flush to disk
-      setTimeout(resolve, 100);
+      setTimeout(() => {
+        const hash = getImageHash(path);
+        
+        if (imageHashes.has(hash)) {
+          console.log(`Skipping duplicate image ${index}`);
+          Fs.removeSync(path); // Delete the duplicate
+          resolve(false); // Return false to indicate duplicate
+        } else {
+          imageHashes.add(hash);
+          uniqueImageCount++;
+          resolve(true); // Return true to indicate unique image
+        }
+      }, 100);
     });
     writer.on('error', reject);
   });
@@ -84,10 +103,22 @@ const downloadImage = async (index) => {
 const createVideo = async () => {
   console.log('Generating video...');
 
-  // Create MP4 video directly from original images (no optimization needed)
-  // framerate: 5fps for smooth playback
-  // crf: 23 for high quality
-  const cmd = `ffmpeg -y -framerate 5 -i ${assetDirectory}camera-%d.jpg -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${pathToVideo}`;
+  // Rename files to be sequential (remove gaps from duplicates)
+  const files = Fs.readdirSync(assetDirectory)
+    .filter(f => f.startsWith('camera-') && f.endsWith('.jpg'))
+    .sort((a, b) => {
+      const numA = parseInt(a.match(/camera-(\d+)\.jpg/)[1]);
+      const numB = parseInt(b.match(/camera-(\d+)\.jpg/)[1]);
+      return numA - numB;
+    });
+
+  files.forEach((file, index) => {
+    const oldPath = `${assetDirectory}${file}`;
+    const newPath = `${assetDirectory}seq-${index}.jpg`;
+    Fs.renameSync(oldPath, newPath);
+  });
+
+  const cmd = `ffmpeg -y -framerate 5 -i ${assetDirectory}seq-%d.jpg -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${pathToVideo}`;
 
   await new Promise((resolve, reject) => {
     exec(cmd, (error, stdout, stderr) => {
@@ -96,10 +127,10 @@ const createVideo = async () => {
     });
   });
 
-  // Check file size
   const stats = Fs.statSync(pathToVideo);
   const fileSizeInMB = stats.size / (1024 * 1024);
   console.log(`Video generated: ${pathToVideo} (${fileSizeInMB.toFixed(2)} MB)`);
+  console.log(`Total unique images: ${uniqueImageCount}`);
 };
 
 const getAspectRatio = async () => {
@@ -190,7 +221,7 @@ const postToBluesky = async () => {
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${chosenCamera.latitude},${chosenCamera.longitude}`;
   const coordinates = `${chosenCamera.latitude},${chosenCamera.longitude}`;
-  const postText = `${chosenCamera.name}\n${coordinates}`;
+  const postText = `${chosenCamera.name}\n\n📍: ${coordinates}`;
 
   // Create facets for the hyperlink
   const byteStart = Buffer.from(`${chosenCamera.name}\n`).length;
