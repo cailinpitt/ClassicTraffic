@@ -13,8 +13,8 @@ const crypto = require('crypto');
 
 const assetDirectory = `./assets-${uuidv4()}/`;
 const pathToVideo = `${assetDirectory}camera.mp4`;
-const numImages = 150;
 const delayBetweenImageFetches = 6000; // 6 seconds
+const numImagesPerVideoOptions = [150, 300, 450]; // 15, 30, 45 second videos
 
 let chosenCamera;
 let agent;
@@ -120,7 +120,7 @@ const createVideo = async () => {
     Fs.renameSync(oldPath, newPath);
   });
 
-  const cmd = `ffmpeg -y -framerate 5 -i ${assetDirectory}seq-%d.jpg -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${pathToVideo}`;
+  const cmd = `ffmpeg -y -framerate 10 -i ${assetDirectory}seq-%d.jpg -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${pathToVideo}`;
 
   await new Promise((resolve, reject) => {
     exec(cmd, (error, stdout, stderr) => {
@@ -189,7 +189,7 @@ const postToBluesky = async () => {
 
   // Step 3: Poll for processing completion
   let blob = jobStatus.blob;
-  const videoServiceAgent = new AtpAgent({ service: 'https://video.bsky.app' });
+  const videoServiceAgent = new AtpAgent({ service: bluesky.videoService });
 
   while (!blob) {
     await sleep(1000); // Wait 1 second
@@ -313,15 +313,19 @@ const start = async () => {
 
   console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}`);
   Fs.ensureDirSync(assetDirectory);
-
-  console.log('Downloading traffic camera images...');
   
   startTime = new Date();
+  const numImages = _.sample(numImagesPerVideoOptions);
+  console.log(`Downloading traffic camera images. ${numImages} images...`);
 
   for (let i = 0; i < numImages; i++) {
     await downloadImage(i);
     if (i < numImages - 1) await sleep(delayBetweenImageFetches);
   }
+
+  if (uniqueImageCount === 1) {
+    console.log(`Camera ${chosenCamera.id}: ${chosenCamera.name} is frozen. Exiting`);
+  };
 
   endTime = new Date();
 

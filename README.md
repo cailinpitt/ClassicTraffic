@@ -6,7 +6,7 @@ A Bluesky bot that posts videos of Ohio traffic camera timelapses.
 
 [@classictraffic.bsky.social](https://bsky.app/profile/classictraffic.bsky.social)
 
-Each video consists of 150 images downloaded from a single randomly chosen traffic camera every 6 seconds, so 15 minutes worth of images compressed into 30 seconds.
+Each video consists of 150/300/450 images downloaded from a single randomly chosen traffic camera every 6 seconds at 10 fps, so 15/30/45 minutes worth of images compressed into 15/30/45 seconds.
 
 ## Background
 Classic Traffic downloads available cameras from the [OHGO](https://ohgo.com/) road-markers API
@@ -15,14 +15,13 @@ Classic Traffic downloads available cameras from the [OHGO](https://ohgo.com/) r
 Create a `keys.js` file and create an object to hold your Bluesky credentials. Make sure to export the object:
 
 ```js
-const bluesky = {
-  identifier: '....',
-  password: '...',
-  service: 'https://bsky.social',
-};
-
 module.exports = {
-  bluesky
+    bluesky: {
+        identifier: '...',
+        password: '...',
+        service: 'https://bsky.social',
+        videoService: 'https://video.bsky.app',
+    }
 };
 ```
 
