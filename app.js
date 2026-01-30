@@ -325,6 +325,7 @@ const start = async () => {
 
   if (uniqueImageCount === 1) {
     console.log(`Camera ${chosenCamera.id}: ${chosenCamera.name} is frozen. Exiting`);
+    return;
   };
 
   endTime = new Date();
