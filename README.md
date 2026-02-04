@@ -36,8 +36,8 @@ To run:
 
 To run and post a gif from a specific traffic camera:
 
-`npm run local --id 00000000001080-0`
+`npm run local -- --id 00000000001080-0`
 
 To run without deleting `assets` folder (contains downloaded images and generated gif):
 
-`npm run local --persist`
+`npm run local -- --persist`
