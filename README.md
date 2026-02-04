@@ -6,7 +6,7 @@ A Bluesky bot that posts videos of Ohio traffic camera timelapses.
 
 [@classictraffic.bsky.social](https://bsky.app/profile/classictraffic.bsky.social)
 
-Each video consists of 150/300/450 images downloaded from a single randomly chosen traffic camera every 6 seconds at 10 fps, so 15/30/45 minutes worth of images compressed into 15/30/45 seconds.
+Each video consists of 150/300/450/600/750/900 images downloaded from a single randomly chosen traffic camera every 6 seconds at 10 fps, so 15/30/45/60/75/90 minutes worth of images compressed into 15/30/45/60/75/90 seconds.
 
 ## Background
 Classic Traffic downloads available cameras from the [OHGO](https://ohgo.com/) road-markers API
