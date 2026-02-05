@@ -70,36 +70,52 @@ const getImageHash = (filePath) => {
   return crypto.createHash('md5').update(fileBuffer).digest('hex');
 };
 
-const downloadImage = async (index) => {
+const downloadImage = async (index, retries = 3) => {
   const path = Path.resolve(`${assetDirectory}camera-${index}.jpg`);
-  const writer = Fs.createWriteStream(path);
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const writer = Fs.createWriteStream(path);
 
-  const response = await Axios({
-    url: chosenCamera.url,
-    method: 'GET',
-    responseType: 'stream',
-    timeout: 10000, // 10 second timeout
-  });
+      const response = await Axios({
+        url: chosenCamera.url,
+        method: 'GET',
+        responseType: 'stream',
+        timeout: 10000, // 10 second timeout
+      });
 
-  return new Promise((resolve, reject) => {
-    response.data.pipe(writer);
-    writer.on('finish', () => {
-      setTimeout(() => {
-        const hash = getImageHash(path);
-        
-        if (imageHashes.has(hash)) {
-          console.log(`Skipping duplicate image ${index}`);
-          Fs.removeSync(path); // Delete the duplicate
-          resolve(false); // Return false to indicate duplicate
-        } else {
-          imageHashes.add(hash);
-          uniqueImageCount++;
-          resolve(true); // Return true to indicate unique image
-        }
-      }, 100);
-    });
-    writer.on('error', reject);
-  });
+      return await new Promise((resolve, reject) => {
+        response.data.pipe(writer);
+        writer.on('finish', () => {
+          setTimeout(() => {
+            const hash = getImageHash(path);
+            
+            if (imageHashes.has(hash)) {
+              console.log(`Skipping duplicate image ${index}`);
+              Fs.removeSync(path); // Delete the duplicate
+              resolve(false); // Return false to indicate duplicate
+            } else {
+              imageHashes.add(hash);
+              uniqueImageCount++;
+              resolve(true); // Return true to indicate unique image
+            }
+          }, 100);
+        });
+        writer.on('error', reject);
+      });
+    } catch (error) {
+      console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
+      if (Fs.existsSync(path)) {
+        Fs.removeSync(path);
+      }
+      
+      if (attempt === retries) {
+        throw error;
+      }
+      
+      await sleep(1000 * Math.pow(2, attempt - 1));
+    }
+  }
 };
 
 const createVideo = async () => {
@@ -231,7 +247,7 @@ const postToBluesky = async () => {
     });
   };
 
-  const timeRange = `${formatTime(startTime)} - ${formatTime(endTime)} EST`;
+  const timeRange = `${formatTime(startTime)} - ${formatTime(endTime)} ET`;
 
   const googleMapsUrl = `https://www.google.com/maps?q=${chosenCamera.latitude},${chosenCamera.longitude}`;
   const coordinates = `${chosenCamera.latitude},${chosenCamera.longitude}`;
