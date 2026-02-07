@@ -351,63 +351,66 @@ const postToBluesky = async () => {
 const cleanup = () => {
   if (argv.persist === true) return;
 
-  Fs.readdirSync('./')
-    .filter((f) => f.startsWith('assets-'))
-    .forEach((f) => Fs.removeSync(`./${f}`));
-
-  console.log('Removed old assets');
+  if (Fs.existsSync(assetDirectory)) {
+    Fs.removeSync(assetDirectory);
+    console.log(`Removed ${assetDirectory}`);
+  }
 };
 
 const start = async () => {
-  cleanup();
+    try {
+        agent = new AtpAgent({ service: bluesky.service });
 
-  agent = new AtpAgent({ service: bluesky.service });
+        await agent.login({
+            identifier: montana.identifier,
+            password: montana.password,
+        });
 
-  await agent.login({
-    identifier: montana.identifier,
-    password: montana.password,
-  });
+        repo = agent.session?.did;
+        if (!repo) {
+            console.error('Failed to get DID after login');
+            return;
+        }
 
-  repo = agent.session?.did;
-  if (!repo) {
-    console.error('Failed to get DID after login');
-    return;
-  }
+        const cameras = await fetchCameras();
+        if (cameras.length === 0) {
+            console.error('No cameras available');
+            return;
+        }
 
-  const cameras = await fetchCameras();
-  if (cameras.length === 0) {
-    console.error('No cameras available');
-    return;
-  }
+        if (!_.isUndefined(argv.id)) {
+            chosenCamera = _.find(cameras, { id: argv.id });
+        } else {
+            chosenCamera = _.sample(cameras);
+        }
 
-  if (!_.isUndefined(argv.id)) {
-    chosenCamera = _.find(cameras, { id: argv.id });
-  } else {
-    chosenCamera = _.sample(cameras);
-  }
+        if (!chosenCamera) {
+            console.error('Could not select a camera');
+            return;
+        }
 
-  if (!chosenCamera) {
-    console.error('Could not select a camera');
-    return;
-  }
+        console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}`);
+        Fs.ensureDirSync(assetDirectory);
 
-  console.log(`ID ${chosenCamera.id}: ${chosenCamera.name}`);
-  Fs.ensureDirSync(assetDirectory);
+        console.log('Downloading traffic camera images...');
+        
+        startTime = new Date();
 
-  console.log('Downloading traffic camera images...');
-  
-  startTime = new Date();
+        for (let i = 0; i < numImages; i++) {
+            await downloadImage(i);
+            if (i < numImages - 1) await sleep(delayBetweenImageFetches);
+        }
 
-  for (let i = 0; i < numImages; i++) {
-    await downloadImage(i);
-    if (i < numImages - 1) await sleep(delayBetweenImageFetches);
-  }
+        endTime = new Date();
 
-  endTime = new Date();
-
-  console.log('Download complete');
-  await createVideo();
-  await postToBluesky();
+        console.log('Download complete');
+        await createVideo();
+        await postToBluesky();
+    } catch (error) {
+        console.log(error)
+    } finally {
+        cleanup();
+    }
 };
 
 start();
