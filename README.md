@@ -4,6 +4,8 @@
 
 Bluesky bots that post videos of traffic camera timelapses.
 
+![US Map](map.svg)
+
 ## Bots
 
 ### Ohio - [@classictraffic.bsky.social](https://bsky.app/profile/classictraffic.bsky.social)
@@ -13,10 +15,13 @@ Each video consists of 150-900 images downloaded from a single randomly chosen t
 24-hour timelapses from Montana DOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [Montana MDT](https://www.mdt.mt.gov/).
 
 ### Nevada - [@nevadatrafficcams.bsky.social](https://bsky.app/profile/nevadatrafficcams.bsky.social)
-Live video clips (30-120 seconds) captured directly from HLS streams. Randomly selects a page of 10 cameras from the 645+ available, then picks one. Cameras sourced from [NVRoads](https://www.nvroads.com/).
+Live video clips (30 seconds to 5 minutes) captured directly from HLS streams. Randomly selects a page of 10 cameras from the 645+ available, then picks one. Cameras sourced from [NVRoads](https://www.nvroads.com/).
 
 ### Florida - [@floridatrafficcams.bsky.social](https://bsky.app/profile/floridatrafficcams.bsky.social)
-Live video clips (30-120 seconds) captured from DIVAS-authenticated HLS streams. Randomly selects from 4500+ cameras. Cameras sourced from [FL511](https://fl511.com/).
+Live video clips (30 seconds to 5 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 4500+ cameras. Cameras sourced from [FL511](https://fl511.com/).
+
+### Wisconsin - [@wisconsintrafficcams.bsky.social](https://bsky.app/profile/wisconsintrafficcams.bsky.social)
+Live video clips (30 seconds to 5 minutes) captured directly from HLS streams. Randomly selects from 480+ cameras. Cameras sourced from [511WI](https://511wi.gov/).
 
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
@@ -42,6 +47,10 @@ module.exports = {
             password: '...',
         },
         florida: {
+            identifier: '...',
+            password: '...',
+        },
+        wisconsin: {
             identifier: '...',
             password: '...',
         },
@@ -93,6 +102,13 @@ node states/florida.js
 npm run florida
 ```
 
+### Wisconsin
+```
+node states/wisconsin.js
+# or
+npm run wisconsin
+```
+
 ### Options
 | Flag | Description |
 |------|-------------|
@@ -109,9 +125,11 @@ states/          # State-specific bot implementations
   montana.js     # 24-hour image timelapse bot (MDT)
   nevada.js      # Live HLS video clip bot (NVRoads)
   florida.js     # Live HLS video clip bot with DIVAS auth (FL511)
+  wisconsin.js   # Live HLS video clip bot (511WI)
 TrafficBot.js    # Base class with shared workflow
 keys.js          # Bluesky credentials (gitignored)
 assets/          # Temporary download directory (gitignored)
+map.svg          # US map highlighting active states
 ```
 
 ## Architecture
@@ -120,7 +138,7 @@ The project uses a class-based architecture with `TrafficBot` as the base class.
 
 **Image timelapse bots** (Ohio, Montana) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
-**Live video clip bots** (Nevada, Florida) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida adds an extra DIVAS authentication step to obtain a secure token for the HLS streams.
+**Live video clip bots** (Nevada, Florida, Wisconsin) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida adds an extra DIVAS authentication step to obtain a secure token for the HLS streams.
 
 ### TrafficBot (base class)
 
@@ -192,3 +210,7 @@ Handles the common workflow:
     "newstate": "node states/newstate.js"
 }
 ```
+
+## Credits
+
+US map SVG adapted from a [GitHub Gist by coryetzkorn](https://gist.github.com/coryetzkorn/3077873), originally sourced from [Wikipedia](https://en.wikipedia.org/wiki/File:Blank_US_Map_(states_only).svg) (public domain).

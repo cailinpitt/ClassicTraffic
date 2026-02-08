@@ -5,7 +5,7 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [30, 45, 60, 90, 120];
+const durationOptions = [30, 45, 60, 90, 120, 180, 240, 300];
 const CAMERAS_PER_PAGE = 10;
 const DIVAS_AUTH_URL = 'https://divas.cloud/VDS-API/SecureTokenUri/GetSecureTokenUriBySourceId';
 

@@ -8,12 +8,12 @@ const argv = require('minimist')(process.argv.slice(2));
 const durationOptions = [30, 45, 60, 90, 120, 180, 240, 300];
 const CAMERAS_PER_PAGE = 10;
 
-class NevadaBot extends TrafficBot {
+class WisconsinBot extends TrafficBot {
   constructor() {
     super({
-      accountName: 'nevada',
-      timezone: 'America/Los_Angeles',
-      tzAbbrev: 'PT',
+      accountName: 'wisconsin',
+      timezone: 'America/Chicago',
+      tzAbbrev: 'CT',
       framerate: 10,
       delayBetweenImageFetches: 0,
     });
@@ -24,8 +24,8 @@ class NevadaBot extends TrafficBot {
   downloadImage() {}
 
   async getSession() {
-    console.log('Fetching session from nvroads.com...');
-    const response = await Axios.get('https://www.nvroads.com/cctv', {
+    console.log('Fetching session from 511wi.gov...');
+    const response = await Axios.get('https://511wi.gov/cctv', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
       },
@@ -49,7 +49,7 @@ class NevadaBot extends TrafficBot {
   }
 
   async fetchCameras() {
-    console.log('Fetching cameras from Nevada DOT...');
+    console.log('Fetching cameras from Wisconsin DOT...');
 
     try {
       const session = await this.getSession();
@@ -68,13 +68,14 @@ class NevadaBot extends TrafficBot {
           { data: null, name: '' },
           { name: 'sortOrder', s: true },
           { name: 'region', s: true },
+          { name: 'county', s: true },
           { name: 'roadway', s: true },
-          { data: 4, name: '' },
+          { name: 'location' },
+          { data: 6, name: '' },
         ],
         order: [
           { column: 1, dir: 'asc' },
-          { column: 2, dir: 'asc' },
-          { column: 3, dir: 'asc' },
+          { column: 4, dir: 'asc' },
         ],
         start,
         length,
@@ -82,7 +83,7 @@ class NevadaBot extends TrafficBot {
       });
 
       const makeUrl = (query) =>
-        `https://www.nvroads.com/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en-US`;
+        `https://511wi.gov/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en-US`;
 
       // Fetch one record to get the total count
       const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
@@ -123,7 +124,7 @@ class NevadaBot extends TrafficBot {
       console.log(`${cameras.length} cameras with active video on this page`);
       return cameras;
     } catch (error) {
-      console.error('Error fetching Nevada cameras:', error.message);
+      console.error('Error fetching Wisconsin cameras:', error.message);
       return [];
     }
   }
@@ -215,5 +216,5 @@ class NevadaBot extends TrafficBot {
   }
 }
 
-const bot = new NevadaBot();
+const bot = new WisconsinBot();
 bot.run();

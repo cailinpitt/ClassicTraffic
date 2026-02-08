@@ -4,6 +4,7 @@ camera.gif
 .DS_Store
 node_modules/
 log/
+cron/
 yarn.lock
 assets/
 .claude/

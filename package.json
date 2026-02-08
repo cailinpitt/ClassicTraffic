@@ -15,7 +15,8 @@
     "ohio": "node states/ohio.js",
     "montana": "node states/montana.js",
     "nevada": "node states/nevada.js",
-    "florida": "node states/florida.js"
+    "florida": "node states/florida.js",
+    "wisconsin": "node states/wisconsin.js"
   },
   "repository": {
     "type": "git",
