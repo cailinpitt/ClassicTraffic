@@ -61,7 +61,7 @@ class TrafficBot {
     this.is24HourTimelapse = config.is24HourTimelapse || false;
 
     /** @type {string} */
-    this.assetDirectory = `./${this.accountName}-assets-${uuidv4()}/`;
+    this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
     /** @type {string} */
     this.pathToVideo = `${this.assetDirectory}camera.mp4`;
     /** @type {Set<string>} */

@@ -2,7 +2,7 @@
   "name": "trafficcameras",
   "version": "0.0.1",
   "description": "Bluesky bot that posts videos from traffic cameras",
-  "main": "ohio.js",
+  "main": "states/ohio.js",
   "dependencies": {
     "@atproto/api": "^0.18.16",
     "axios": "^0.19.2",
@@ -12,8 +12,10 @@
     "uuid": "^8.3.2"
   },
   "scripts": {
-    "ohio": "node ohio.js",
-    "montana": "node montana.js"
+    "ohio": "node states/ohio.js",
+    "montana": "node states/montana.js",
+    "nevada": "node states/nevada.js",
+    "florida": "node states/florida.js"
   },
   "repository": {
     "type": "git",

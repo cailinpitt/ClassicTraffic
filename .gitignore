@@ -5,4 +5,5 @@ camera.gif
 node_modules/
 log/
 yarn.lock
-assets-*/
+assets/
+.claude/

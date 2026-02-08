@@ -12,6 +12,12 @@ Each video consists of 150-900 images downloaded from a single randomly chosen t
 ### Montana - [@montanatrafficcams.bsky.social](https://bsky.app/profile/montanatrafficcams.bsky.social)
 24-hour timelapses from Montana DOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [Montana MDT](https://www.mdt.mt.gov/).
 
+### Nevada - [@nevadatrafficcams.bsky.social](https://bsky.app/profile/nevadatrafficcams.bsky.social)
+Live video clips (30-120 seconds) captured directly from HLS streams. Randomly selects a page of 10 cameras from the 645+ available, then picks one. Cameras sourced from [NVRoads](https://www.nvroads.com/).
+
+### Florida - [@floridatrafficcams.bsky.social](https://bsky.app/profile/floridatrafficcams.bsky.social)
+Live video clips (30-120 seconds) captured from DIVAS-authenticated HLS streams. Randomly selects from 4500+ cameras. Cameras sourced from [FL511](https://fl511.com/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -31,6 +37,14 @@ module.exports = {
             identifier: '...',
             password: '...',
         },
+        nevada: {
+            identifier: '...',
+            password: '...',
+        },
+        florida: {
+            identifier: '...',
+            password: '...',
+        },
     },
 };
 ```
@@ -43,26 +57,40 @@ Then, install dependencies:
 
 ### Ohio
 ```
-node ohio.js
+node states/ohio.js
 # or
 npm run ohio
 ```
 
 With a specific camera:
 ```
-node ohio.js --id 00000000001080-0
+node states/ohio.js --id 00000000001080-0
 ```
 
 ### Montana
 ```
-node montana.js
+node states/montana.js
 # or
 npm run montana
 ```
 
 With a specific camera:
 ```
-node montana.js --id helmville-301003-03
+node states/montana.js --id helmville-301003-03
+```
+
+### Nevada
+```
+node states/nevada.js
+# or
+npm run nevada
+```
+
+### Florida
+```
+node states/florida.js
+# or
+npm run florida
 ```
 
 ### Options
@@ -73,9 +101,26 @@ node montana.js --id helmville-301003-03
 | `--persist` | Keep the assets folder (downloaded images and video) |
 | `--id <id>` | Use a specific camera instead of random |
 
+## Project Structure
+
+```
+states/          # State-specific bot implementations
+  ohio.js        # Image timelapse bot (OHGO API)
+  montana.js     # 24-hour image timelapse bot (MDT)
+  nevada.js      # Live HLS video clip bot (NVRoads)
+  florida.js     # Live HLS video clip bot with DIVAS auth (FL511)
+TrafficBot.js    # Base class with shared workflow
+keys.js          # Bluesky credentials (gitignored)
+assets/          # Temporary download directory (gitignored)
+```
+
 ## Architecture
 
-The project uses a class-based architecture with `TrafficBot` as the base class. Each bot extends this class and implements camera-specific logic.
+The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
+
+**Image timelapse bots** (Ohio, Montana) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
+
+**Live video clip bots** (Nevada, Florida) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida adds an extra DIVAS authentication step to obtain a secure token for the HLS streams.
 
 ### TrafficBot (base class)
 
@@ -98,7 +143,7 @@ Handles the common workflow:
 | `delayBetweenImageFetches` | number | Milliseconds between downloads |
 | `is24HourTimelapse` | boolean | If true, shows "24-Hour Timelapse:" in post |
 
-### Required Methods
+### Required Methods (image timelapse bots)
 
 | Method | Returns | Description |
 |--------|---------|-------------|
@@ -126,7 +171,7 @@ Handles the common workflow:
 {
   id: string,        // Unique identifier
   name: string,      // Display name
-  url: string,       // Image URL
+  url: string,       // Image or video stream URL
   latitude: number,  // GPS lat (0 if unknown)
   longitude: number  // GPS long (0 if unknown)
 }
@@ -134,76 +179,16 @@ Handles the common workflow:
 
 ## Adding a New Bot
 
-1. Add credentials to `keys.js`:
-```js
-accounts: {
-    // ...existing accounts...
-    newstate: {
-        identifier: '...',
-        password: '...',
-    },
+1. Add credentials to `keys.js`
+
+2. Create a new file in `states/` that extends `TrafficBot`. See existing bots for examples:
+   - **Image timelapse**: Use `states/ohio.js` as a template. Implement `fetchCameras()`, `downloadImage()`, and `getNumImages()`.
+   - **Live video clip**: Use `states/nevada.js` as a template. Override `run()` and add a `downloadVideoSegment()` method.
+   - **Live video clip with auth**: Use `states/florida.js` as a template if the HLS streams require token authentication.
+
+3. Add an npm script to `package.json`:
+```json
+"scripts": {
+    "newstate": "node states/newstate.js"
 }
-```
-
-2. Create a new file (e.g., `newstate.js`) that extends `TrafficBot`:
-```js
-const TrafficBot = require('./TrafficBot.js');
-const Axios = require('axios');
-const Fs = require('fs-extra');
-
-class NewStateBot extends TrafficBot {
-  constructor() {
-    super({
-      accountName: 'newstate',
-      timezone: 'America/Chicago',
-      tzAbbrev: 'CT',
-      framerate: 10,
-      delayBetweenImageFetches: 6000,
-      is24HourTimelapse: false,
-    });
-  }
-
-  getNumImages() {
-    return 300;
-  }
-
-  async fetchCameras() {
-    // Fetch cameras from your data source
-    const response = await Axios.get('https://example.com/cameras');
-    return response.data.map(cam => ({
-      id: cam.id,
-      name: cam.name,
-      url: cam.imageUrl,
-      latitude: cam.lat || 0,
-      longitude: cam.lng || 0,
-    }));
-  }
-
-  async downloadImage(index) {
-    const path = this.getImagePath(index);
-    const writer = Fs.createWriteStream(path);
-    const response = await Axios({
-      url: this.chosenCamera.url,
-      method: 'GET',
-      responseType: 'stream',
-    });
-
-    return new Promise((resolve, reject) => {
-      response.data.pipe(writer);
-      writer.on('finish', () => {
-        setTimeout(() => {
-          try {
-            resolve(this.checkAndStoreImage(path, index));
-          } catch (err) {
-            reject(err);
-          }
-        }, 100);
-      });
-      writer.on('error', reject);
-    });
-  }
-}
-
-const bot = new NewStateBot();
-bot.run();
 ```

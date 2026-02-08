@@ -1,4 +1,4 @@
-const TrafficBot = require('./TrafficBot.js');
+const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
