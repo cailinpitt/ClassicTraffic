@@ -42,16 +42,28 @@ Then, install dependencies:
 ## Run
 
 ### Ohio
-`node app.js`
+```
+node ohio.js
+# or
+npm run ohio
+```
 
 With a specific camera:
-`node app.js --id 00000000001080-0`
+```
+node ohio.js --id 00000000001080-0
+```
 
 ### Montana
-`node montana.js`
+```
+node montana.js
+# or
+npm run montana
+```
 
 With a specific camera:
-`node montana.js --id helmville-301003-03`
+```
+node montana.js --id helmville-301003-03
+```
 
 ### Options
 | Flag | Description |
