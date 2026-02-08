@@ -5,7 +5,8 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [30, 45, 60, 90, 120, 180, 240, 300];
+const durationOptions = [30, 45, 60, 90, 120, 180];
+const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 10;
 const DIVAS_AUTH_URL = 'https://divas.cloud/VDS-API/SecureTokenUri/GetSecureTokenUriBySourceId';
 
@@ -16,15 +17,23 @@ class FloridaBot extends TrafficBot {
       timezone: 'America/New_York',
       tzAbbrev: 'ET',
       framerate: 10,
-      delayBetweenImageFetches: 0,
+      delayBetweenImageFetches: 6000,
     });
 
     this.session = null;
   }
 
-  // Not used — we download video directly
-  getNumImages() { return 0; }
-  downloadImage() {}
+  getNumImages() {
+    return _.sample(numImagesPerVideoOptions);
+  }
+
+  shouldAbort() {
+    if (this.uniqueImageCount === 1) {
+      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
+      return true;
+    }
+    return false;
+  }
 
   async getSession() {
     console.log('Fetching session from fl511.com...');
@@ -140,7 +149,7 @@ class FloridaBot extends TrafficBot {
       const cameras = data.data
         .filter(cam => {
           const img = cam.images && cam.images[0];
-          return img && img.videoUrl && !img.videoDisabled && !img.disabled && !img.blocked;
+          return img && !img.disabled && !img.blocked;
         })
         .map(cam => {
           const img = cam.images[0];
@@ -149,21 +158,68 @@ class FloridaBot extends TrafficBot {
           );
           const longitude = coordMatch ? parseFloat(coordMatch[1]) : 0;
           const latitude = coordMatch ? parseFloat(coordMatch[2]) : 0;
+          const hasVideo = !!(img.videoUrl && !img.videoDisabled);
 
           return {
             id: cam.id,
             name: cam.location || cam.roadway,
-            url: img.videoUrl,
+            url: hasVideo ? img.videoUrl : `https://fl511.com${img.imageUrl}`,
+            hasVideo,
             latitude,
             longitude,
           };
         });
 
-      console.log(`${cameras.length} cameras with active video on this page`);
+      const videoCount = cameras.filter(c => c.hasVideo).length;
+      const imageCount = cameras.filter(c => !c.hasVideo).length;
+      console.log(`${cameras.length} cameras (${videoCount} video, ${imageCount} image-only)`);
       return cameras;
     } catch (error) {
       console.error('Error fetching Florida cameras:', error.message);
       return [];
+    }
+  }
+
+  async downloadImage(index, retries = 3) {
+    const path = this.getImagePath(index);
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const writer = Fs.createWriteStream(path);
+
+        const response = await Axios({
+          url: this.chosenCamera.url,
+          method: 'GET',
+          responseType: 'stream',
+          timeout: 10000,
+        });
+
+        return await new Promise((resolve, reject) => {
+          response.data.pipe(writer);
+          writer.on('finish', () => {
+            setTimeout(() => {
+              try {
+                const isUnique = this.checkAndStoreImage(path, index);
+                resolve(isUnique);
+              } catch (err) {
+                reject(err);
+              }
+            }, 100);
+          });
+          writer.on('error', reject);
+        });
+      } catch (error) {
+        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
+        if (Fs.existsSync(path)) {
+          Fs.removeSync(path);
+        }
+
+        if (attempt === retries) {
+          throw error;
+        }
+
+        await this.sleep(1000 * Math.pow(2, attempt - 1));
+      }
     }
   }
 
@@ -234,12 +290,29 @@ class FloridaBot extends TrafficBot {
         return;
       }
 
-      console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+      console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
       Fs.ensureDirSync(this.assetDirectory);
 
-      const duration = _.sample(durationOptions);
       this.startTime = new Date();
-      await this.downloadVideoSegment(duration);
+
+      if (this.chosenCamera.hasVideo) {
+        const duration = _.sample(durationOptions);
+        await this.downloadVideoSegment(duration);
+      } else {
+        const numImages = this.getNumImages();
+        console.log(`Downloading ${numImages} images every 6s...`);
+        for (let i = 0; i < numImages; i++) {
+          await this.downloadImage(i);
+          if (i < numImages - 1) await this.sleep(this.delayBetweenImageFetches);
+        }
+
+        if (this.shouldAbort()) {
+          return;
+        }
+
+        await this.createVideo();
+      }
+
       this.endTime = new Date();
 
       if (argv['dry-run']) {

@@ -15,16 +15,22 @@ Each video consists of 150-900 images downloaded from a single randomly chosen t
 24-hour timelapses from Montana DOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [Montana MDT](https://www.mdt.mt.gov/).
 
 ### Nevada - [@nevadatrafficcams.bsky.social](https://bsky.app/profile/nevadatrafficcams.bsky.social)
-Live video clips (30 seconds to 5 minutes) captured directly from HLS streams. Randomly selects a page of 10 cameras from the 645+ available, then picks one. Cameras sourced from [NVRoads](https://www.nvroads.com/).
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects a page of 10 cameras from the 645+ available, then picks one. Cameras sourced from [NVRoads](https://www.nvroads.com/).
 
 ### Florida - [@floridatrafficcams.bsky.social](https://bsky.app/profile/floridatrafficcams.bsky.social)
-Live video clips (30 seconds to 5 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 4500+ cameras. Cameras sourced from [FL511](https://fl511.com/).
+Live video clips (30 seconds to 3 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 4500+ cameras. Cameras sourced from [FL511](https://fl511.com/).
 
 ### Wisconsin - [@wisconsintrafficcams.bsky.social](https://bsky.app/profile/wisconsintrafficcams.bsky.social)
-Live video clips (30 seconds to 5 minutes) captured directly from HLS streams. Randomly selects from 480+ cameras. Cameras sourced from [511WI](https://511wi.gov/).
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 480+ cameras. Cameras sourced from [511WI](https://511wi.gov/).
 
 ### Utah - [@utahtrafficcams.bsky.social](https://bsky.app/profile/utahtrafficcams.bsky.social)
 Image timelapses from 2000+ Utah DOT cameras. Images captured every 2 minutes, played back at 10 fps. Cameras sourced from [Utah 511](https://prod-ut.ibi511.com/).
+
+### New York - [@newyorktrafficcams.bsky.social](https://bsky.app/profile/newyorktrafficcams.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 3000+ cameras. Cameras sourced from [511NY](https://511ny.org/).
+
+### Delaware - [@delawaretrafficcams.bsky.social](https://bsky.app/profile/delawaretrafficcams.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 330+ cameras. Cameras sourced from [DelDOT](https://deldot.gov/).
 
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
@@ -58,6 +64,14 @@ module.exports = {
             password: '...',
         },
         utah: {
+            identifier: '...',
+            password: '...',
+        },
+        newyork: {
+            identifier: '...',
+            password: '...',
+        },
+        delaware: {
             identifier: '...',
             password: '...',
         },
@@ -123,6 +137,20 @@ node states/utah.js
 npm run utah
 ```
 
+### New York
+```
+node states/newyork.js
+# or
+npm run newyork
+```
+
+### Delaware
+```
+node states/delaware.js
+# or
+npm run delaware
+```
+
 ### Options
 | Flag | Description |
 |------|-------------|
@@ -141,6 +169,8 @@ states/          # State-specific bot implementations
   florida.js     # Live HLS video clip bot with DIVAS auth (FL511)
   wisconsin.js   # Live HLS video clip bot (511WI)
   utah.js        # Image timelapse bot (Utah 511)
+  newyork.js     # Live HLS video clip bot (511NY)
+  delaware.js    # Live HLS video clip bot (DelDOT)
 TrafficBot.js    # Base class with shared workflow
 keys.js          # Bluesky credentials (gitignored)
 assets/          # Temporary download directory (gitignored)
@@ -153,7 +183,7 @@ The project uses a class-based architecture with `TrafficBot` as the base class.
 
 **Image timelapse bots** (Ohio, Montana, Utah) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
-**Live video clip bots** (Nevada, Florida, Wisconsin) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida adds an extra DIVAS authentication step to obtain a secure token for the HLS streams.
+**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida adds an extra DIVAS authentication step to obtain a secure token for the HLS streams.
 
 ### TrafficBot (base class)
 

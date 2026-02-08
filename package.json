@@ -17,7 +17,10 @@
     "nevada": "node states/nevada.js",
     "florida": "node states/florida.js",
     "wisconsin": "node states/wisconsin.js",
-    "utah": "node states/utah.js"
+    "utah": "node states/utah.js",
+    "newyork": "node states/newyork.js",
+    "delaware": "node states/delaware.js",
+    "alabama": "node states/alabama.js"
   },
   "repository": {
     "type": "git",

@@ -9,12 +9,12 @@ const durationOptions = [30, 45, 60, 90, 120, 180];
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 10;
 
-class WisconsinBot extends TrafficBot {
+class NewYorkBot extends TrafficBot {
   constructor() {
     super({
-      accountName: 'wisconsin',
-      timezone: 'America/Chicago',
-      tzAbbrev: 'CT',
+      accountName: 'newyork',
+      timezone: 'America/New_York',
+      tzAbbrev: 'ET',
       framerate: 10,
       delayBetweenImageFetches: 6000,
     });
@@ -33,8 +33,8 @@ class WisconsinBot extends TrafficBot {
   }
 
   async getSession() {
-    console.log('Fetching session from 511wi.gov...');
-    const response = await Axios.get('https://511wi.gov/cctv', {
+    console.log('Fetching session from 511ny.org...');
+    const response = await Axios.get('https://511ny.org/cctv', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
       },
@@ -58,7 +58,7 @@ class WisconsinBot extends TrafficBot {
   }
 
   async fetchCameras() {
-    console.log('Fetching cameras from Wisconsin DOT...');
+    console.log('Fetching cameras from New York DOT...');
 
     try {
       const session = await this.getSession();
@@ -92,7 +92,7 @@ class WisconsinBot extends TrafficBot {
       });
 
       const makeUrl = (query) =>
-        `https://511wi.gov/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en-US`;
+        `https://511ny.org/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en-US`;
 
       // Fetch one record to get the total count
       const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
@@ -125,7 +125,7 @@ class WisconsinBot extends TrafficBot {
           return {
             id: cam.id,
             name: cam.location || cam.roadway,
-            url: hasVideo ? img.videoUrl : `https://511wi.gov${img.imageUrl}`,
+            url: hasVideo ? img.videoUrl : `https://511ny.org${img.imageUrl}`,
             hasVideo,
             latitude,
             longitude,
@@ -137,7 +137,7 @@ class WisconsinBot extends TrafficBot {
       console.log(`${cameras.length} cameras (${videoCount} video, ${imageCount} image-only)`);
       return cameras;
     } catch (error) {
-      console.error('Error fetching Wisconsin cameras:', error.message);
+      console.error('Error fetching New York cameras:', error.message);
       return [];
     }
   }
@@ -289,5 +289,5 @@ class WisconsinBot extends TrafficBot {
   }
 }
 
-const bot = new WisconsinBot();
+const bot = new NewYorkBot();
 bot.run();
