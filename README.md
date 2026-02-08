@@ -23,6 +23,9 @@ Live video clips (30 seconds to 5 minutes) captured from DIVAS-authenticated HLS
 ### Wisconsin - [@wisconsintrafficcams.bsky.social](https://bsky.app/profile/wisconsintrafficcams.bsky.social)
 Live video clips (30 seconds to 5 minutes) captured directly from HLS streams. Randomly selects from 480+ cameras. Cameras sourced from [511WI](https://511wi.gov/).
 
+### Utah - [@utahtrafficcams.bsky.social](https://bsky.app/profile/utahtrafficcams.bsky.social)
+Image timelapses from 2000+ Utah DOT cameras. Images captured every 2 minutes, played back at 10 fps. Cameras sourced from [Utah 511](https://prod-ut.ibi511.com/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -51,6 +54,10 @@ module.exports = {
             password: '...',
         },
         wisconsin: {
+            identifier: '...',
+            password: '...',
+        },
+        utah: {
             identifier: '...',
             password: '...',
         },
@@ -109,6 +116,13 @@ node states/wisconsin.js
 npm run wisconsin
 ```
 
+### Utah
+```
+node states/utah.js
+# or
+npm run utah
+```
+
 ### Options
 | Flag | Description |
 |------|-------------|
@@ -126,6 +140,7 @@ states/          # State-specific bot implementations
   nevada.js      # Live HLS video clip bot (NVRoads)
   florida.js     # Live HLS video clip bot with DIVAS auth (FL511)
   wisconsin.js   # Live HLS video clip bot (511WI)
+  utah.js        # Image timelapse bot (Utah 511)
 TrafficBot.js    # Base class with shared workflow
 keys.js          # Bluesky credentials (gitignored)
 assets/          # Temporary download directory (gitignored)
@@ -136,7 +151,7 @@ map.svg          # US map highlighting active states
 
 The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
 
-**Image timelapse bots** (Ohio, Montana) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
+**Image timelapse bots** (Ohio, Montana, Utah) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
 **Live video clip bots** (Nevada, Florida, Wisconsin) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida adds an extra DIVAS authentication step to obtain a secure token for the HLS streams.
 
