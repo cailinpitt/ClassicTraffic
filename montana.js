@@ -74,77 +74,87 @@ class MontanaBot extends TrafficBot {
     }
   }
 
-  async downloadImage(index) {
+  async downloadImage(index, retries = 3) {
     const path = this.getImagePath(index);
 
-    console.log(`Fetching current image for ${this.chosenCamera.name}...`);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`Fetching current image for ${this.chosenCamera.name}...`);
 
-    try {
-      const response = await Axios.get('https://app.mdt.mt.gov/atms/public/cameras');
-      const html = response.data;
+        const response = await Axios.get('https://app.mdt.mt.gov/atms/public/cameras');
+        const html = response.data;
 
-      let imageUrl;
+        let imageUrl;
 
-      if (!this.lockedCameraUrl) {
-        const idParts = this.chosenCamera.id.split('-');
-        const cameraName = idParts.slice(0, -2).join('-');
-        const siteId = idParts[idParts.length - 2];
+        if (!this.lockedCameraUrl) {
+          const idParts = this.chosenCamera.id.split('-');
+          const cameraName = idParts.slice(0, -2).join('-');
+          const siteId = idParts[idParts.length - 2];
 
-        const pattern = new RegExp(`src="(https://mdt\\.mt\\.gov/other/WebAppData/External/RRS/RWIS/${cameraName}-${siteId}-(\\d+)-\\d+-\\d+-\\d+-\\d+-\\d+-\\d+\\.jpg)"`, 'i');
-        const match = html.match(pattern);
+          const pattern = new RegExp(`src="(https://mdt\\.mt\\.gov/other/WebAppData/External/RRS/RWIS/${cameraName}-${siteId}-(\\d+)-\\d+-\\d+-\\d+-\\d+-\\d+-\\d+\\.jpg)"`, 'i');
+          const match = html.match(pattern);
 
-        if (!match) {
-          console.error(`Could not find current image URL for ${this.chosenCamera.name}`);
-          throw new Error('Camera image not found on page');
+          if (!match) {
+            console.error(`Could not find current image URL for ${this.chosenCamera.name}`);
+            throw new Error('Camera image not found on page');
+          }
+
+          imageUrl = match[1];
+          const capturedCameraNum = match[2];
+
+          this.lockedCameraUrl = `${cameraName}-${siteId}-${capturedCameraNum}`;
+          console.log(`Locked onto camera angle: ${this.lockedCameraUrl}`);
+        } else {
+          const pattern = new RegExp(`src="(https://mdt\\.mt\\.gov/other/WebAppData/External/RRS/RWIS/${this.lockedCameraUrl}-\\d+-\\d+-\\d+-\\d+-\\d+-\\d+\\.jpg)"`, 'i');
+          const match = html.match(pattern);
+
+          if (!match) {
+            console.error(`Could not find current image URL for locked camera ${this.lockedCameraUrl}`);
+            throw new Error('Camera image not found on page');
+          }
+
+          imageUrl = match[1];
         }
 
-        imageUrl = match[1];
-        const capturedCameraNum = match[2];
+        console.log(`Downloading: ${imageUrl}`);
 
-        this.lockedCameraUrl = `${cameraName}-${siteId}-${capturedCameraNum}`;
-        console.log(`Locked onto camera angle: ${this.lockedCameraUrl}`);
-      } else {
-        const pattern = new RegExp(`src="(https://mdt\\.mt\\.gov/other/WebAppData/External/RRS/RWIS/${this.lockedCameraUrl}-\\d+-\\d+-\\d+-\\d+-\\d+-\\d+\\.jpg)"`, 'i');
-        const match = html.match(pattern);
-
-        if (!match) {
-          console.error(`Could not find current image URL for locked camera ${this.lockedCameraUrl}`);
-          throw new Error('Camera image not found on page');
-        }
-
-        imageUrl = match[1];
-      }
-
-      console.log(`Downloading: ${imageUrl}`);
-
-      const writer = Fs.createWriteStream(path);
-      const imageResponse = await Axios({
-        url: imageUrl,
-        method: 'GET',
-        responseType: 'stream',
-        timeout: 10000,
-      });
-
-      return new Promise((resolve, reject) => {
-        imageResponse.data.pipe(writer);
-        writer.on('finish', () => {
-          setTimeout(() => {
-            try {
-              const isUnique = this.checkAndStoreImage(path, index);
-              if (isUnique) {
-                console.log(`Downloaded image ${index + 1}/${NUM_IMAGES}`);
-              }
-              resolve(isUnique);
-            } catch (err) {
-              reject(err);
-            }
-          }, 100);
+        const writer = Fs.createWriteStream(path);
+        const imageResponse = await Axios({
+          url: imageUrl,
+          method: 'GET',
+          responseType: 'stream',
+          timeout: 10000,
         });
-        writer.on('error', reject);
-      });
-    } catch (error) {
-      console.error(`Error downloading image ${index}:`, error.message);
-      throw error;
+
+        return await new Promise((resolve, reject) => {
+          imageResponse.data.pipe(writer);
+          writer.on('finish', () => {
+            setTimeout(() => {
+              try {
+                const isUnique = this.checkAndStoreImage(path, index);
+                if (isUnique) {
+                  console.log(`Downloaded image ${index + 1}/${NUM_IMAGES}`);
+                }
+                resolve(isUnique);
+              } catch (err) {
+                reject(err);
+              }
+            }, 100);
+          });
+          writer.on('error', reject);
+        });
+      } catch (error) {
+        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
+        if (Fs.existsSync(path)) {
+          Fs.removeSync(path);
+        }
+
+        if (attempt === retries) {
+          throw error;
+        }
+
+        await this.sleep(1000 * Math.pow(2, attempt - 1));
+      }
     }
   }
 }

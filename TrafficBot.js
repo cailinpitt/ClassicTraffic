@@ -371,6 +371,27 @@ class TrafficBot {
   }
 
   /**
+   * List all available cameras and exit.
+   * @returns {Promise<void>}
+   */
+  async listCameras() {
+    const cameras = await this.fetchCameras();
+    if (cameras.length === 0) {
+      console.error('No cameras available');
+      return;
+    }
+
+    console.log(`\nAvailable cameras (${cameras.length}):\n`);
+    cameras.forEach(cam => {
+      const coords = (cam.latitude && cam.longitude)
+        ? ` (${cam.latitude}, ${cam.longitude})`
+        : '';
+      console.log(`  ${cam.id}`);
+      console.log(`    ${cam.name}${coords}\n`);
+    });
+  }
+
+  /**
    * Main entry point. Runs the full bot workflow:
    * 1. Login to Bluesky
    * 2. Fetch and select a camera
@@ -379,10 +400,27 @@ class TrafficBot {
    * 5. Post to Bluesky
    * 6. Cleanup temp files
    *
+   * Supports flags:
+   * - --list: List available cameras and exit
+   * - --dry-run: Do everything except post to Bluesky
+   * - --persist: Keep the assets folder after completion
+   * - --id <id>: Use a specific camera instead of random
+   *
    * Handles errors and sets process.exitCode on failure.
    * @returns {Promise<void>}
    */
   async run() {
+    // Handle --list flag (no login required)
+    if (argv.list) {
+      try {
+        await this.listCameras();
+      } catch (error) {
+        console.error(error);
+        process.exitCode = 1;
+      }
+      return;
+    }
+
     try {
       const account = keys.accounts[this.accountName];
       if (!account) {
@@ -438,7 +476,12 @@ class TrafficBot {
 
       console.log('Download complete');
       await this.createVideo();
-      await this.postToBluesky();
+
+      if (argv['dry-run']) {
+        console.log('Dry run - skipping post to Bluesky');
+      } else {
+        await this.postToBluesky();
+      }
     } catch (error) {
       console.error(error);
       process.exitCode = 1;

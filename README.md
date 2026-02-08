@@ -54,7 +54,12 @@ With a specific camera:
 `node montana.js --id helmville-301003-03`
 
 ### Options
-`--persist` - Keep the assets folder (contains downloaded images and generated video)
+| Flag | Description |
+|------|-------------|
+| `--list` | List available cameras and exit (no login required) |
+| `--dry-run` | Do everything except post to Bluesky |
+| `--persist` | Keep the assets folder (downloaded images and video) |
+| `--id <id>` | Use a specific camera instead of random |
 
 ## Architecture
 
