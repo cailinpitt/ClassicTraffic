@@ -2,10 +2,8 @@ const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
-const { exec } = require('child_process');
-const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [30, 45, 60, 90, 120, 180];
+const numImagesPerVideoOptions = [60, 90, 120, 150, 180];
 
 class AlabamaBot extends TrafficBot {
   constructor() {
@@ -13,7 +11,21 @@ class AlabamaBot extends TrafficBot {
       accountName: 'alabama',
       timezone: 'America/Chicago',
       tzAbbrev: 'CT',
+      framerate: 10,
+      delayBetweenImageFetches: 30000,
     });
+  }
+
+  getNumImages() {
+    return _.sample(numImagesPerVideoOptions);
+  }
+
+  shouldAbort() {
+    if (this.uniqueImageCount === 1) {
+      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
+      return true;
+    }
+    return false;
   }
 
   async fetchCameras() {
@@ -33,7 +45,7 @@ class AlabamaBot extends TrafficBot {
       console.log(`Total cameras: ${data.length}`);
 
       const cameras = data
-        .filter(cam => cam.playbackUrls && cam.playbackUrls.hls && cam.accessLevel === 'Public')
+        .filter(cam => cam.snapshotImageUrl && cam.accessLevel === 'Public')
         .map(cam => {
           const loc = cam.location;
           const route = loc.displayRouteDesignator || '';
@@ -49,7 +61,7 @@ class AlabamaBot extends TrafficBot {
           return {
             id: cam.id,
             name,
-            url: cam.playbackUrls.hls,
+            url: cam.snapshotImageUrl,
             latitude: loc.latitude || 0,
             longitude: loc.longitude || 0,
           };
@@ -63,91 +75,49 @@ class AlabamaBot extends TrafficBot {
     }
   }
 
-  async downloadVideoSegment(duration) {
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
+  async downloadImage(index, retries = 3) {
+    const path = this.getImagePath(index);
 
-    const cmd = `ffmpeg -y -i "${this.chosenCamera.url}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p "${this.pathToVideo}"`;
-
-    await new Promise((resolve, reject) => {
-      exec(cmd, { timeout: (duration + 30) * 1000 }, (error) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    const stats = Fs.statSync(this.pathToVideo);
-    const fileSizeInMB = stats.size / (1024 * 1024);
-    console.log(`Video saved: ${this.pathToVideo} (${fileSizeInMB.toFixed(2)} MB)`);
-  }
-
-  async run() {
-    if (argv.list) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        await this.listCameras();
+        const writer = Fs.createWriteStream(path);
+
+        const response = await Axios({
+          url: this.chosenCamera.url,
+          method: 'GET',
+          responseType: 'stream',
+          timeout: 10000,
+          headers: {
+            'Referer': 'https://algotraffic.com/',
+          },
+        });
+
+        return await new Promise((resolve, reject) => {
+          response.data.pipe(writer);
+          writer.on('finish', () => {
+            setTimeout(() => {
+              try {
+                const isUnique = this.checkAndStoreImage(path, index);
+                resolve(isUnique);
+              } catch (err) {
+                reject(err);
+              }
+            }, 100);
+          });
+          writer.on('error', reject);
+        });
       } catch (error) {
-        console.error(error);
-        process.exitCode = 1;
+        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
+        if (Fs.existsSync(path)) {
+          Fs.removeSync(path);
+        }
+
+        if (attempt === retries) {
+          throw error;
+        }
+
+        await this.sleep(1000 * Math.pow(2, attempt - 1));
       }
-      return;
-    }
-
-    try {
-      const keys = require('../keys.js');
-      const account = keys.accounts[this.accountName];
-      if (!account) {
-        throw new Error(`Account '${this.accountName}' not found in keys.js`);
-      }
-
-      const { AtpAgent } = require('@atproto/api');
-      this.agent = new AtpAgent({ service: keys.service });
-
-      await this.agent.login({
-        identifier: account.identifier,
-        password: account.password,
-      });
-
-      if (!this.agent.session?.did) {
-        console.error('Failed to get DID after login');
-        return;
-      }
-
-      const cameras = await this.fetchCameras();
-      if (cameras.length === 0) {
-        console.error('No cameras available');
-        return;
-      }
-
-      if (!_.isUndefined(argv.id)) {
-        this.chosenCamera = _.find(cameras, { id: argv.id });
-      } else {
-        this.chosenCamera = _.sample(cameras);
-      }
-
-      if (!this.chosenCamera) {
-        console.error('Could not select a camera');
-        return;
-      }
-
-      console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-      Fs.ensureDirSync(this.assetDirectory);
-
-      this.startTime = new Date();
-
-      const duration = _.sample(durationOptions);
-      await this.downloadVideoSegment(duration);
-
-      this.endTime = new Date();
-
-      if (argv['dry-run']) {
-        console.log('Dry run - skipping post to Bluesky');
-      } else {
-        await this.postToBluesky();
-      }
-    } catch (error) {
-      console.error(error);
-      process.exitCode = 1;
-    } finally {
-      this.cleanup();
     }
   }
 }
