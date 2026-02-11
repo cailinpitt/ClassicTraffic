@@ -5,7 +5,7 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [15];
+const durationOptions = [30];
 
 class SouthCarolinaBot extends TrafficBot {
   constructor() {
@@ -60,7 +60,7 @@ class SouthCarolinaBot extends TrafficBot {
   async downloadVideoSegment(duration) {
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
 
-    const cmd = `ffmpeg -y -i "${this.chosenCamera.url}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p "${this.pathToVideo}"`;
+    const cmd = `ffmpeg -y -i "${this.chosenCamera.url}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(cmd, { timeout: (duration + 30) * 1000 }, (error) => {

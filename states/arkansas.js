@@ -5,7 +5,7 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [30, 45, 60, 90, 120, 180];
+const durationOptions = [60, 90, 120, 180, 240, 360];
 
 class ArkansasBot extends TrafficBot {
   constructor() {
@@ -81,7 +81,7 @@ class ArkansasBot extends TrafficBot {
 
     const tokenizedUrl = await this.getTokenizedUrl(this.chosenCamera.url);
 
-    const cmd = `ffmpeg -y -headers "Referer: https://www.idrivearkansas.com/\r\n" -i "${tokenizedUrl}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p "${this.pathToVideo}"`;
+    const cmd = `ffmpeg -y -headers "Referer: https://www.idrivearkansas.com/\r\n" -i "${tokenizedUrl}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(cmd, { timeout: (duration + 30) * 1000 }, (error) => {
