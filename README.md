@@ -44,6 +44,18 @@ Image timelapses from Idaho DOT cameras. Images captured every minute, played ba
 ### Georgia - [@georgiatrafficcams.bsky.social](https://bsky.app/profile/georgiatrafficcams.bsky.social)
 Live video clips (30 seconds to 3 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 3800+ cameras. Cameras sourced from [511GA](https://511ga.org/).
 
+### South Carolina - [@southcarolinatraffic.bsky.social](https://bsky.app/profile/southcarolinatraffic.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 730+ cameras. Cameras sourced from [511SC](https://www.511sc.org/).
+
+### North Carolina - [@northcarolinatraffic.bsky.social](https://bsky.app/profile/northcarolinatraffic.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 1100+ cameras. Cameras sourced from [NCDOT](https://nc.prod.traveliq.co/).
+
+### Tennessee - [@tennesseetrafficcams.bsky.social](https://bsky.app/profile/tennesseetrafficcams.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 660+ cameras. Cameras sourced from [SmartWay](https://smartway.tn.gov/).
+
+### Arkansas - [@arkansastrafficcams.bsky.social](https://bsky.app/profile/arkansastrafficcams.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured from token-authenticated HLS streams. Randomly selects from 540+ cameras. Cameras sourced from [IDriveArkansas](https://www.idrivearkansas.com/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -53,56 +65,13 @@ module.exports = {
     service: 'https://bsky.social',
     videoService: 'https://video.bsky.app',
 
-    // Account credentials
+    // Account credentials (one entry per state bot)
     accounts: {
         ohio: {
             identifier: '...',
             password: '...',
         },
-        montana: {
-            identifier: '...',
-            password: '...',
-        },
-        nevada: {
-            identifier: '...',
-            password: '...',
-        },
-        florida: {
-            identifier: '...',
-            password: '...',
-        },
-        wisconsin: {
-            identifier: '...',
-            password: '...',
-        },
-        utah: {
-            identifier: '...',
-            password: '...',
-        },
-        newyork: {
-            identifier: '...',
-            password: '...',
-        },
-        delaware: {
-            identifier: '...',
-            password: '...',
-        },
-        alabama: {
-            identifier: '...',
-            password: '...',
-        },
-        connecticut: {
-            identifier: '...',
-            password: '...',
-        },
-        idaho: {
-            identifier: '...',
-            password: '...',
-        },
-        georgia: {
-            identifier: '...',
-            password: '...',
-        },
+        // ... add an entry for each state
     },
 };
 ```
@@ -113,98 +82,16 @@ Then, install dependencies:
 
 ## Run
 
-### Ohio
 ```
-node states/ohio.js
+node states/<state>.js
 # or
+npm run <state>
+```
+
+For example:
+```
 npm run ohio
-```
-
-With a specific camera:
-```
-node states/ohio.js --id 00000000001080-0
-```
-
-### Montana
-```
-node states/montana.js
-# or
-npm run montana
-```
-
-With a specific camera:
-```
-node states/montana.js --id helmville-301003-03
-```
-
-### Nevada
-```
-node states/nevada.js
-# or
-npm run nevada
-```
-
-### Florida
-```
-node states/florida.js
-# or
-npm run florida
-```
-
-### Wisconsin
-```
-node states/wisconsin.js
-# or
-npm run wisconsin
-```
-
-### Utah
-```
-node states/utah.js
-# or
-npm run utah
-```
-
-### New York
-```
-node states/newyork.js
-# or
-npm run newyork
-```
-
-### Delaware
-```
-node states/delaware.js
-# or
-npm run delaware
-```
-
-### Alabama
-```
-node states/alabama.js
-# or
-npm run alabama
-```
-
-### Connecticut
-```
-node states/connecticut.js
-# or
-npm run connecticut
-```
-
-### Idaho
-```
-node states/idaho.js
-# or
-npm run idaho
-```
-
-### Georgia
-```
-node states/georgia.js
-# or
-npm run georgia
+npm run tennessee
 ```
 
 ### Options
@@ -218,23 +105,11 @@ npm run georgia
 ## Project Structure
 
 ```
-states/          # State-specific bot implementations
-  ohio.js        # Image timelapse bot (OHGO API)
-  montana.js     # 24-hour image timelapse bot (MDT)
-  nevada.js      # Live HLS video clip bot (NVRoads)
-  florida.js     # Live HLS video clip bot with DIVAS auth (FL511)
-  wisconsin.js   # Live HLS video clip bot (511WI)
-  utah.js        # Image timelapse bot (Utah 511)
-  newyork.js     # Live HLS video clip bot (511NY)
-  delaware.js    # Live HLS video clip bot (DelDOT)
-  alabama.js     # Image timelapse bot (ALDOT)
-  connecticut.js # Image timelapse bot (CTRoads)
-  idaho.js       # Image timelapse bot (511 Idaho)
-  georgia.js     # Live HLS video clip bot with DIVAS auth (511GA)
-TrafficBot.js    # Base class with shared workflow
-keys.js          # Bluesky credentials (gitignored)
-assets/          # Temporary download directory (gitignored)
-map.svg          # US map highlighting active states
+states/              # State-specific bot implementations (one file per state)
+TrafficBot.js        # Base class with shared workflow
+keys.js              # Bluesky credentials (gitignored)
+assets/              # Temporary download directory (gitignored)
+map.svg              # US map highlighting active states
 ```
 
 ## Architecture
@@ -243,7 +118,7 @@ The project uses a class-based architecture with `TrafficBot` as the base class.
 
 **Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
-**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida and Georgia add an extra DIVAS authentication step to obtain a secure token for the HLS streams.
+**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida and Georgia add DIVAS authentication, and Arkansas uses a token redirect for stream access.
 
 ### TrafficBot (base class)
 

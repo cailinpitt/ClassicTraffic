@@ -23,7 +23,11 @@
     "alabama": "node states/alabama.js",
     "connecticut": "node states/connecticut.js",
     "idaho": "node states/idaho.js",
-    "georgia": "node states/georgia.js"
+    "georgia": "node states/georgia.js",
+    "southcarolina": "node states/southcarolina.js",
+    "northcarolina": "node states/northcarolina.js",
+    "tennessee": "node states/tennessee.js",
+    "arkansas": "node states/arkansas.js"
   },
   "repository": {
     "type": "git",
