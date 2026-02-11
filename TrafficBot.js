@@ -140,13 +140,37 @@ class TrafficBot {
   }
 
   /**
+   * Check if a file is a valid JPEG image.
+   * Verifies SOI marker and minimum file size.
+   * @param {string} filePath - Path to the image file
+   * @returns {boolean} True if the file appears to be a valid JPEG
+   */
+  isValidJpeg(filePath) {
+    try {
+      const buf = Fs.readFileSync(filePath);
+      if (buf.length < 100) return false;
+      // Check JPEG SOI marker (FF D8)
+      if (buf[0] !== 0xFF || buf[1] !== 0xD8) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Check if an image is a duplicate and store it if unique.
-   * Automatically deletes duplicate images.
+   * Automatically deletes duplicate or corrupt images.
    * @param {string} filePath - Path to the downloaded image
    * @param {number} index - Image index (for logging)
-   * @returns {boolean} True if image was unique and stored, false if duplicate
+   * @returns {boolean} True if image was unique and stored, false if duplicate/invalid
    */
   checkAndStoreImage(filePath, index) {
+    if (!this.isValidJpeg(filePath)) {
+      console.log(`Skipping corrupt image ${index}`);
+      Fs.removeSync(filePath);
+      return false;
+    }
+
     const hash = this.getImageHash(filePath);
 
     if (this.imageHashes.has(hash)) {
@@ -354,6 +378,37 @@ class TrafficBot {
   }
 
   /**
+   * Remove stale asset directories from previous runs of this bot.
+   * Called at startup to clean up after crashed or killed processes.
+   * Only removes directories not modified in the last hour to avoid
+   * interfering with concurrently running instances.
+   */
+  cleanupStaleAssets() {
+    const assetsDir = './assets';
+    if (!Fs.existsSync(assetsDir)) return;
+
+    const prefix = this.accountName + '-';
+    const staleThreshold = 60 * 60 * 1000; // 1 hour
+    const now = Date.now();
+
+    const dirs = Fs.readdirSync(assetsDir)
+      .filter(d => d.startsWith(prefix) && Fs.statSync(Path.join(assetsDir, d)).isDirectory());
+
+    for (const dir of dirs) {
+      const fullPath = Path.join(assetsDir, dir);
+      try {
+        const stat = Fs.statSync(fullPath);
+        if (now - stat.mtimeMs > staleThreshold) {
+          Fs.removeSync(fullPath);
+          console.log(`Cleaned up stale asset directory: ${fullPath}`);
+        }
+      } catch (err) {
+        console.error(`Failed to clean up ${fullPath}:`, err.message);
+      }
+    }
+  }
+
+  /**
    * Remove the temporary asset directory.
    * Skipped if --persist flag is passed.
    */
@@ -420,6 +475,8 @@ class TrafficBot {
       }
       return;
     }
+
+    this.cleanupStaleAssets();
 
     try {
       const account = keys.accounts[this.accountName];

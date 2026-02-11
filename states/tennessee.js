@@ -68,6 +68,8 @@ class TennesseeBot extends TrafficBot {
   }
 
   async run() {
+    this.cleanupStaleAssets();
+
     if (argv.list) {
       try {
         await this.listCameras();
