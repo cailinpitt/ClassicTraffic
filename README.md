@@ -65,6 +65,9 @@ Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. R
 ### Alaska - [@alaskatrafficcams.bsky.social](https://bsky.app/profile/alaskatrafficcams.bsky.social)
 Image timelapses from Alaska DOT cameras. Images captured every 60 seconds, played back at 10 fps. Cameras sourced from [511 Alaska](https://511.alaska.gov/).
 
+### California - [@californiatrafficcams.bsky.social](https://bsky.app/profile/californiatrafficcams.bsky.social)
+Randomly selects one of 12 Caltrans districts, then picks a camera. Cameras with HLS streams get live video clips (30 seconds to 6 minutes); image-only cameras get timelapses captured every 6 seconds at 10 fps. Cameras sourced from [Caltrans](https://cwwp2.dot.ca.gov/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -128,6 +131,8 @@ The project uses a class-based architecture with `TrafficBot` as the base class.
 **Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
 **Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida and Georgia add DIVAS authentication, and Arkansas uses a token redirect for stream access.
+
+**Hybrid bots** (California) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
 
 ### TrafficBot (base class)
 
