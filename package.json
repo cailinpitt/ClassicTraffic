@@ -20,7 +20,10 @@
     "utah": "node states/utah.js",
     "newyork": "node states/newyork.js",
     "delaware": "node states/delaware.js",
-    "alabama": "node states/alabama.js"
+    "alabama": "node states/alabama.js",
+    "connecticut": "node states/connecticut.js",
+    "idaho": "node states/idaho.js",
+    "georgia": "node states/georgia.js"
   },
   "repository": {
     "type": "git",

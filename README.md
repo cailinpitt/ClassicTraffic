@@ -32,6 +32,18 @@ Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. R
 ### Delaware - [@delawaretrafficcams.bsky.social](https://bsky.app/profile/delawaretrafficcams.bsky.social)
 Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 330+ cameras. Cameras sourced from [DelDOT](https://deldot.gov/).
 
+### Alabama - [@alabamatrafficcams.bsky.social](https://bsky.app/profile/alabamatrafficcams.bsky.social)
+Image timelapses from ALDOT cameras. Images captured every 30 seconds, played back at 10 fps. Cameras sourced from [ALDOT](https://algotraffic.com/).
+
+### Connecticut - [@connecticuttrafficcams.bsky.social](https://bsky.app/profile/connecticuttrafficcams.bsky.social)
+Image timelapses from Connecticut DOT cameras. Images captured every 8 seconds, played back at 10 fps. Cameras sourced from [CTRoads](https://ctroads.org/).
+
+### Idaho - [@idahotrafficcams.bsky.social](https://bsky.app/profile/idahotrafficcams.bsky.social)
+Image timelapses from Idaho DOT cameras. Images captured every minute, played back at 10 fps. Cameras sourced from [511 Idaho](https://511.idaho.gov/).
+
+### Georgia - [@georgiatrafficcams.bsky.social](https://bsky.app/profile/georgiatrafficcams.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 3800+ cameras. Cameras sourced from [511GA](https://511ga.org/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -72,6 +84,22 @@ module.exports = {
             password: '...',
         },
         delaware: {
+            identifier: '...',
+            password: '...',
+        },
+        alabama: {
+            identifier: '...',
+            password: '...',
+        },
+        connecticut: {
+            identifier: '...',
+            password: '...',
+        },
+        idaho: {
+            identifier: '...',
+            password: '...',
+        },
+        georgia: {
             identifier: '...',
             password: '...',
         },
@@ -151,6 +179,34 @@ node states/delaware.js
 npm run delaware
 ```
 
+### Alabama
+```
+node states/alabama.js
+# or
+npm run alabama
+```
+
+### Connecticut
+```
+node states/connecticut.js
+# or
+npm run connecticut
+```
+
+### Idaho
+```
+node states/idaho.js
+# or
+npm run idaho
+```
+
+### Georgia
+```
+node states/georgia.js
+# or
+npm run georgia
+```
+
 ### Options
 | Flag | Description |
 |------|-------------|
@@ -171,6 +227,10 @@ states/          # State-specific bot implementations
   utah.js        # Image timelapse bot (Utah 511)
   newyork.js     # Live HLS video clip bot (511NY)
   delaware.js    # Live HLS video clip bot (DelDOT)
+  alabama.js     # Image timelapse bot (ALDOT)
+  connecticut.js # Image timelapse bot (CTRoads)
+  idaho.js       # Image timelapse bot (511 Idaho)
+  georgia.js     # Live HLS video clip bot with DIVAS auth (511GA)
 TrafficBot.js    # Base class with shared workflow
 keys.js          # Bluesky credentials (gitignored)
 assets/          # Temporary download directory (gitignored)
@@ -181,9 +241,9 @@ map.svg          # US map highlighting active states
 
 The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
 
-**Image timelapse bots** (Ohio, Montana, Utah) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
+**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
-**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida adds an extra DIVAS authentication step to obtain a secure token for the HLS streams.
+**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida and Georgia add an extra DIVAS authentication step to obtain a secure token for the HLS streams.
 
 ### TrafficBot (base class)
 
