@@ -27,7 +27,10 @@
     "southcarolina": "node states/southcarolina.js",
     "northcarolina": "node states/northcarolina.js",
     "tennessee": "node states/tennessee.js",
-    "arkansas": "node states/arkansas.js"
+    "arkansas": "node states/arkansas.js",
+    "arizona": "node states/arizona.js",
+    "oklahoma": "node states/oklahoma.js",
+    "alaska": "node states/alaska.js"
   },
   "repository": {
     "type": "git",
