@@ -503,7 +503,7 @@ class TrafficBot {
       }
 
       if (!_.isUndefined(argv.id)) {
-        this.chosenCamera = _.find(cameras, { id: argv.id });
+        this.chosenCamera = _.find(cameras, c => c.id == argv.id);
       } else {
         this.chosenCamera = _.sample(cameras);
       }
