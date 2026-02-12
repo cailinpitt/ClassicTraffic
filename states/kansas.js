@@ -3,7 +3,7 @@ const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 
-const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
+const numImagesPerVideoOptions = [15, 30, 45, 60, 75, 90];
 
 const GRAPHQL_URL = 'https://www.kandrive.gov/api/graphql';
 const GRAPHQL_QUERY = `query ($input: ListArgs!) {
