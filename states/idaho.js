@@ -3,7 +3,7 @@ const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 
-const numImagesPerVideoOptions = [150, 300, 450];
+const numImagesPerVideoOptions = [30, 60, 90];
 const CAMERAS_PER_PAGE = 10;
 
 class IdahoBot extends TrafficBot {
@@ -12,7 +12,7 @@ class IdahoBot extends TrafficBot {
       accountName: 'idaho',
       timezone: 'America/Denver',
       tzAbbrev: 'MT',
-      framerate: 10,
+      framerate: 5,
       delayBetweenImageFetches: 60000,
     });
   }
