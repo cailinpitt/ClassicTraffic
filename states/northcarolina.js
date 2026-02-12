@@ -188,7 +188,7 @@ class NorthCarolinaBot extends TrafficBot {
     const cmd = `ffmpeg -y -i "${this.chosenCamera.url}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
-      exec(cmd, { timeout: (duration + 30) * 1000 }, (error) => {
+      exec(cmd, { timeout: (duration * 3 + 60) * 1000 }, (error) => {
         if (error) return reject(error);
         resolve();
       });
