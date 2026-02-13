@@ -215,7 +215,7 @@ class TrafficBot {
       Fs.renameSync(oldPath, newPath);
     });
 
-    const cmd = `ffmpeg -y -framerate ${this.framerate} -i ${this.assetDirectory}seq-%d.jpg -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${this.pathToVideo}`;
+    const cmd = `ffmpeg -y -framerate ${this.framerate} -i ${this.assetDirectory}seq-%d.jpg -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${this.pathToVideo}`;
 
     await new Promise((resolve, reject) => {
       exec(cmd, (error, stdout, stderr) => {
