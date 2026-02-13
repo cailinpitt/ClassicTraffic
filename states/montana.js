@@ -2,7 +2,9 @@ const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 
-const NUM_IMAGES = 96; // 24 hours * 4 images per hour (every 15 min)
+const _ = require('lodash');
+
+const numImagesPerVideoOptions = [10, 15, 20];
 
 class MontanaBot extends TrafficBot {
   constructor() {
@@ -12,14 +14,13 @@ class MontanaBot extends TrafficBot {
       tzAbbrev: 'MT',
       framerate: 5,
       delayBetweenImageFetches: 900000, // 15 minutes
-      is24HourTimelapse: true,
     });
 
     this.lockedCameraUrl = null;
   }
 
   getNumImages() {
-    return NUM_IMAGES;
+    return _.sample(numImagesPerVideoOptions);
   }
 
   async fetchCameras() {
@@ -133,7 +134,7 @@ class MontanaBot extends TrafficBot {
               try {
                 const isUnique = this.checkAndStoreImage(path, index);
                 if (isUnique) {
-                  console.log(`Downloaded image ${index + 1}/${NUM_IMAGES}`);
+                  console.log(`Downloaded image ${index + 1}`);
                 }
                 resolve(isUnique);
               } catch (err) {

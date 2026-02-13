@@ -3,7 +3,7 @@ const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 
-const numImagesPerVideoOptions = [30, 45, 60, 90];
+const numImagesPerVideoOptions = [15, 20, 30, 45];
 
 class WashingtonBot extends TrafficBot {
   constructor() {

@@ -3,7 +3,7 @@ const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 
-const numImagesPerVideoOptions = [15, 30, 45];
+const numImagesPerVideoOptions = [10, 15, 20];
 const CAMERAS_PER_PAGE = 25;
 
 const GRAPHQL_QUERY = `query ($input: ListArgs!) {

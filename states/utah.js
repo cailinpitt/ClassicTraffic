@@ -3,7 +3,7 @@ const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 
-const numImagesPerVideoOptions = [15, 30, 45, 60, 75, 90];
+const numImagesPerVideoOptions = [15, 20, 30, 45];
 const CAMERAS_PER_PAGE = 10;
 
 class UtahBot extends TrafficBot {
