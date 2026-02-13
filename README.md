@@ -33,7 +33,7 @@ Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. R
 Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 330+ cameras. Cameras sourced from [DelDOT](https://deldot.gov/).
 
 ### Alabama - [@alabamatrafficcams.bsky.social](https://bsky.app/profile/alabamatrafficcams.bsky.social)
-Image timelapses from ALDOT cameras. Images captured every 30 seconds, played back at 10 fps. Cameras sourced from [ALDOT](https://algotraffic.com/).
+Image timelapses from ALDOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [ALDOT](https://algotraffic.com/).
 
 ### Connecticut - [@connecticuttrafficcams.bsky.social](https://bsky.app/profile/connecticuttrafficcams.bsky.social)
 Image timelapses from Connecticut DOT cameras. Images captured every 8 seconds, played back at 10 fps. Cameras sourced from [CTRoads](https://ctroads.org/).

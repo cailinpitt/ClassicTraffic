@@ -3,7 +3,7 @@ const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
 
-const numImagesPerVideoOptions = [30, 45, 60, 75, 90];
+const numImagesPerVideoOptions = [15, 30, 45];
 
 class AlabamaBot extends TrafficBot {
   constructor() {
@@ -11,8 +11,8 @@ class AlabamaBot extends TrafficBot {
       accountName: 'alabama',
       timezone: 'America/Chicago',
       tzAbbrev: 'CT',
-      framerate: 10,
-      delayBetweenImageFetches: 60000,
+      framerate: 5,
+      delayBetweenImageFetches: 900000,
     });
   }
 
