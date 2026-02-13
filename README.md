@@ -101,6 +101,24 @@ Image timelapses from South Dakota DOT cameras. Images captured every 10 minutes
 ### Hawaii - [@hawaiitrafficcams.bsky.social](https://bsky.app/profile/hawaiitrafficcams.bsky.social)
 Live video clips (1 to 3 minutes) from 280+ HLS streams, with image timelapse fallback for 30+ snapshot-only cameras. Randomly selects from 310+ cameras. Cameras sourced from [GoAkamai](http://www.goakamai.org/).
 
+### North Dakota - [@ndtrafficcams.bsky.social](https://bsky.app/profile/ndtrafficcams.bsky.social)
+Image timelapses from 570+ North Dakota DOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [ND Travel](https://travel.dot.nd.gov/).
+
+### Mississippi - [@mstrafficcams.bsky.social](https://bsky.app/profile/mstrafficcams.bsky.social)
+Live video clips (1 to 3 minutes) captured directly from HLS streams. Randomly selects from 390+ camera sites with multiple views each. Cameras sourced from [MDOTtraffic](https://www.mdottraffic.com/).
+
+### Pennsylvania - [@pennsylvaniatraffic.bsky.social](https://bsky.app/profile/pennsylvaniatraffic.bsky.social)
+Live video clips (1 to 6 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 1400+ cameras. Cameras sourced from [511PA](https://www.511pa.com/).
+
+### Massachusetts - [@massachusettstraffic.bsky.social](https://bsky.app/profile/massachusettstraffic.bsky.social)
+Live video clips (1 to 4 minutes) captured from token-authenticated HLS streams. Randomly selects from 290+ cameras. Cameras sourced from [Mass511](https://mass511.com/).
+
+### New Jersey - [@newjerseytrafficcams.bsky.social](https://bsky.app/profile/newjerseytrafficcams.bsky.social)
+Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 110+ NJ Turnpike cameras. Cameras sourced from [511NJ](https://511nj.org/).
+
+### Maryland - [@marylandtrafficcams.bsky.social](https://bsky.app/profile/marylandtrafficcams.bsky.social)
+Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 550+ cameras. Cameras sourced from [CHART](https://chart.maryland.gov/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -161,9 +179,9 @@ map.svg              # US map highlighting active states
 
 The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
 
-**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
+**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota, North Dakota) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
-**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida and Georgia add DIVAS authentication, and Arkansas uses a token redirect for stream access.
+**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia, Mississippi, Pennsylvania, Massachusetts, New Jersey, Maryland) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida, Georgia, and Pennsylvania add DIVAS authentication, and Arkansas uses a token redirect for stream access.
 
 **Hybrid bots** (California, Colorado, Iowa, Hawaii) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
 
