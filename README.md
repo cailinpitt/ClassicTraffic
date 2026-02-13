@@ -128,6 +128,9 @@ Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly s
 ### Michigan - [@michigantrafficcams.bsky.social](https://bsky.app/profile/michigantrafficcams.bsky.social)
 Image timelapses from 750+ MiDrive cameras. Images captured every 6 seconds, played back at 10 fps. Cameras sourced from [MiDrive](https://mdotjboss.state.mi.us/MiDrive/cameras).
 
+### Texas - [@texastrafficcams.bsky.social](https://bsky.app/profile/texastrafficcams.bsky.social)
+Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 3400+ cameras across 25 TxDOT districts. Cameras sourced from [DriveTexas](https://drivetexas.org/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -190,7 +193,7 @@ The project uses a class-based architecture with `TrafficBot` as the base class.
 
 **Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota, North Dakota, Nebraska, Michigan) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
-**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia, Mississippi, Pennsylvania, Massachusetts, New Jersey, Maryland, Missouri) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida, Georgia, and Pennsylvania add DIVAS authentication, and Arkansas uses a token redirect for stream access.
+**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia, Mississippi, Pennsylvania, Massachusetts, New Jersey, Maryland, Missouri, Texas) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida, Georgia, and Pennsylvania add DIVAS authentication, and Arkansas uses a token redirect for stream access.
 
 **Hybrid bots** (California, Colorado, Iowa, Hawaii) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
 
