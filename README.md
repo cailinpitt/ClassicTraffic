@@ -119,6 +119,9 @@ Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly s
 ### Maryland - [@marylandtrafficcams.bsky.social](https://bsky.app/profile/marylandtrafficcams.bsky.social)
 Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 550+ cameras. Cameras sourced from [CHART](https://chart.maryland.gov/).
 
+### Nebraska - [@nebraskatrafficcams.bsky.social](https://bsky.app/profile/nebraskatrafficcams.bsky.social)
+Image timelapses from 1080+ Nebraska DOT cameras. Images captured every 5 minutes, played back at 5 fps. Cameras sourced from [Nebraska 511](https://www.511.nebraska.gov/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -179,7 +182,7 @@ map.svg              # US map highlighting active states
 
 The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
 
-**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota, North Dakota) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
+**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota, North Dakota, Nebraska) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
 **Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia, Mississippi, Pennsylvania, Massachusetts, New Jersey, Maryland) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida, Georgia, and Pennsylvania add DIVAS authentication, and Arkansas uses a token redirect for stream access.
 
