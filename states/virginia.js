@@ -60,14 +60,31 @@ class VirginiaBot extends TrafficBot {
   async downloadVideoSegment(duration) {
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
 
-    const cmd = `ffmpeg -y -t ${duration} -i "${this.chosenCamera.url}" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
+    const tempPath = `${this.assetDirectory}raw.ts`;
+    const MIN_FILE_SIZE = 500 * 1024;
+
+    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} -i "${this.chosenCamera.url}" -map 0:v:0 -c copy "${tempPath}"`;
 
     await new Promise((resolve, reject) => {
-      exec(cmd, { timeout: (duration * 3 + 60) * 1000 }, (error) => {
+      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
+        if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > MIN_FILE_SIZE) {
+          return resolve();
+        }
         if (error) return reject(error);
         resolve();
       });
     });
+
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(encodeCmd, { timeout: 120000 }, (error) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+
+    Fs.removeSync(tempPath);
 
     const stats = Fs.statSync(this.pathToVideo);
     const fileSizeInMB = stats.size / (1024 * 1024);
