@@ -138,10 +138,12 @@ class HawaiiBot extends TrafficBot {
     });
 
     // Phase 2: Re-encode with 2x speed-up from local file
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
+    // Use -preset fast for ARM devices, scale timeout to capture duration
+    // (ARM encodes at ~0.3-0.5x realtime, so allow ~10x the duration)
+    const encodeCmd = `ffmpeg -y -err_detect ignore_err -i "${tempPath}" -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -max_muxing_queue_size 4096 -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
-      exec(encodeCmd, { timeout: 120000 }, (error) => {
+      exec(encodeCmd, { timeout: Math.max(duration * 10, 300) * 1000 }, (error) => {
         if (error) return reject(error);
         resolve();
       });
