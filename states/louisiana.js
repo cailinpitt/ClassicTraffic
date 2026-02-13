@@ -214,7 +214,7 @@ class LouisianaBot extends TrafficBot {
     const videoUrl = await this.getVideoUrl(this.chosenCamera.imageId);
     console.log(`Stream URL: ${videoUrl}`);
 
-    const cmd = `ffmpeg -y -i "${videoUrl}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
+    const cmd = `ffmpeg -y -t ${duration} -i "${videoUrl}" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(cmd, { timeout: (duration * 3 + 60) * 1000 }, (error) => {

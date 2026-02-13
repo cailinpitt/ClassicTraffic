@@ -228,7 +228,7 @@ class FloridaBot extends TrafficBot {
 
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
 
-    const cmd = `ffmpeg -y -headers "Referer: https://fl511.com/\r\nOrigin: https://fl511.com\r\n" -i "${authenticatedUrl}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
+    const cmd = `ffmpeg -y -t ${duration} -headers "Referer: https://fl511.com/\r\nOrigin: https://fl511.com\r\n" -i "${authenticatedUrl}" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(cmd, { timeout: (duration * 3 + 60) * 1000 }, (error) => {

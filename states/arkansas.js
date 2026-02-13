@@ -81,7 +81,7 @@ class ArkansasBot extends TrafficBot {
 
     const tokenizedUrl = await this.getTokenizedUrl(this.chosenCamera.url);
 
-    const cmd = `ffmpeg -y -headers "Referer: https://www.idrivearkansas.com/\r\n" -i "${tokenizedUrl}" -t ${duration} -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
+    const cmd = `ffmpeg -y -t ${duration} -headers "Referer: https://www.idrivearkansas.com/\r\n" -i "${tokenizedUrl}" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -vf "setpts=0.5*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(cmd, { timeout: (duration * 3 + 60) * 1000 }, (error) => {
