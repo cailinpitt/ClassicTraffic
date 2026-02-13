@@ -83,6 +83,24 @@ Image timelapses from 360+ KanDrive cameras. Images captured every 6 seconds, pl
 ### Iowa - [@iowatrafficcams.bsky.social](https://bsky.app/profile/iowatrafficcams.bsky.social)
 Live video clips (1 to 6 minutes) from 620+ HLS streams, with image timelapse fallback for 540+ snapshot-only cameras. Randomly selects from 1170+ cameras. Cameras sourced from [511 Iowa](https://511ia.org/).
 
+### New Hampshire - [@newhampshiretraffic.bsky.social](https://bsky.app/profile/newhampshiretraffic.bsky.social)
+Image timelapses from New Hampshire DOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [New England 511](https://newengland511.org/).
+
+### Maine - [@mainetrafficcams.bsky.social](https://bsky.app/profile/mainetrafficcams.bsky.social)
+Image timelapses from Maine DOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [New England 511](https://newengland511.org/).
+
+### Vermont - [@vermonttrafficcams.bsky.social](https://bsky.app/profile/vermonttrafficcams.bsky.social)
+Image timelapses from Vermont DOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [New England 511](https://newengland511.org/).
+
+### Virginia - [@virginiatrafficcams.bsky.social](https://bsky.app/profile/virginiatrafficcams.bsky.social)
+Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from VDOT cameras. Cameras sourced from [VDOT 511](https://511.vdot.virginia.gov/).
+
+### South Dakota - [@southdakotatraffic.bsky.social](https://bsky.app/profile/southdakotatraffic.bsky.social)
+Image timelapses from South Dakota DOT cameras. Images captured every 10 minutes, played back at 5 fps. Cameras sourced from [SD511](https://www.sd511.org/).
+
+### Hawaii - [@hawaiitrafficcams.bsky.social](https://bsky.app/profile/hawaiitrafficcams.bsky.social)
+Live video clips (1 to 3 minutes) from 280+ HLS streams, with image timelapse fallback for 30+ snapshot-only cameras. Randomly selects from 310+ cameras. Cameras sourced from [GoAkamai](http://www.goakamai.org/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -143,11 +161,11 @@ map.svg              # US map highlighting active states
 
 The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
 
-**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
+**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
-**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida and Georgia add DIVAS authentication, and Arkansas uses a token redirect for stream access.
+**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida and Georgia add DIVAS authentication, and Arkansas uses a token redirect for stream access.
 
-**Hybrid bots** (California, Colorado, Iowa) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
+**Hybrid bots** (California, Colorado, Iowa, Hawaii) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
 
 ### TrafficBot (base class)
 
