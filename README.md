@@ -143,6 +143,21 @@ Image timelapses from 1100+ ODOT cameras. Images captured every 5 minutes, playe
 ### Rhode Island - [@rhodeislandtraffic.bsky.social](https://bsky.app/profile/rhodeislandtraffic.bsky.social)
 Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 130+ cameras. Cameras sourced from [RIDOT](https://www.dot.ri.gov/travel/cameras_metro.php).
 
+### Indiana - [@indianatrafficcams.bsky.social](https://bsky.app/profile/indianatrafficcams.bsky.social)
+Image timelapses from 730+ INDOT cameras. Preview images captured every 60 seconds, played back at 5 fps. Cameras sourced from [511IN](https://511in.org/).
+
+### Minnesota - [@minnesotatrafficcams.bsky.social](https://bsky.app/profile/minnesotatrafficcams.bsky.social)
+Hybrid bot - live video clips from 1230+ HLS streams, with image timelapse fallback for 270+ snapshot-only cameras. Randomly selects from 1510+ cameras. Cameras sourced from [511MN](https://511mn.org/).
+
+### Kentucky - [@kentuckytrafficcams.bsky.social](https://bsky.app/profile/kentuckytrafficcams.bsky.social)
+Image timelapses from 240+ KYTC cameras. Images captured every 6 seconds, played back at 10 fps. Cameras sourced from [KYTC](https://maps.kytc.ky.gov/trafficcameras/).
+
+### Illinois - [@illinoistrafficcams.bsky.social](https://bsky.app/profile/illinoistrafficcams.bsky.social)
+Image timelapses from 870+ IDOT cameras. Images captured every 6 seconds, played back at 10 fps. Cameras sourced from [Travel Midwest](https://travelmidwest.com/).
+
+### Wyoming - [@wyomingtrafficcams.bsky.social](https://bsky.app/profile/wyomingtrafficcams.bsky.social)
+Image timelapses from 220+ WYDOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [WYOROAD](https://www.wyoroad.info/).
+
 ## Installation
 Create a `keys.js` file with your Bluesky credentials:
 
@@ -203,11 +218,11 @@ map.svg              # US map highlighting active states
 
 The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
 
-**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota, North Dakota, Nebraska, Michigan, Oregon) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
+**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota, North Dakota, Nebraska, Michigan, Oregon, Indiana, Kentucky, Illinois, Wyoming) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
 
 **Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia, Mississippi, Pennsylvania, Massachusetts, New Jersey, Maryland, Missouri, Texas, West Virginia, New Mexico, Rhode Island) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida, Georgia, and Pennsylvania add DIVAS authentication, and Arkansas uses a token redirect for stream access.
 
-**Hybrid bots** (California, Colorado, Iowa, Hawaii) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
+**Hybrid bots** (California, Colorado, Iowa, Hawaii, Minnesota) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
 
 ### TrafficBot (base class)
 
