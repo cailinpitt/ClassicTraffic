@@ -22,7 +22,7 @@ class WestVirginiaBot extends TrafficBot {
     try {
       const response = await Axios.get('https://dev.www.511wv.cloud.ilchost.com/xml/data/js/cameras_export.geojson', {
         headers: {
-          'Accept': 'application/json',
+          'Accept': '*/*',
           'Referer': 'https://wv511.org/',
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
         },
