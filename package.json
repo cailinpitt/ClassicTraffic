@@ -5,6 +5,7 @@
   "main": "states/ohio.js",
   "dependencies": {
     "@atproto/api": "^0.18.16",
+    "@launchdarkly/node-server-sdk": "^9.10.6",
     "axios": "^1.13.5",
     "fs-extra": "^8.1.0",
     "lodash": "^4.17.23",

@@ -12,6 +12,14 @@ HC_FILE="$DIR/healthchecks.json"
 
 mkdir -p "$LOG_DIR"
 
+# Check if bot is enabled via LaunchDarkly
+FLAG_EXIT=0
+/usr/bin/node "$DIR/check-flag.js" "$STATE" 2>/dev/null || FLAG_EXIT=$?
+if [ "$FLAG_EXIT" -eq 1 ]; then
+  echo "$(date): Bot $STATE is disabled via feature flag, skipping" >> "$LOG_FILE"
+  exit 0
+fi
+
 # Look up healthcheck UUID
 HC_UUID=""
 if [ -f "$HC_FILE" ]; then
