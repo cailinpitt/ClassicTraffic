@@ -522,11 +522,10 @@ class TrafficBot {
 
       for (let i = 0; i < numImages; i++) {
         await this.downloadImage(i);
+        if (i >= 9 && this.shouldAbort()) {
+          return;
+        }
         if (i < numImages - 1) await this.sleep(this.delayBetweenImageFetches);
-      }
-
-      if (this.shouldAbort()) {
-        return;
       }
 
       this.endTime = new Date();

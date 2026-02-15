@@ -316,7 +316,20 @@ class FloridaBot extends TrafficBot {
 
       if (this.chosenCamera.hasVideo) {
         const duration = _.sample(durationOptions);
-        await this.downloadVideoSegment(duration);
+        const maxRetries = _.isUndefined(argv.id) ? 3 : 1;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            await this.downloadVideoSegment(duration);
+            break;
+          } catch (e) {
+            if (attempt === maxRetries) throw e;
+            console.log(`Stream failed for ${this.chosenCamera.id}, trying another camera...`);
+            this.cleanup();
+            this.chosenCamera = _.sample(cameras);
+            console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+            Fs.ensureDirSync(this.assetDirectory);
+          }
+        }
       } else {
         const numImages = this.getNumImages();
         console.log(`Downloading ${numImages} images every 6s...`);

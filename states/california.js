@@ -192,7 +192,23 @@ class CaliforniaBot extends TrafficBot {
       if (!_.isUndefined(argv.id)) {
         this.chosenCamera = _.find(cameras, { id: argv.id });
       } else {
-        this.chosenCamera = _.sample(cameras);
+        // Verify stream URL is reachable before committing to a video camera
+        const shuffled = _.shuffle(cameras);
+        for (const cam of shuffled) {
+          if (cam.streamingUrl) {
+            try {
+              await Axios.head(cam.streamingUrl, { timeout: 5000 });
+              this.chosenCamera = cam;
+              break;
+            } catch (e) {
+              console.log(`Stream 404 for ${cam.id}, trying another...`);
+              continue;
+            }
+          } else if (cam.url) {
+            this.chosenCamera = cam;
+            break;
+          }
+        }
       }
 
       if (!this.chosenCamera) {

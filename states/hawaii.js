@@ -198,7 +198,23 @@ class HawaiiBot extends TrafficBot {
       if (!_.isUndefined(argv.id)) {
         this.chosenCamera = _.find(cameras, { id: argv.id });
       } else {
-        this.chosenCamera = _.sample(cameras);
+        // For video cameras, verify the stream URL is reachable before committing
+        const shuffled = _.shuffle(cameras);
+        for (const cam of shuffled) {
+          if (cam.hasVideo) {
+            try {
+              await Axios.head(cam.url, { timeout: 5000 });
+              this.chosenCamera = cam;
+              break;
+            } catch (e) {
+              console.log(`Stream 404 for ${cam.id}, trying another...`);
+              continue;
+            }
+          } else {
+            this.chosenCamera = cam;
+            break;
+          }
+        }
       }
 
       if (!this.chosenCamera) {
