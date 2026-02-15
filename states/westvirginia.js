@@ -42,7 +42,7 @@ class WestVirginiaBot extends TrafficBot {
           return {
             id: p.statewide_id || p.md5,
             name: p.descriptive_location || p.name || `Camera ${p.statewide_id}`,
-            url: p.url,
+            url: p.url.replace('sfstest.roadsummary.com', 'vtc3.roadsummary.com'),
             latitude: coords[1],
             longitude: coords[0],
           };
