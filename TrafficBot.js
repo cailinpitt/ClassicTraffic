@@ -531,6 +531,12 @@ class TrafficBot {
       this.endTime = new Date();
 
       console.log('Download complete');
+
+      if (this.uniqueImageCount < 2) {
+        console.log(`Only ${this.uniqueImageCount} unique image(s) captured. Skipping video creation.`);
+        return;
+      }
+
       await this.createVideo();
 
       if (argv['dry-run']) {

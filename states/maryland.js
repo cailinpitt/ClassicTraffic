@@ -37,7 +37,7 @@ class MarylandBot extends TrafficBot {
       console.log(`Total cameras from API: ${allCameras.length}`);
 
       const cameras = allCameras
-        .filter(cam => cam.cctvIp && cam.id && cam.commMode === 'ONLINE')
+        .filter(cam => cam.cctvIp && cam.id && cam.commMode === 'ONLINE' && cam.opStatus === 'OK')
         .map(cam => ({
           id: cam.id,
           name: cam.description || cam.name,
