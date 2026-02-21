@@ -8,4 +8,3 @@ cron/
 yarn.lock
 assets/
 .claude/
-healthchecks.json
