@@ -8,6 +8,9 @@ const { exec } = require('child_process');
 const { AtpAgent } = require('@atproto/api');
 const argv = require('minimist')(process.argv.slice(2));
 const crypto = require('crypto');
+const GoogleMapsAPI = require('googlemaps');
+
+const gmAPI = new GoogleMapsAPI({ key: keys.googleKey });
 
 /**
  * @typedef {Object} Camera
@@ -246,6 +249,44 @@ class TrafficBot {
   }
 
   /**
+   * Reverse geocode coordinates to a human-readable location name.
+   * Returns a string like "Columbus, Ohio" or null on failure.
+   * @param {number} lat
+   * @param {number} lon
+   * @returns {Promise<string|null>}
+   */
+  async reverseGeocode(lat, lon) {
+    const params = {
+      latlng: `${lat},${lon}`,
+      result_type: 'locality|administrative_area_level_1',
+    };
+
+    const result = await new Promise((resolve, reject) => {
+      gmAPI.reverseGeocode(params, (err, data) => err ? reject(err) : resolve(data));
+    });
+
+    if (!result?.results?.length) return null;
+
+    const components = result.results[0].address_components;
+    let locality = null;
+    let sublocality = null;
+    let county = null;
+    let area = null;
+
+    components.forEach(comp => {
+      if (comp.types.includes('locality')) locality = comp.long_name;
+      if (comp.types.includes('sublocality')) sublocality = comp.long_name;
+      if (comp.types.includes('administrative_area_level_2')) county = comp.long_name;
+      if (comp.types.includes('administrative_area_level_1')) area = comp.long_name;
+    });
+
+    const city = locality || sublocality || county;
+    if (city && area) return `${city}, ${area}`;
+    if (area) return area;
+    return null;
+  }
+
+  /**
    * Upload the video to Bluesky and create a post.
    * Handles video upload, processing, and post creation with
    * camera name, time range, and optional location link.
@@ -341,7 +382,16 @@ class TrafficBot {
     if (hasCoordinates) {
       const googleMapsUrl = `https://www.google.com/maps?q=${this.chosenCamera.latitude},${this.chosenCamera.longitude}`;
       const coordinates = `${this.chosenCamera.latitude},${this.chosenCamera.longitude}`;
-      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}\n\n📍: ${coordinates}`;
+
+      let locationSuffix = coordinates;
+      try {
+        const geocoded = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
+        if (geocoded) locationSuffix = `${coordinates} (${geocoded})`;
+      } catch (err) {
+        console.log('Reverse geocoding failed:', err.message);
+      }
+
+      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}\n\n📍: ${locationSuffix}`;
 
       const byteStart = Buffer.from(`${this.chosenCamera.name}\n🕒 ${timeLabel}\n\n📍: `).length;
       const byteEnd = byteStart + Buffer.from(coordinates).length;

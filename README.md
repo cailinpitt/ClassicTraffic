@@ -163,6 +163,9 @@ Create a `keys.js` file with your Bluesky credentials:
 
 ```js
 module.exports = {
+    // Google Maps API key (used for reverse geocoding coordinates in posts)
+    googleKey: '...',
+
     // Shared Bluesky service URLs
     service: 'https://bsky.social',
     videoService: 'https://video.bsky.app',
@@ -293,6 +296,7 @@ Handles the common workflow:
 | `this.getImagePath(index)` | Get file path for image |
 | `this.checkAndStoreImage(path, index)` | Dedupe check, deletes duplicates, updates count |
 | `this.sleep(ms)` | Async sleep |
+| `this.reverseGeocode(lat, lon)` | Returns a human-readable location string (e.g. `"Columbus, Ohio"`) via the Google Maps Geocoding API. Falls back through sublocality → county → state if no city is found. Returns `null` on failure, in which case posts show raw coordinates only. |
 
 ### Camera Object
 
