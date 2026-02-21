@@ -30,6 +30,7 @@ async function checkFlag() {
         const enabled = await client.variation('state-bot-enabled', context, true);
 
         clearTimeout(timeout);
+        await client.flush();
         await client.close();
 
         process.exit(enabled ? 0 : 1);
