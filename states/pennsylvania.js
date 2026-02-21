@@ -64,14 +64,34 @@ class PennsylvaniaBot extends TrafficBot {
     console.log('Authenticating video stream...');
 
     // Step 1: Get auth data from 511pa
-    const authResp = await Axios.get(`https://www.511pa.com/Camera/GetVideoUrl?imageId=${imageId}`, {
-      headers: {
-        Cookie: this.session.cookies,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-        'X-Requested-With': 'XMLHttpRequest',
-        '__requestverificationtoken': this.session.token,
-      },
-    });
+    let authResp;
+    try {
+      authResp = await Axios.get(`https://www.511pa.com/Camera/GetVideoUrl?imageId=${imageId}`, {
+        headers: {
+          Cookie: this.session.cookies,
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+          'X-Requested-With': 'XMLHttpRequest',
+          '__requestverificationtoken': this.session.token,
+        },
+      });
+    } catch (e) {
+      if (e.response?.status === 429) {
+        const retryAfter = parseInt(e.response.headers['retry-after'] || '60', 10);
+        console.log(`Rate limited by 511pa.com, waiting ${retryAfter}s then re-authenticating...`);
+        await this.sleep(retryAfter * 1000);
+        this.session = await this.getSession();
+        authResp = await Axios.get(`https://www.511pa.com/Camera/GetVideoUrl?imageId=${imageId}`, {
+          headers: {
+            Cookie: this.session.cookies,
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest',
+            '__requestverificationtoken': this.session.token,
+          },
+        });
+      } else {
+        throw e;
+      }
+    }
 
     // If the response is a string, it's already the final URL
     if (typeof authResp.data === 'string') {
@@ -317,6 +337,8 @@ class PennsylvaniaBot extends TrafficBot {
 
       this.startTime = new Date();
 
+      let doImagePath = !this.chosenCamera.hasVideo;
+
       if (this.chosenCamera.hasVideo) {
         const duration = _.sample(durationOptions);
         if (!_.isUndefined(argv.id)) {
@@ -327,22 +349,38 @@ class PennsylvaniaBot extends TrafficBot {
           let idx = videoCameras.findIndex(c => c.id === this.chosenCamera.id);
           if (idx === -1) idx = 0;
 
-          for (let attempt = 1; attempt <= videoCameras.length; attempt++) {
+          const maxRetries = Math.min(5, videoCameras.length);
+          let videoSucceeded = false;
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
               await this.downloadVideoSegment(duration);
+              videoSucceeded = true;
               break;
             } catch (e) {
-              if (attempt === videoCameras.length) throw e;
               console.log(`Stream failed for ${this.chosenCamera.id}, trying another camera...`);
               this.cleanup();
-              idx = (idx + 1) % videoCameras.length;
-              this.chosenCamera = videoCameras[idx];
-              console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-              Fs.ensureDirSync(this.assetDirectory);
+              if (attempt < maxRetries) {
+                idx = (idx + 1) % videoCameras.length;
+                this.chosenCamera = videoCameras[idx];
+                console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+                Fs.ensureDirSync(this.assetDirectory);
+                await this.sleep(3000);
+              }
             }
           }
+
+          if (!videoSucceeded) {
+            const imageCameras = cameras.filter(c => !c.hasVideo);
+            if (imageCameras.length === 0) throw new Error('All video streams failed and no image cameras available');
+            this.chosenCamera = _.sample(imageCameras);
+            console.log(`All video streams exhausted, falling back to image camera: ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+            Fs.ensureDirSync(this.assetDirectory);
+            doImagePath = true;
+          }
         }
-      } else {
+      }
+
+      if (doImagePath) {
         const numImages = this.getNumImages();
         console.log(`Downloading ${numImages} images every 6s...`);
         for (let i = 0; i < numImages; i++) {
