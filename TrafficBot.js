@@ -380,13 +380,16 @@ class TrafficBot {
     const timeLabel = this.is24HourTimelapse ? `24-Hour Timelapse: ${timeRange}` : timeRange;
 
     if (hasCoordinates) {
-      const googleMapsUrl = `https://www.google.com/maps?q=${this.chosenCamera.latitude},${this.chosenCamera.longitude}`;
-      const coordinates = `${this.chosenCamera.latitude},${this.chosenCamera.longitude}`;
+      const lat = this.chosenCamera.latitude.toFixed(6);
+      const lon = this.chosenCamera.longitude.toFixed(6);
+      const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+      const coordinates = `${lat},${lon}`;
 
       let locationSuffix = coordinates;
       try {
         const geocoded = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
-        if (geocoded) locationSuffix = `${coordinates} (${geocoded})`;
+        // Only append geocoded location if it includes a city, not just a state name
+        if (geocoded && geocoded.includes(',')) locationSuffix = `${coordinates} (${geocoded})`;
       } catch (err) {
         console.log('Reverse geocoding failed:', err.message);
       }
