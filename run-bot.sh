@@ -33,7 +33,8 @@ DURATION=$(( $(date +%s) - START_TIME ))
 
 # Push run telemetry to Grafana Loki
 TIMESTAMP=$(date +%s%N)
-PAYLOAD="{\"streams\":[{\"stream\":{\"job\":\"classictraffic\",\"state\":\"$STATE\"},\"values\":[[\"$TIMESTAMP\",\"{\\\"state\\\":\\\"$STATE\\\",\\\"exit_code\\\":$EXIT_CODE,\\\"duration_seconds\\\":$DURATION}\"]]}]}"
+TS=$(($(date +%s) * 1000))
+PAYLOAD="{\"streams\":[{\"stream\":{\"job\":\"classictraffic\",\"state\":\"$STATE\"},\"values\":[[\"$TIMESTAMP\",\"{\\\"state\\\":\\\"$STATE\\\",\\\"exit_code\\\":$EXIT_CODE,\\\"duration_seconds\\\":$DURATION,\\\"ts\\\":$TS}\"]]}]}"
 curl -s -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
   -u "${GRAFANA_USER}:${GRAFANA_API_KEY}" \
   -H "Content-Type: application/json" \
