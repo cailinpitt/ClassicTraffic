@@ -7,10 +7,11 @@ set -euo pipefail
 STATE="$1"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_DIR="$DIR/cron"
-LOG_FILE="$LOG_DIR/$STATE.log"
 HC_FILE="$DIR/healthchecks.json"
 
 mkdir -p "$LOG_DIR"
+
+LOG_FILE="$LOG_DIR/$STATE-$(date +%Y-%m-%d).log"
 
 # Check if bot is enabled via LaunchDarkly
 FLAG_EXIT=0
@@ -40,5 +41,8 @@ EXIT_CODE=0
 if [ -n "$HC_UUID" ]; then
   curl -fsS -m 10 --retry 3 "https://hc-ping.com/$HC_UUID/$EXIT_CODE" > /dev/null 2>&1 || true
 fi
+
+# Rotate: delete logs for this state older than 7 days
+find "$LOG_DIR" -name "$STATE-*.log" -mtime +7 -delete 2>/dev/null || true
 
 exit $EXIT_CODE

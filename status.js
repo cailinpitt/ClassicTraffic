@@ -16,10 +16,12 @@ const allStates = fs.readdirSync(statesDir)
   .map(f => f.replace('.js', ''))
   .sort();
 
-function parseLastPost(logFile) {
-  if (!fs.existsSync(logFile)) return { lastPost: null, lastRun: null, status: 'no log' };
+function parseLastPost(state, dir) {
+  const pattern = new RegExp(`^${state}-\\d{4}-\\d{2}-\\d{2}\\.log$`);
+  const files = fs.readdirSync(dir).filter(f => pattern.test(f)).sort();
+  if (files.length === 0) return { lastPost: null, lastRun: null, status: 'no log' };
 
-  const content = fs.readFileSync(logFile, 'utf8');
+  const content = files.map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('');
 
   // Each run is delimited by "\n\n=== <date> ===\n" written by run-bot.sh
   const parts = content.split(/\n\n=== (.+?) ===\n/);
@@ -57,8 +59,7 @@ function timeSince(dateStr) {
 const now = Date.now();
 
 const results = allStates.map(state => {
-  const logFile = path.join(cronDir, `${state}.log`);
-  const info = parseLastPost(logFile);
+  const info = parseLastPost(state, cronDir);
   const lastPostMs = info.lastPost ? new Date(info.lastPost).getTime() : null;
   const stale = !lastPostMs || (now - lastPostMs > STALE_MS);
   return { state, ...info, stale };
