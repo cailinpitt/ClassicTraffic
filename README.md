@@ -209,9 +209,36 @@ npm run tennessee
 ```
 states/              # State-specific bot implementations (one file per state)
 TrafficBot.js        # Base class with shared workflow
+run-bot.sh           # Cron wrapper (logging, feature flags, health checks)
+status.js            # Reports last successful post time for all bots
 keys.js              # Bluesky credentials (gitignored)
 assets/              # Temporary download directory (gitignored)
+cron/                # Per-bot log files written by run-bot.sh (gitignored)
 map.svg              # US map highlighting active states
+```
+
+## Monitoring
+
+`status.js` reads all `cron/*.log` files and reports when each bot last successfully posted. Bots run every 30 minutes, so any bot without a successful post in over an hour is flagged.
+
+```
+node status.js
+```
+
+Example output:
+
+```
+Bot post status — 2/20/2026, 3:45:00 PM
+Stale threshold: >1 hour without a successful post (bots run every 30 min)
+
+   State           Last posted                            Since
+   ─────────────────────────────────────────────────────────────────
+[!] connecticut     Thu Feb 20 10:12:44 PST 2026           5h 32m ago
+[!] alabama         (no log file)
+    ohio            Thu Feb 20 15:41:22 PST 2026           3m ago
+    florida         Thu Feb 20 15:40:01 PST 2026           5m ago
+
+2 bot(s) stale, 48 healthy
 ```
 
 ## Architecture
