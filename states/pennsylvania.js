@@ -7,7 +7,7 @@ const argv = require('minimist')(process.argv.slice(2));
 
 const durationOptions = [60, 90, 120, 180, 240, 360];
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
-const CAMERAS_PER_PAGE = 10;
+const CAMERAS_PER_PAGE = 30;
 const DIVAS_AUTH_URL = 'https://divas.cloud/VDS-API/SecureTokenUri/GetSecureTokenUriBySourceId';
 
 class PennsylvaniaBot extends TrafficBot {
@@ -319,18 +319,27 @@ class PennsylvaniaBot extends TrafficBot {
 
       if (this.chosenCamera.hasVideo) {
         const duration = _.sample(durationOptions);
-        const maxRetries = _.isUndefined(argv.id) ? 3 : 1;
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            await this.downloadVideoSegment(duration);
-            break;
-          } catch (e) {
-            if (attempt === maxRetries) throw e;
-            console.log(`Stream failed for ${this.chosenCamera.id}, trying another camera...`);
-            this.cleanup();
-            this.chosenCamera = _.sample(cameras);
-            console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-            Fs.ensureDirSync(this.assetDirectory);
+        if (!_.isUndefined(argv.id)) {
+          await this.downloadVideoSegment(duration);
+        } else {
+          // Shuffle video cameras so retries cycle through them without repeating
+          const videoCameras = _.shuffle(cameras.filter(c => c.hasVideo));
+          let idx = videoCameras.findIndex(c => c.id === this.chosenCamera.id);
+          if (idx === -1) idx = 0;
+
+          for (let attempt = 1; attempt <= videoCameras.length; attempt++) {
+            try {
+              await this.downloadVideoSegment(duration);
+              break;
+            } catch (e) {
+              if (attempt === videoCameras.length) throw e;
+              console.log(`Stream failed for ${this.chosenCamera.id}, trying another camera...`);
+              this.cleanup();
+              idx = (idx + 1) % videoCameras.length;
+              this.chosenCamera = videoCameras[idx];
+              console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+              Fs.ensureDirSync(this.assetDirectory);
+            }
           }
         }
       } else {
