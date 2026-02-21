@@ -24,17 +24,34 @@ if [ "$FLAG_EXIT" -eq 1 ]; then
   exit 0
 fi
 
-# Run bot
+# Run bot, capturing stderr separately so errors can be included in Grafana on failure
 START_TIME=$(date +%s)
 printf "\n\n=== $(date) ===\n" >> "$LOG_FILE" 2>&1
+STDERR_FILE=$(mktemp)
 EXIT_CODE=0
-/usr/bin/node "$DIR/states/$STATE.js" >> "$LOG_FILE" 2>&1 || EXIT_CODE=$?
+/usr/bin/node "$DIR/states/$STATE.js" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
+cat "$STDERR_FILE" >> "$LOG_FILE"
 DURATION=$(( $(date +%s) - START_TIME ))
 
 # Push run telemetry to Grafana Loki
+# Use node to build the payload so error strings are properly JSON-escaped
 TIMESTAMP=$(date +%s%N)
 TS=$(($(date +%s) * 1000))
-PAYLOAD="{\"streams\":[{\"stream\":{\"job\":\"classictraffic\",\"state\":\"$STATE\"},\"values\":[[\"$TIMESTAMP\",\"{\\\"state\\\":\\\"$STATE\\\",\\\"exit_code\\\":$EXIT_CODE,\\\"duration_seconds\\\":$DURATION,\\\"ts\\\":$TS}\"]]}]}"
+PAYLOAD=$(/usr/bin/node -e "
+  const fs = require('fs');
+  const logData = { state: '$STATE', exit_code: $EXIT_CODE, duration_seconds: $DURATION, ts: $TS };
+  if ($EXIT_CODE !== 0) {
+    const raw = fs.readFileSync('$STDERR_FILE', 'utf8').trim();
+    logData.error = raw.length > 2000 ? raw.slice(0, 2000) + '...' : raw;
+  }
+  console.log(JSON.stringify({
+    streams: [{
+      stream: { job: 'classictraffic', state: '$STATE' },
+      values: [['$TIMESTAMP', JSON.stringify(logData)]]
+    }]
+  }));
+")
+rm -f "$STDERR_FILE"
 curl -s -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
   -u "${GRAFANA_USER}:${GRAFANA_API_KEY}" \
   -H "Content-Type: application/json" \
