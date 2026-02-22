@@ -129,24 +129,45 @@ class WestVirginiaBot extends TrafficBot {
         return;
       }
 
-      if (!_.isUndefined(argv.id)) {
-        this.chosenCamera = _.find(cameras, { id: argv.id });
-      } else {
-        this.chosenCamera = _.sample(cameras);
-      }
-
-      if (!this.chosenCamera) {
-        console.error('Could not select a camera');
-        return;
-      }
-
-      console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
       Fs.ensureDirSync(this.assetDirectory);
 
-      this.startTime = new Date();
+      if (!_.isUndefined(argv.id)) {
+        this.chosenCamera = _.find(cameras, { id: argv.id });
+        if (!this.chosenCamera) {
+          console.error('Could not select a camera');
+          return;
+        }
+        console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+        this.startTime = new Date();
+        await this.downloadVideoSegment(_.sample(durationOptions));
+      } else {
+        const MAX_ATTEMPTS = 5;
+        const triedIds = new Set();
+        let downloaded = false;
 
-      const duration = _.sample(durationOptions);
-      await this.downloadVideoSegment(duration);
+        while (!downloaded && triedIds.size < MAX_ATTEMPTS) {
+          const available = cameras.filter(c => !triedIds.has(c.id));
+          if (available.length === 0) break;
+
+          this.chosenCamera = _.sample(available);
+          triedIds.add(this.chosenCamera.id);
+
+          console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+          this.startTime = new Date();
+
+          try {
+            await this.downloadVideoSegment(_.sample(durationOptions));
+            downloaded = true;
+          } catch (error) {
+            console.log(`Stream unavailable for camera ${this.chosenCamera.id}, trying another...`);
+            await this.sleep(2000);
+          }
+        }
+
+        if (!downloaded) {
+          throw new Error(`All ${triedIds.size} camera attempts failed`);
+        }
+      }
 
       this.endTime = new Date();
 
