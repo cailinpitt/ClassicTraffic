@@ -11,6 +11,14 @@ LOG_FILE="$LOG_DIR/$STATE-$(date +%Y-%m-%d).log"
 
 mkdir -p "$LOG_DIR"
 
+# Prevent overlapping runs: if this bot is already running, skip this invocation
+LOCKFILE="$LOG_DIR/$STATE.lock"
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+  echo "$(date): Bot $STATE already running, skipping" >> "$LOG_FILE"
+  exit 0
+fi
+
 # Load Grafana credentials from keys.js
 GRAFANA_LOKI_URL=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.lokiUrl)")
 GRAFANA_USER=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.user)")
@@ -29,7 +37,7 @@ START_TIME=$(date +%s)
 printf "\n\n=== $(date) ===\n" >> "$LOG_FILE" 2>&1
 STDERR_FILE=$(mktemp)
 EXIT_CODE=0
-/usr/bin/node "$DIR/states/$STATE.js" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
+timeout 7200 /usr/bin/node "$DIR/states/$STATE.js" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
 cat "$STDERR_FILE" >> "$LOG_FILE"
 DURATION=$(( $(date +%s) - START_TIME ))
 
