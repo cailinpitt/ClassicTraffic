@@ -20,6 +20,10 @@ class AlabamaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
+  getTimeout() {
+    return (Math.max(...numImagesPerVideoOptions) - 1) * this.delayBetweenImageFetches / 1000 + 600;
+  }
+
   shouldAbort() {
     if (this.uniqueImageCount === 1) {
       console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
