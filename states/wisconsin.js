@@ -309,4 +309,4 @@ class WisconsinBot extends TrafficBot {
 }
 
 const bot = new WisconsinBot();
-bot.run();
+bot.start();

@@ -236,4 +236,4 @@ class ColoradoBot extends TrafficBot {
 }
 
 const bot = new ColoradoBot();
-bot.run();
+bot.start();

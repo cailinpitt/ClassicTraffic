@@ -181,4 +181,4 @@ class TexasBot extends TrafficBot {
 }
 
 const bot = new TexasBot();
-bot.run();
+bot.start();

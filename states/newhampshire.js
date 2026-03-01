@@ -179,4 +179,4 @@ class NewHampshireBot extends TrafficBot {
 }
 
 const bot = new NewHampshireBot();
-bot.run();
+bot.start();

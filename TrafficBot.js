@@ -124,6 +124,28 @@ class TrafficBot {
   }
 
   /**
+   * Get the maximum number of seconds this bot may run.
+   * Used by run-bot.sh to set the process timeout.
+   * Override in subclasses with long image intervals.
+   * @returns {number} Timeout in seconds
+   */
+  getTimeout() {
+    return 7200;
+  }
+
+  /**
+   * Entry point. Handles --get-timeout before delegating to run().
+   * @returns {Promise<void>}
+   */
+  async start() {
+    if (argv['get-timeout']) {
+      console.log(this.getTimeout());
+      return;
+    }
+    await this.run();
+  }
+
+  /**
    * Get the file path for an image by index.
    * @param {number} index - Image index
    * @returns {string} Absolute path to save the image

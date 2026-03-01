@@ -159,4 +159,4 @@ class MissouriBot extends TrafficBot {
 }
 
 const bot = new MissouriBot();
-bot.run();
+bot.start();

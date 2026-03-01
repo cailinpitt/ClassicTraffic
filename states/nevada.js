@@ -308,4 +308,4 @@ class NevadaBot extends TrafficBot {
 }
 
 const bot = new NevadaBot();
-bot.run();
+bot.start();

@@ -185,4 +185,4 @@ class PennsylvaniaBot extends TrafficBot {
 }
 
 const bot = new PennsylvaniaBot();
-bot.run();
+bot.start();

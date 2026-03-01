@@ -179,4 +179,4 @@ class MaineBot extends TrafficBot {
 }
 
 const bot = new MaineBot();
-bot.run();
+bot.start();

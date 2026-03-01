@@ -179,4 +179,4 @@ class ConnecticutBot extends TrafficBot {
 }
 
 const bot = new ConnecticutBot();
-bot.run();
+bot.start();

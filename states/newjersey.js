@@ -217,4 +217,4 @@ class NewJerseyBot extends TrafficBot {
 }
 
 const bot = new NewJerseyBot();
-bot.run();
+bot.start();

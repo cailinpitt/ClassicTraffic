@@ -140,4 +140,4 @@ class NebraskaBot extends TrafficBot {
 }
 
 const bot = new NebraskaBot();
-bot.run();
+bot.start();

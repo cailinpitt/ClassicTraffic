@@ -157,4 +157,4 @@ class NewMexicoBot extends TrafficBot {
 }
 
 const bot = new NewMexicoBot();
-bot.run();
+bot.start();

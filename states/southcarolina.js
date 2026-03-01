@@ -166,4 +166,4 @@ class SouthCarolinaBot extends TrafficBot {
 }
 
 const bot = new SouthCarolinaBot();
-bot.run();
+bot.start();

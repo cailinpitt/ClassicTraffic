@@ -163,4 +163,4 @@ class MarylandBot extends TrafficBot {
 }
 
 const bot = new MarylandBot();
-bot.run();
+bot.start();

@@ -179,4 +179,4 @@ class IdahoBot extends TrafficBot {
 }
 
 const bot = new IdahoBot();
-bot.run();
+bot.start();

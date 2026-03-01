@@ -123,4 +123,4 @@ class AlabamaBot extends TrafficBot {
 }
 
 const bot = new AlabamaBot();
-bot.run();
+bot.start();

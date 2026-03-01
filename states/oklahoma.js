@@ -181,4 +181,4 @@ class OklahomaBot extends TrafficBot {
 }
 
 const bot = new OklahomaBot();
-bot.run();
+bot.start();

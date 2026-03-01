@@ -349,4 +349,4 @@ class LouisianaBot extends TrafficBot {
 }
 
 const bot = new LouisianaBot();
-bot.run();
+bot.start();

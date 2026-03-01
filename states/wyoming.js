@@ -136,4 +136,4 @@ class WyomingBot extends TrafficBot {
 }
 
 const bot = new WyomingBot();
-bot.run();
+bot.start();

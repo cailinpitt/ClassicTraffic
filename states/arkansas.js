@@ -187,4 +187,4 @@ class ArkansasBot extends TrafficBot {
 }
 
 const bot = new ArkansasBot();
-bot.run();
+bot.start();

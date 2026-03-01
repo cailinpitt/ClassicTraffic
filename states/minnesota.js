@@ -239,4 +239,4 @@ class MinnesotaBot extends TrafficBot {
 }
 
 const bot = new MinnesotaBot();
-bot.run();
+bot.start();

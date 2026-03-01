@@ -294,4 +294,4 @@ class IowaBot extends TrafficBot {
 }
 
 const bot = new IowaBot();
-bot.run();
+bot.start();

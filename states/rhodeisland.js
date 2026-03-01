@@ -198,4 +198,4 @@ class RhodeIslandBot extends TrafficBot {
 }
 
 const bot = new RhodeIslandBot();
-bot.run();
+bot.start();

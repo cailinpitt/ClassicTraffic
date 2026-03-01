@@ -262,4 +262,4 @@ class HawaiiBot extends TrafficBot {
 }
 
 const bot = new HawaiiBot();
-bot.run();
+bot.start();

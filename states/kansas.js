@@ -169,4 +169,4 @@ class KansasBot extends TrafficBot {
 }
 
 const bot = new KansasBot();
-bot.run();
+bot.start();

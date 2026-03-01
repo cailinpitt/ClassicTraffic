@@ -166,4 +166,4 @@ class VirginiaBot extends TrafficBot {
 }
 
 const bot = new VirginiaBot();
-bot.run();
+bot.start();

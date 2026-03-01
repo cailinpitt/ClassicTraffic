@@ -179,4 +179,4 @@ class UtahBot extends TrafficBot {
 }
 
 const bot = new UtahBot();
-bot.run();
+bot.start();

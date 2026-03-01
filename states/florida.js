@@ -362,4 +362,4 @@ class FloridaBot extends TrafficBot {
 }
 
 const bot = new FloridaBot();
-bot.run();
+bot.start();

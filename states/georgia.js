@@ -359,4 +359,4 @@ class GeorgiaBot extends TrafficBot {
 }
 
 const bot = new GeorgiaBot();
-bot.run();
+bot.start();

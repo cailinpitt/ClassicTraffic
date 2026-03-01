@@ -116,4 +116,4 @@ class MichiganBot extends TrafficBot {
 }
 
 const bot = new MichiganBot();
-bot.run();
+bot.start();

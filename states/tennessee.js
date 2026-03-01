@@ -159,4 +159,4 @@ class TennesseeBot extends TrafficBot {
 }
 
 const bot = new TennesseeBot();
-bot.run();
+bot.start();

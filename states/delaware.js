@@ -159,4 +159,4 @@ class DelawareBot extends TrafficBot {
 }
 
 const bot = new DelawareBot();
-bot.run();
+bot.start();

@@ -179,4 +179,4 @@ class AlaskaBot extends TrafficBot {
 }
 
 const bot = new AlaskaBot();
-bot.run();
+bot.start();

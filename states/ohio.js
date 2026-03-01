@@ -113,4 +113,4 @@ class OhioBot extends TrafficBot {
 }
 
 const bot = new OhioBot();
-bot.run();
+bot.start();

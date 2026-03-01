@@ -260,4 +260,4 @@ class CaliforniaBot extends TrafficBot {
 }
 
 const bot = new CaliforniaBot();
-bot.run();
+bot.start();

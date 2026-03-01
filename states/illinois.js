@@ -118,4 +118,4 @@ class IllinoisBot extends TrafficBot {
 }
 
 const bot = new IllinoisBot();
-bot.run();
+bot.start();

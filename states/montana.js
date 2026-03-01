@@ -23,6 +23,10 @@ class MontanaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
+  getTimeout() {
+    return (Math.max(...numImagesPerVideoOptions) - 1) * this.delayBetweenImageFetches / 1000 + 600;
+  }
+
   async fetchCameras() {
     console.log('Fetching cameras from Montana MDT...');
 
@@ -161,4 +165,4 @@ class MontanaBot extends TrafficBot {
 }
 
 const bot = new MontanaBot();
-bot.run();
+bot.start();

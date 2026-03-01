@@ -186,4 +186,4 @@ class WestVirginiaBot extends TrafficBot {
 }
 
 const bot = new WestVirginiaBot();
-bot.run();
+bot.start();

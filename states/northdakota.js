@@ -122,4 +122,4 @@ class NorthDakotaBot extends TrafficBot {
 }
 
 const bot = new NorthDakotaBot();
-bot.run();
+bot.start();

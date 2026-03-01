@@ -309,4 +309,4 @@ class NewYorkBot extends TrafficBot {
 }
 
 const bot = new NewYorkBot();
-bot.run();
+bot.start();

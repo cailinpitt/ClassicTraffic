@@ -227,4 +227,4 @@ class MassachusettsBot extends TrafficBot {
 }
 
 const bot = new MassachusettsBot();
-bot.run();
+bot.start();

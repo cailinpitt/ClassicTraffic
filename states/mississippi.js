@@ -230,4 +230,4 @@ class MississippiBot extends TrafficBot {
 }
 
 const bot = new MississippiBot();
-bot.run();
+bot.start();

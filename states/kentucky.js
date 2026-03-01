@@ -113,4 +113,4 @@ class KentuckyBot extends TrafficBot {
 }
 
 const bot = new KentuckyBot();
-bot.run();
+bot.start();

@@ -179,4 +179,4 @@ class VermontBot extends TrafficBot {
 }
 
 const bot = new VermontBot();
-bot.run();
+bot.start();
