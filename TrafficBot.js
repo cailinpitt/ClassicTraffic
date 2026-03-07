@@ -552,6 +552,31 @@ class TrafficBot {
   }
 
   /**
+   * Load the list of recently posted camera IDs for this state.
+   * @returns {string[]}
+   */
+  getRecentCameraIds() {
+    const path = `./cron/${this.accountName}-recent.json`;
+    try {
+      return JSON.parse(Fs.readFileSync(path, 'utf8'));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Prepend a camera ID to the recent list, capped at 20 entries.
+   * @param {string|number} id
+   */
+  saveRecentCameraId(id) {
+    const path = `./cron/${this.accountName}-recent.json`;
+    const recent = this.getRecentCameraIds();
+    const updated = [String(id), ...recent.filter(r => r !== String(id))].slice(0, 48);
+    Fs.ensureDirSync('./cron');
+    Fs.writeFileSync(path, JSON.stringify(updated));
+  }
+
+  /**
    * Remove stale asset directories from previous runs of this bot.
    * Called at startup to clean up after crashed or killed processes.
    * Only removes directories not modified in the last hour to avoid
@@ -679,13 +704,17 @@ class TrafficBot {
       if (!_.isUndefined(argv.id)) {
         this.chosenCamera = _.find(cameras, c => c.id == argv.id);
       } else {
-        this.chosenCamera = _.sample(cameras);
+        const recentIds = this.getRecentCameraIds();
+        const freshCameras = cameras.filter(c => !recentIds.includes(String(c.id)));
+        this.chosenCamera = _.sample(freshCameras.length > 0 ? freshCameras : cameras);
       }
 
       if (!this.chosenCamera) {
         console.error('Could not select a camera');
         return;
       }
+
+      this.saveRecentCameraId(this.chosenCamera.id);
 
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
       Fs.ensureDirSync(this.assetDirectory);
@@ -703,12 +732,30 @@ class TrafficBot {
       const numImages = this.getNumImages();
       console.log(`Downloading traffic camera images. ${numImages} images...`);
 
+      let currentDelay = this.delayBetweenImageFetches;
+      const maxDelay = this.delayBetweenImageFetches * 4;
+
       for (let i = 0; i < numImages; i++) {
+        const countBefore = this.uniqueImageCount;
         await this.downloadImage(i);
+        const wasUnique = this.uniqueImageCount > countBefore;
+
         if (i >= 9 && this.shouldAbort()) {
           return;
         }
-        if (i < numImages - 1) await this.sleep(this.delayBetweenImageFetches);
+
+        if (i < numImages - 1) {
+          if (!wasUnique) {
+            const newDelay = Math.min(Math.round(currentDelay * 1.5), maxDelay);
+            if (newDelay !== currentDelay) {
+              console.log(`Duplicate image, increasing interval to ${newDelay / 1000}s`);
+              currentDelay = newDelay;
+            }
+          } else {
+            currentDelay = this.delayBetweenImageFetches;
+          }
+          await this.sleep(currentDelay);
+        }
       }
 
       this.endTime = new Date();

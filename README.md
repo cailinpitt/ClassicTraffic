@@ -259,7 +259,7 @@ The project uses a class-based architecture with `TrafficBot` as the base class.
 Handles the common workflow:
 1. Login to Bluesky
 2. Fetch and select a camera (calls subclass `fetchCameras()`)
-3. Download images over time (calls subclass `downloadImage()`)
+3. Download images over time (calls subclass `downloadImage()`), with adaptive interval backoff
 4. Create timelapse video with ffmpeg
 5. Upload and post to Bluesky
 6. Cleanup temp files
@@ -272,7 +272,7 @@ Handles the common workflow:
 | `timezone` | string | IANA timezone for timestamps (e.g., `'America/New_York'`) |
 | `tzAbbrev` | string | Timezone abbreviation for display (e.g., `'ET'`) |
 | `framerate` | number | Video playback fps |
-| `delayBetweenImageFetches` | number | Milliseconds between downloads |
+| `delayBetweenImageFetches` | number | Base milliseconds between downloads. If a downloaded image is a duplicate (camera hasn't refreshed), the interval increases by 1.5x up to a max of 4x, then resets to base on the next unique image. |
 | `is24HourTimelapse` | boolean | If true, shows "24-Hour Timelapse:" in post |
 
 ### Required Methods (image timelapse bots)
