@@ -79,6 +79,10 @@ class TrafficBot {
     this.startTime = null;
     /** @type {Date|null} */
     this.endTime = null;
+    /** @type {{tempF: number, description: string}|null} */
+    this.weatherStart = null;
+    /** @type {{tempF: number, description: string}|null} */
+    this.weatherEnd = null;
   }
 
   /**
@@ -309,12 +313,90 @@ class TrafficBot {
   }
 
   /**
+   * Map a WMO weather interpretation code to a human-readable description.
+   * @param {number} code - WMO weather code
+   * @returns {string}
+   */
+  getWeatherDescription(code) {
+    if (code === 0) return 'Clear';
+    if (code === 1) return 'Mostly Clear';
+    if (code === 2) return 'Partly Cloudy';
+    if (code === 3) return 'Overcast';
+    if (code === 45 || code === 48) return 'Foggy';
+    if (code >= 51 && code <= 55) return 'Drizzle';
+    if (code >= 61 && code <= 65) return 'Rain';
+    if (code >= 71 && code <= 77) return 'Snow';
+    if (code >= 80 && code <= 82) return 'Rain Showers';
+    if (code >= 85 && code <= 86) return 'Snow Showers';
+    if (code === 95) return 'Thunderstorm';
+    if (code >= 96) return 'Severe Thunderstorm';
+    return 'Unknown';
+  }
+
+  /**
+   * Fetch current weather conditions from Open-Meteo (free, no API key required).
+   * @param {number} lat
+   * @param {number} lon
+   * @returns {Promise<{tempF: number, description: string}>}
+   */
+  async fetchWeather(lat, lon) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Weather API returned ${response.status}`);
+    const data = await response.json();
+    const { temperature_2m: tempF, weather_code: code } = data.current;
+    return { tempF, description: this.getWeatherDescription(code) };
+  }
+
+  /**
+   * Build accessibility alt text for the video post.
+   * @param {string|null} geocodedLocation - e.g. "Columbus, Ohio"
+   * @param {{tempF: number, description: string}|null} weather
+   * @returns {string}
+   */
+  buildAltText(geocodedLocation, weatherStart, weatherEnd) {
+    const type = this.is24HourTimelapse ? '24-hour traffic camera timelapse' : 'Traffic camera footage';
+    let text = `${type} of ${this.chosenCamera.name}`;
+    if (geocodedLocation) text += ` in ${geocodedLocation}`;
+    if (this.startTime && this.endTime) {
+      const formatTime = (date) => date.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: this.timezone,
+      });
+      text += `, recorded ${formatTime(this.startTime)}-${formatTime(this.endTime)} ${this.tzAbbrev}`;
+    }
+    if (weatherStart) {
+      const end = weatherEnd;
+      const tempChanged = end && Math.abs(end.tempF - weatherStart.tempF) >= 3;
+      const descChanged = end && end.description !== weatherStart.description;
+      if (tempChanged || descChanged) {
+        text += `. Weather: ${weatherStart.description}→${end.description}, ${Math.round(weatherStart.tempF)}→${Math.round(end.tempF)}F`;
+      } else {
+        text += `. Weather: ${weatherStart.description}, ${Math.round(weatherStart.tempF)}F`;
+      }
+    }
+    text += '.';
+    return text;
+  }
+
+  /**
    * Upload the video to Bluesky and create a post.
-   * Handles video upload, processing, and post creation with
-   * camera name, time range, and optional location link.
+   * Handles weather overlay, video upload, processing, and post creation with
+   * camera name, time range, optional location link, and accessibility alt text.
    * @returns {Promise<void>}
    */
   async postToBluesky() {
+    const hasCoordinates = this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0;
+
+    // Use weather captured during recording; fall back to a fresh fetch for video bots
+    // that override run() and don't set weatherStart/weatherEnd.
+    if (!this.weatherStart && hasCoordinates) {
+      try {
+        this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+      } catch (err) {
+        console.log('Weather fetch failed:', err.message);
+      }
+    }
+
     console.log('Uploading video to Bluesky...');
 
     const videoBuffer = Fs.readFileSync(this.pathToVideo);
@@ -394,12 +476,26 @@ class TrafficBot {
     };
 
     const timeRange = `${formatTime(this.startTime)} - ${formatTime(this.endTime)} ${this.tzAbbrev}`;
+    const timeLabel = this.is24HourTimelapse ? `24-Hour Timelapse: ${timeRange}` : timeRange;
 
     let postText;
     let facets = [];
+    let geocodedLocation = null;
 
-    const hasCoordinates = this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0;
-    const timeLabel = this.is24HourTimelapse ? `24-Hour Timelapse: ${timeRange}` : timeRange;
+    let weatherLine = '';
+    if (this.weatherStart) {
+      const start = this.weatherStart;
+      const end = this.weatherEnd;
+      const tempChanged = end && Math.abs(end.tempF - start.tempF) >= 3;
+      const descChanged = end && end.description !== start.description;
+      if (tempChanged || descChanged) {
+        const tempStr = `${Math.round(start.tempF)}→${Math.round(end.tempF)}°F`;
+        const descStr = descChanged ? `${start.description}→${end.description}` : start.description;
+        weatherLine = `\n🌡️ ${tempStr} | ${descStr}`;
+      } else {
+        weatherLine = `\n🌡️ ${Math.round(start.tempF)}°F | ${start.description}`;
+      }
+    }
 
     if (hasCoordinates) {
       const lat = this.chosenCamera.latitude.toFixed(6);
@@ -409,16 +505,16 @@ class TrafficBot {
 
       let locationSuffix = coordinates;
       try {
-        const geocoded = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
+        geocodedLocation = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
         // Only append geocoded location if it includes a city, not just a state name
-        if (geocoded && geocoded.includes(',')) locationSuffix = `${coordinates} (${geocoded})`;
+        if (geocodedLocation && geocodedLocation.includes(',')) locationSuffix = `${coordinates} (${geocodedLocation})`;
       } catch (err) {
         console.log('Reverse geocoding failed:', err.message);
       }
 
-      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}\n\n📍: ${locationSuffix}`;
+      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}${weatherLine}\n\n📍: ${locationSuffix}`;
 
-      const byteStart = Buffer.from(`${this.chosenCamera.name}\n🕒 ${timeLabel}\n\n📍: `).length;
+      const byteStart = Buffer.from(`${this.chosenCamera.name}\n🕒 ${timeLabel}${weatherLine}\n\n📍: `).length;
       const byteEnd = byteStart + Buffer.from(coordinates).length;
 
       facets = [
@@ -436,8 +532,10 @@ class TrafficBot {
         },
       ];
     } else {
-      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}`;
+      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}${weatherLine}`;
     }
+
+    const altText = this.buildAltText(geocodedLocation, this.weatherStart, this.weatherEnd);
 
     await this.agent.post({
       text: postText,
@@ -446,6 +544,7 @@ class TrafficBot {
         $type: 'app.bsky.embed.video',
         video: blob,
         aspectRatio: aspectRatio,
+        alt: altText,
       },
     });
 
@@ -592,6 +691,15 @@ class TrafficBot {
       Fs.ensureDirSync(this.assetDirectory);
 
       this.startTime = new Date();
+
+      if (this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0) {
+        try {
+          this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+        } catch (err) {
+          console.log('Weather fetch (start) failed:', err.message);
+        }
+      }
+
       const numImages = this.getNumImages();
       console.log(`Downloading traffic camera images. ${numImages} images...`);
 
@@ -604,6 +712,14 @@ class TrafficBot {
       }
 
       this.endTime = new Date();
+
+      if (this.weatherStart) {
+        try {
+          this.weatherEnd = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+        } catch (err) {
+          console.log('Weather fetch (end) failed:', err.message);
+        }
+      }
 
       console.log('Download complete');
 
