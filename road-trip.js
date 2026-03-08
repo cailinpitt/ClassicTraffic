@@ -141,30 +141,61 @@ async function main() {
     )
   );
 
-  // Phase 2: post in highway order as a thread
-  console.log('\nPosting thread in highway order...\n');
-  let threadRoot = null;
-  let threadParent = null;
-  let successCount = 0;
+  // Collect ordered successful captures; track hard errors for the summary
+  const captured = [];
   const results = [];
-
   for (let i = 0; i < captureResults.length; i++) {
     const { stateName } = eligibleStates[i];
     const result = captureResults[i];
-
     if (result.status === 'rejected') {
       console.error(`[${stateName}] Capture error: ${result.reason.message}`);
       results.push({ state: stateName, success: false, error: result.reason.message });
-      continue;
+    } else if (result.value !== null) {
+      captured.push({ stateName, ...result.value });
     }
+    // null = soft skip (no camera found), already logged
+  }
 
-    if (result.value === null) continue; // silently skipped (no camera found)
+  if (captured.length < 2) {
+    console.log(`\nOnly ${captured.length} state(s) captured — not enough for a thread`);
+    captured.forEach(c => c.bot.cleanup());
+    process.exitCode = 1;
+    return;
+  }
 
-    const { bot, titleOverride } = result.value;
+  // Phase 2: post intro + videos in highway order
+  console.log('\nPosting thread in highway order...\n');
 
+  const stateDisplayNames = captured.map(c => getDisplayName(c.stateName));
+  const statesText = stateDisplayNames.length === 2
+    ? `${stateDisplayNames[0]} and ${stateDisplayNames[1]}`
+    : stateDisplayNames.slice(0, -1).join(', ') + ', and ' + stateDisplayNames[stateDisplayNames.length - 1];
+  const introText = `${highway} road trip! Here's what traffic looks like right now passing through ${statesText} 🛣️`;
+
+  let threadRoot = null;
+  let threadParent = null;
+  let successCount = 0;
+
+  if (argv['dry-run']) {
+    console.log(`Dry run — would post intro: "${introText}"`);
+  } else {
+    try {
+      const introPost = await captured[0].bot.agent.post({
+        text: introText,
+        createdAt: new Date().toISOString(),
+      });
+      threadRoot = introPost;
+      threadParent = introPost;
+      console.log(`Intro posted: "${introText}"`);
+    } catch (err) {
+      console.error(`Failed to post intro: ${err.message}`);
+    }
+  }
+
+  for (const { stateName, bot, titleOverride } of captured) {
     try {
       if (argv['dry-run']) {
-        console.log(`[${stateName}] Dry run — would post: "${titleOverride}"`);
+        console.log(`[${stateName}] Would post: "${titleOverride}"`);
         successCount++;
         results.push({ state: stateName, success: true });
       } else {
