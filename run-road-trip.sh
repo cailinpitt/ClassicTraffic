@@ -1,5 +1,6 @@
 #!/bin/bash
-# Usage: ./run-road-trip.sh --highway I-75 [extra args]
+# Usage: ./run-road-trip.sh [--highway I-75] [extra args]
+# If --highway is omitted, a random highway is chosen from highways.json.
 # Runs a road trip with logging and Grafana Loki telemetry
 
 set -euo pipefail
@@ -21,8 +22,8 @@ for arg in "$@"; do
 done
 
 if [[ -z "$HIGHWAY" ]]; then
-  echo "Usage: $0 --highway I-75"
-  exit 1
+  HIGHWAY=$(/usr/bin/node -e "const h=require('$DIR/highways.json'); const keys=Object.keys(h); console.log(keys[Math.floor(Math.random()*keys.length)])")
+  set -- "$@" --highway "$HIGHWAY"
 fi
 
 LOCK_KEY="road-trip-${HIGHWAY//-/}"  # e.g. road-trip-I75
