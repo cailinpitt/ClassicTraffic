@@ -1,6 +1,15 @@
 {
+  "I-5": {
+    "states": ["california", "oregon", "washington"]
+  },
+  "I-8": {
+    "states": ["california", "arizona"]
+  },
   "I-10": {
     "states": ["california", "arizona", "newmexico", "texas", "louisiana", "mississippi", "alabama", "florida"]
+  },
+  "I-11": {
+    "states": ["nevada", "arizona"]
   },
   "I-15": {
     "states": ["california", "nevada", "utah", "idaho", "montana"]
@@ -8,23 +17,83 @@
   "I-20": {
     "states": ["texas", "louisiana", "mississippi", "alabama", "georgia", "southcarolina"]
   },
+  "I-22": {
+    "states": ["mississippi", "alabama"]
+  },
+  "I-24": {
+    "states": ["illinois", "kentucky", "tennessee"]
+  },
   "I-25": {
     "states": ["newmexico", "colorado", "wyoming"]
+  },
+  "I-26": {
+    "states": ["tennessee", "northcarolina", "southcarolina"]
+  },
+  "I-29": {
+    "states": ["missouri", "iowa", "southdakota", "northdakota"]
+  },
+  "I-30": {
+    "states": ["texas", "arkansas"]
   },
   "I-35": {
     "states": ["texas", "oklahoma", "kansas", "missouri", "iowa", "minnesota"]
   },
+  "I-39": {
+    "states": ["illinois", "wisconsin"]
+  },
   "I-40": {
     "states": ["california", "arizona", "newmexico", "oklahoma", "arkansas", "tennessee", "northcarolina"]
+  },
+  "I-44": {
+    "states": ["oklahoma", "missouri"]
+  },
+  "I-49": {
+    "states": ["louisiana", "arkansas", "missouri"]
   },
   "I-55": {
     "states": ["louisiana", "mississippi", "arkansas", "tennessee", "missouri", "illinois"]
   },
+  "I-59": {
+    "states": ["louisiana", "mississippi", "alabama", "georgia"]
+  },
+  "I-64": {
+    "states": ["missouri", "illinois", "indiana", "kentucky", "westvirginia", "virginia"]
+  },
+  "I-65": {
+    "states": ["alabama", "tennessee", "kentucky", "indiana"]
+  },
+  "I-68": {
+    "states": ["westvirginia", "maryland"]
+  },
+  "I-69": {
+    "states": ["michigan", "indiana", "kentucky"]
+  },
   "I-70": {
     "states": ["utah", "colorado", "kansas", "missouri", "illinois", "indiana", "ohio", "westvirginia", "pennsylvania", "maryland"]
   },
+  "I-71": {
+    "states": ["kentucky", "ohio"]
+  },
+  "I-72": {
+    "states": ["missouri", "illinois"]
+  },
+  "I-74": {
+    "states": ["iowa", "illinois", "indiana", "ohio"]
+  },
   "I-75": {
     "states": ["florida", "georgia", "tennessee", "kentucky", "ohio", "michigan"]
+  },
+  "I-76": {
+    "states": ["pennsylvania", "newjersey"]
+  },
+  "I-77": {
+    "states": ["southcarolina", "northcarolina", "virginia", "westvirginia", "ohio"]
+  },
+  "I-78": {
+    "states": ["newjersey", "pennsylvania"]
+  },
+  "I-79": {
+    "states": ["westvirginia", "pennsylvania"]
   },
   "I-80": {
     "states": ["california", "nevada", "utah", "wyoming", "nebraska", "iowa", "illinois", "indiana", "ohio", "pennsylvania", "newjersey", "newyork"]
@@ -32,11 +101,32 @@
   "I-81": {
     "states": ["tennessee", "virginia", "westvirginia", "maryland", "pennsylvania", "newyork"]
   },
+  "I-82": {
+    "states": ["washington", "oregon"]
+  },
+  "I-83": {
+    "states": ["maryland", "pennsylvania"]
+  },
+  "I-84": {
+    "states": ["oregon", "idaho", "utah"]
+  },
   "I-85": {
     "states": ["alabama", "georgia", "southcarolina", "northcarolina", "virginia"]
   },
+  "I-89": {
+    "states": ["newhampshire", "vermont"]
+  },
   "I-90": {
     "states": ["washington", "idaho", "montana", "wyoming", "southdakota", "minnesota", "wisconsin", "illinois", "indiana", "ohio", "pennsylvania", "newyork", "massachusetts", "rhodeisland"]
+  },
+  "I-91": {
+    "states": ["connecticut", "massachusetts", "vermont"]
+  },
+  "I-93": {
+    "states": ["massachusetts", "newhampshire"]
+  },
+  "I-94": {
+    "states": ["michigan", "indiana", "illinois", "wisconsin", "minnesota", "northdakota", "montana"]
   },
   "I-95": {
     "states": ["florida", "georgia", "southcarolina", "northcarolina", "virginia", "maryland", "delaware", "newjersey", "newyork", "connecticut", "rhodeisland", "massachusetts", "newhampshire", "maine"]
