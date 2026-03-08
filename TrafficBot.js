@@ -281,35 +281,41 @@ class TrafficBot {
    * @param {number} lon
    * @returns {Promise<string|null>}
    */
+  /**
+   * Reverse geocode coordinates to structured location info.
+   * Scans all results to extract road name, city, and state.
+   * @param {number} lat
+   * @param {number} lon
+   * @returns {Promise<{route: string|null, location: string|null}>}
+   */
   async reverseGeocode(lat, lon) {
-    const params = {
-      latlng: `${lat},${lon}`,
-      result_type: 'locality|administrative_area_level_1',
-    };
+    const params = { latlng: `${lat},${lon}` };
 
     const result = await new Promise((resolve, reject) => {
       gmAPI.reverseGeocode(params, (err, data) => err ? reject(err) : resolve(data));
     });
 
-    if (!result?.results?.length) return null;
+    if (!result?.results?.length) return { route: null, location: null };
 
-    const components = result.results[0].address_components;
+    let route = null;
     let locality = null;
     let sublocality = null;
     let county = null;
     let area = null;
 
-    components.forEach(comp => {
-      if (comp.types.includes('locality')) locality = comp.long_name;
-      if (comp.types.includes('sublocality')) sublocality = comp.long_name;
-      if (comp.types.includes('administrative_area_level_2')) county = comp.long_name;
-      if (comp.types.includes('administrative_area_level_1')) area = comp.long_name;
-    });
+    for (const r of result.results) {
+      for (const comp of r.address_components) {
+        if (!route && comp.types.includes('route')) route = comp.short_name || comp.long_name;
+        if (!locality && comp.types.includes('locality')) locality = comp.long_name;
+        if (!sublocality && comp.types.includes('sublocality')) sublocality = comp.long_name;
+        if (!county && comp.types.includes('administrative_area_level_2')) county = comp.long_name;
+        if (!area && comp.types.includes('administrative_area_level_1')) area = comp.long_name;
+      }
+    }
 
     const city = locality || sublocality || county;
-    if (city && area) return `${city}, ${area}`;
-    if (area) return area;
-    return null;
+    const location = city && area ? `${city}, ${area}` : (area || null);
+    return { route, location };
   }
 
   /**
@@ -503,18 +509,19 @@ class TrafficBot {
       const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
       const coordinates = `${lat},${lon}`;
 
-      let locationSuffix = coordinates;
+      let postTitle = this.chosenCamera.name;
       try {
-        geocodedLocation = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
-        // Only append geocoded location if it includes a city, not just a state name
-        if (geocodedLocation && geocodedLocation.includes(',')) locationSuffix = `${coordinates} (${geocodedLocation})`;
+        const { route, location } = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
+        geocodedLocation = location;
+        if (route && location) postTitle = `${route}, ${location}`;
+        else if (location) postTitle = location;
       } catch (err) {
         console.log('Reverse geocoding failed:', err.message);
       }
 
-      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}${weatherLine}\n\n📍: ${locationSuffix}`;
+      postText = `${postTitle}\n🕒 ${timeLabel}${weatherLine}\n\n📍: ${coordinates}`;
 
-      const byteStart = Buffer.from(`${this.chosenCamera.name}\n🕒 ${timeLabel}${weatherLine}\n\n📍: `).length;
+      const byteStart = Buffer.from(`${postTitle}\n🕒 ${timeLabel}${weatherLine}\n\n📍: `).length;
       const byteEnd = byteStart + Buffer.from(coordinates).length;
 
       facets = [
