@@ -139,25 +139,68 @@ class IllinoisBot extends TrafficBot {
     }
   }
 
+  async getCurrentChunklistUrl() {
+    const masterResponse = await Axios.get(this.chosenCamera.url);
+    const lines = masterResponse.data.split('\n').filter(l => l.trim() && !l.startsWith('#'));
+    if (!lines[0]) throw new Error('No chunklist found in master playlist');
+    const base = this.chosenCamera.url.substring(0, this.chosenCamera.url.lastIndexOf('/') + 1);
+    return lines[0].startsWith('http') ? lines[0].trim() : base + lines[0].trim();
+  }
+
   async downloadVideoSegment(duration) {
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
+    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} in 60s segments...`);
 
+    const SEG_DURATION = 60;
+    const numSegments = Math.ceil(duration / SEG_DURATION);
+    const segmentPaths = [];
+
+    for (let i = 0; i < numSegments; i++) {
+      const segDuration = Math.min(SEG_DURATION, duration - i * SEG_DURATION);
+      const segPath = `${this.assetDirectory}seg-${i}.ts`;
+      console.log(`Segment ${i + 1}/${numSegments} (${segDuration}s)...`);
+
+      let chunklistUrl;
+      try {
+        chunklistUrl = await this.getCurrentChunklistUrl();
+      } catch (err) {
+        console.log(`Failed to get chunklist for segment ${i + 1}: ${err.message}`);
+        continue;
+      }
+
+      const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} -i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
+
+      await new Promise((resolve) => {
+        exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, (error) => {
+          if (Fs.existsSync(segPath) && Fs.statSync(segPath).size > 100 * 1024) {
+            segmentPaths.push(segPath);
+          } else {
+            console.log(`Segment ${i + 1} too small or missing, skipping`);
+            if (Fs.existsSync(segPath)) Fs.removeSync(segPath);
+          }
+          resolve();
+        });
+      });
+    }
+
+    if (segmentPaths.length === 0) {
+      throw new Error('No segments captured');
+    }
+
+    console.log(`Captured ${segmentPaths.length}/${numSegments} segments, concatenating...`);
     const tempPath = `${this.assetDirectory}raw.ts`;
-    const MIN_FILE_SIZE = 500 * 1024;
-
-    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} -i "${this.chosenCamera.url}" -map 0:v:0 -c copy "${tempPath}"`;
 
     await new Promise((resolve, reject) => {
-      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
-        if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > MIN_FILE_SIZE) {
-          return resolve();
-        }
+      exec(`cat ${segmentPaths.map(p => `"${p}"`).join(' ')} > "${tempPath}"`, (error) => {
         if (error) return reject(error);
         resolve();
       });
     });
 
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -vf "setpts=0.25*PTS" -an "${this.pathToVideo}"`;
+    segmentPaths.forEach(p => Fs.removeSync(p));
+
+    const outputDurationS = duration / 4; // 4x speedup
+    const targetBitrateKbps = Math.floor((90 * 1024 * 1024 * 8) / outputDurationS / 1000);
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -b:v ${targetBitrateKbps}k -pix_fmt yuv420p -vf "setpts=0.25*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
@@ -236,7 +279,7 @@ class IllinoisBot extends TrafficBot {
       this.startTime = new Date();
 
       if (this.chosenCamera.hasVideo) {
-        const duration = _.sample(durationOptions);
+        const duration = argv.duration ? parseInt(argv.duration) : _.sample(durationOptions);
         await this.downloadVideoSegment(duration);
       } else {
         const numImages = this.getNumImages();
