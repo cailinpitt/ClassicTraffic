@@ -207,6 +207,23 @@ npm run tennessee
 | `--persist` | Keep the assets folder (downloaded images and video) |
 | `--id <id>` | Use a specific camera instead of random |
 
+## Road Trips
+
+Road trip mode posts a Bluesky thread showing live traffic across multiple states on the same interstate — one post per state, each reply linking to the next.
+
+```
+./run-road-trip.sh --highway I-75
+./run-road-trip.sh --highway I-95 --dry-run
+```
+
+Each state's post is titled `"I-75 through Tennessee 🛣️"`. The thread requires at least 2 states to post successfully; if fewer succeed, the run exits with code 1. All states use the same randomly chosen clip duration (1–6 minutes), played back at 4x speed.
+
+Only states with live video support (those with `downloadVideoSegment`) participate — image-only states are skipped. The bot finds a camera on the target highway by searching camera names first, then falling back to reverse geocoding a sample of cameras.
+
+**Supported interstates** (44 total): I-5, I-8, I-10, I-11, I-15, I-20, I-22, I-24, I-25, I-26, I-29, I-30, I-35, I-39, I-40, I-44, I-49, I-55, I-59, I-64, I-65, I-68, I-69, I-70, I-71, I-72, I-74, I-75, I-76, I-77, I-78, I-79, I-80, I-81, I-82, I-83, I-84, I-85, I-89, I-90, I-91, I-93, I-94, I-95
+
+To add or modify interstates, edit `highways.json`.
+
 ## Project Structure
 
 ```
