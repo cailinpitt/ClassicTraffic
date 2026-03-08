@@ -6,7 +6,7 @@ const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
 const durationOptions = [60, 90, 120, 180, 240, 360];
-const numImagesPerVideoOptions = [30, 40, 50, 60];
+const numImagesPerVideoOptions = [10, 15, 20];
 
 const JANE_BYRNE_CAMERA = {
   id: 'jane-byrne',
@@ -25,6 +25,7 @@ class IllinoisBot extends TrafficBot {
       tzAbbrev: 'CT',
       framerate: 5,
       delayBetweenImageFetches: 300000,
+      maxImageCollectionMs: 90 * 60 * 1000,
     });
   }
 
@@ -291,6 +292,7 @@ class IllinoisBot extends TrafficBot {
 
         let currentDelay = this.delayBetweenImageFetches;
         const maxDelay = this.delayBetweenImageFetches * 4;
+        const collectionStart = Date.now();
         for (let i = 0; i < numImages; i++) {
           const countBefore = this.uniqueImageCount;
           await this.downloadImage(i);
@@ -305,6 +307,10 @@ class IllinoisBot extends TrafficBot {
               }
             } else {
               currentDelay = this.delayBetweenImageFetches;
+            }
+            if (Date.now() - collectionStart + currentDelay > this.maxImageCollectionMs) {
+              console.log(`Max collection time reached after ${i + 1} images, stopping early`);
+              break;
             }
             await this.sleep(currentDelay);
           }

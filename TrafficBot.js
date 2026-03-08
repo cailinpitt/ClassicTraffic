@@ -60,6 +60,8 @@ class TrafficBot {
     this.framerate = config.framerate;
     /** @type {number} */
     this.delayBetweenImageFetches = config.delayBetweenImageFetches;
+    /** @type {number} Maximum ms to spend collecting images (default: no cap) */
+    this.maxImageCollectionMs = config.maxImageCollectionMs || Infinity;
     /** @type {boolean} */
     this.is24HourTimelapse = config.is24HourTimelapse || false;
 
@@ -745,6 +747,7 @@ class TrafficBot {
 
       let currentDelay = this.delayBetweenImageFetches;
       const maxDelay = this.delayBetweenImageFetches * 4;
+      const collectionStart = Date.now();
 
       for (let i = 0; i < numImages; i++) {
         const countBefore = this.uniqueImageCount;
@@ -765,6 +768,12 @@ class TrafficBot {
           } else {
             currentDelay = this.delayBetweenImageFetches;
           }
+
+          if (Date.now() - collectionStart + currentDelay > this.maxImageCollectionMs) {
+            console.log(`Max collection time reached after ${i + 1} images, stopping early`);
+            break;
+          }
+
           await this.sleep(currentDelay);
         }
       }
