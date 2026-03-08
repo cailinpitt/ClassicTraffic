@@ -22,8 +22,7 @@ for arg in "$@"; do
 done
 
 if [[ -z "$HIGHWAY" ]]; then
-  HIGHWAY=$(/usr/bin/node -e "const h=require('$DIR/highways.json'); const keys=Object.keys(h); console.log(keys[Math.floor(Math.random()*keys.length)])")
-  set -- "$@" --highway "$HIGHWAY"
+  HIGHWAY=$(/usr/bin/node -e "const h=require('$DIR/highways.json'); const k=Object.keys(h); console.log(k[Math.floor(Math.random()*k.length)])")
 fi
 
 LOCK_KEY="road-trip-${HIGHWAY//-/}"  # e.g. road-trip-I75

@@ -80,16 +80,12 @@ async function captureState(stateName, BotClass, highway, duration) {
 }
 
 async function main() {
-  const highway = argv.highway;
-  if (!highway) {
-    console.error('Usage: node road-trip.js --highway I-75 [--dry-run]');
-    process.exitCode = 1;
-    return;
-  }
+  const highwayKeys = Object.keys(highways);
+  const highway = argv.highway || _.sample(highwayKeys);
 
   const highwayConfig = highways[highway];
   if (!highwayConfig) {
-    console.error(`Unknown highway: ${highway}. Available: ${Object.keys(highways).join(', ')}`);
+    console.error(`Unknown highway: ${highway}. Available: ${highwayKeys.join(', ')}`);
     process.exitCode = 1;
     return;
   }
