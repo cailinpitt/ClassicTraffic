@@ -172,12 +172,14 @@ class NewJerseyBot extends TrafficBot {
 
       if (!this.agent.session?.did) {
         console.error('Failed to get DID after login');
+        process.exitCode = 1;
         return;
       }
 
       const cameras = await this.fetchCameras();
       if (cameras.length === 0) {
         console.error('No cameras available');
+        process.exitCode = 1;
         return;
       }
 
@@ -189,6 +191,7 @@ class NewJerseyBot extends TrafficBot {
 
       if (!this.chosenCamera) {
         console.error('Could not select a camera');
+        process.exitCode = 1;
         return;
       }
 
