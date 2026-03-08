@@ -29,36 +29,41 @@ class IllinoisBot extends TrafficBot {
   }
 
   async fetchCameras() {
-    console.log('Fetching cameras from Travel Midwest...');
+    console.log('Fetching cameras from IDOT ArcGIS...');
+
+    const base = 'https://services2.arcgis.com/aIrBD8yn1TDTEXoz/arcgis/rest/services/TrafficCamerasTM_Public/FeatureServer/0/query';
 
     try {
-      const response = await Axios.post('https://travelmidwest.com/lmiga/cameraMap.json', {
-        bbox: [-95.0, 36.0, -84.0, 47.0],
-      }, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+      const countResponse = await Axios.get(base, {
+        params: { where: "TooOld='false'", returnCountOnly: true, f: 'json' },
+      });
+      const total = countResponse.data.count;
+      console.log(`Total cameras: ${total}`);
+
+      const pageSize = 50;
+      const offset = Math.floor(Math.random() * Math.max(0, total - pageSize));
+
+      const response = await Axios.get(base, {
+        params: {
+          where: "TooOld='false'",
+          outFields: 'OBJECTID,CameraLocation,CameraDirection,SnapShot,y,x',
+          resultOffset: offset,
+          resultRecordCount: pageSize,
+          f: 'json',
         },
       });
 
-      const features = response.data.features || [];
-
-      const cameras = features
-        .filter(f => {
-          const id = f.properties.id || '';
-          const urls = f.properties.remUrls || [];
-          return id.startsWith('IL') && urls.length > 0 && !f.properties.dis;
-        })
+      const cameras = (response.data.features || [])
+        .filter(f => f.attributes.SnapShot)
         .map(f => {
-          const p = f.properties;
-          const coords = f.geometry.coordinates;
+          const a = f.attributes;
+          const dir = a.CameraDirection && a.CameraDirection !== 'NONE' ? ` (${a.CameraDirection})` : '';
           return {
-            id: p.id,
-            name: p.locDesc,
-            url: p.remUrls[0],
-            latitude: coords[1] || 0,
-            longitude: coords[0] || 0,
+            id: a.OBJECTID,
+            name: `${a.CameraLocation}${dir}`,
+            url: a.SnapShot,
+            latitude: a.y || 0,
+            longitude: a.x || 0,
           };
         });
 
