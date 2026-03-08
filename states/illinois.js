@@ -6,7 +6,7 @@ const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
 const durationOptions = [60, 90, 120, 180, 240, 360];
-const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
+const numImagesPerVideoOptions = [30, 40, 50, 60];
 
 const JANE_BYRNE_CAMERA = {
   id: 'jane-byrne',
@@ -23,13 +23,17 @@ class IllinoisBot extends TrafficBot {
       accountName: 'illinois',
       timezone: 'America/Chicago',
       tzAbbrev: 'CT',
-      framerate: 10,
-      delayBetweenImageFetches: 6000,
+      framerate: 5,
+      delayBetweenImageFetches: 300000,
     });
   }
 
   getNumImages() {
     return _.sample(numImagesPerVideoOptions);
+  }
+
+  getTimeout() {
+    return (Math.max(...numImagesPerVideoOptions) - 1) * this.delayBetweenImageFetches / 1000 + 600;
   }
 
   shouldAbort() {
