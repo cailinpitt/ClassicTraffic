@@ -179,4 +179,5 @@ class IdahoBot extends TrafficBot {
 }
 
 const bot = new IdahoBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = IdahoBot;

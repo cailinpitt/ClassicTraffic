@@ -140,4 +140,5 @@ class NebraskaBot extends TrafficBot {
 }
 
 const bot = new NebraskaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = NebraskaBot;

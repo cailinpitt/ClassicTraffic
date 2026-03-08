@@ -179,4 +179,5 @@ class UtahBot extends TrafficBot {
 }
 
 const bot = new UtahBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = UtahBot;

@@ -126,4 +126,5 @@ class NorthDakotaBot extends TrafficBot {
 }
 
 const bot = new NorthDakotaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = NorthDakotaBot;

@@ -114,4 +114,5 @@ class OregonBot extends TrafficBot {
 }
 
 const bot = new OregonBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = OregonBot;

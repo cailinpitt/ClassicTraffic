@@ -165,4 +165,5 @@ class MontanaBot extends TrafficBot {
 }
 
 const bot = new MontanaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = MontanaBot;

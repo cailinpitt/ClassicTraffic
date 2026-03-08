@@ -104,4 +104,5 @@ class WashingtonBot extends TrafficBot {
 }
 
 const bot = new WashingtonBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = WashingtonBot;

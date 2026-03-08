@@ -121,4 +121,5 @@ class SouthDakotaBot extends TrafficBot {
 }
 
 const bot = new SouthDakotaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = SouthDakotaBot;

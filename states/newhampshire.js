@@ -179,4 +179,5 @@ class NewHampshireBot extends TrafficBot {
 }
 
 const bot = new NewHampshireBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = NewHampshireBot;

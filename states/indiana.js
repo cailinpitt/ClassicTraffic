@@ -162,4 +162,5 @@ class IndianaBot extends TrafficBot {
 }
 
 const bot = new IndianaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = IndianaBot;

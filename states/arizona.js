@@ -178,4 +178,5 @@ class ArizonaBot extends TrafficBot {
 }
 
 const bot = new ArizonaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = ArizonaBot;

@@ -185,4 +185,5 @@ class PennsylvaniaBot extends TrafficBot {
 }
 
 const bot = new PennsylvaniaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = PennsylvaniaBot;

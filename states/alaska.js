@@ -179,4 +179,5 @@ class AlaskaBot extends TrafficBot {
 }
 
 const bot = new AlaskaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = AlaskaBot;

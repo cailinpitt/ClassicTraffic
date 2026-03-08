@@ -90,7 +90,7 @@ class OklahomaBot extends TrafficBot {
       });
     });
 
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -vf "setpts=0.25*PTS" -an "${this.pathToVideo}"`;
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
@@ -184,4 +184,5 @@ class OklahomaBot extends TrafficBot {
 }
 
 const bot = new OklahomaBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = OklahomaBot;

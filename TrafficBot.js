@@ -62,8 +62,12 @@ class TrafficBot {
     this.delayBetweenImageFetches = config.delayBetweenImageFetches;
     /** @type {number} Maximum ms to spend collecting images (default: no cap) */
     this.maxImageCollectionMs = config.maxImageCollectionMs || Infinity;
+    /** @type {number} Target output video duration in seconds for dynamic speed calculation */
+    this.targetOutputSeconds = config.targetOutputSeconds || 30;
     /** @type {boolean} */
     this.is24HourTimelapse = config.is24HourTimelapse || false;
+    /** @type {number} Probability (0-1) of posting a multi-camera thread instead of single post */
+    this.threadProbability = config.threadProbability || 0;
 
     /** @type {string} */
     this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
@@ -225,6 +229,18 @@ class TrafficBot {
   }
 
   /**
+   * Calculate the ffmpeg setpts factor to target a consistent output duration.
+   * Speed is capped at 8x to avoid unwatchably fast video.
+   * @param {number} captureDurationS - Raw capture duration in seconds
+   * @returns {string} setpts factor string (e.g. "0.250000")
+   */
+  getSetpts(captureDurationS) {
+    const MAX_SPEED = 8;
+    const speed = Math.min(captureDurationS / this.targetOutputSeconds, MAX_SPEED);
+    return (1 / speed).toFixed(6);
+  }
+
+  /**
    * Create a video from downloaded images using ffmpeg.
    * Renames images sequentially and generates an MP4.
    * @returns {Promise<void>}
@@ -321,6 +337,50 @@ class TrafficBot {
   }
 
   /**
+   * Find a camera on or near a given highway (e.g. "I-75").
+   * First tries name-based matching (free), then geocoding fallback.
+   * @param {string} highway - e.g. "I-75"
+   * @returns {Promise<Camera|null>}
+   */
+  async findCameraOnHighway(highway) {
+    const cameras = await this.fetchCameras();
+    if (cameras.length === 0) return null;
+
+    // Normalize for matching: "I-75" → ["I-75", "I 75", "I75", "75"]
+    const num = highway.replace(/^I-?/i, '');
+    const patterns = [
+      new RegExp(`\\bI-${num}\\b`, 'i'),
+      new RegExp(`\\bI ${num}\\b`, 'i'),
+      new RegExp(`\\bI${num}\\b`, 'i'),
+      new RegExp(`\\bInterstate ${num}\\b`, 'i'),
+    ];
+
+    // Pass 1: camera name contains the highway
+    const byName = cameras.filter(c => patterns.some(p => p.test(c.name)));
+    if (byName.length > 0) {
+      console.log(`Found ${byName.length} cameras matching ${highway} by name`);
+      return _.sample(byName);
+    }
+
+    // Pass 2: geocode a sample and match by route
+    console.log(`No name matches for ${highway}, trying geocoding...`);
+    const sample = _.sampleSize(cameras.filter(c => c.latitude && c.longitude && (c.latitude !== 0 || c.longitude !== 0)), 20);
+    const results = await Promise.all(
+      sample.map(async cam => {
+        try {
+          const { route } = await this.reverseGeocode(cam.latitude, cam.longitude);
+          if (route && patterns.some(p => p.test(route))) return cam;
+          return null;
+        } catch { return null; }
+      })
+    );
+    const match = results.find(r => r !== null) || null;
+    if (match) console.log(`Found camera on ${highway} via geocoding: ${match.name}`);
+    else console.log(`No camera found on ${highway}`);
+    return match;
+  }
+
+  /**
    * Map a WMO weather interpretation code to a human-readable description.
    * @param {number} code - WMO weather code
    * @returns {string}
@@ -392,7 +452,7 @@ class TrafficBot {
    * camera name, time range, optional location link, and accessibility alt text.
    * @returns {Promise<void>}
    */
-  async postToBluesky() {
+  async postToBluesky(replyRef = null, titleOverride = null) {
     const hasCoordinates = this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0;
 
     // Use weather captured during recording; fall back to a fresh fetch for video bots
@@ -522,6 +582,8 @@ class TrafficBot {
         console.log('Reverse geocoding failed:', err.message);
       }
 
+      if (titleOverride) postTitle = titleOverride;
+
       postText = `${postTitle}\n🕒 ${timeLabel}${weatherLine}\n\n📍: ${coordinates}`;
 
       const byteStart = Buffer.from(`${postTitle}\n🕒 ${timeLabel}${weatherLine}\n\n📍: `).length;
@@ -542,14 +604,16 @@ class TrafficBot {
         },
       ];
     } else {
-      postText = `${this.chosenCamera.name}\n🕒 ${timeLabel}${weatherLine}`;
+      const noCoordTitle = titleOverride || this.chosenCamera.name;
+      postText = `${noCoordTitle}\n🕒 ${timeLabel}${weatherLine}`;
     }
 
     const altText = this.buildAltText(geocodedLocation, this.weatherStart, this.weatherEnd);
 
-    await this.agent.post({
+    const result = await this.agent.post({
       text: postText,
       ...(facets.length > 0 && { facets }),
+      ...(replyRef && { reply: replyRef }),
       embed: {
         $type: 'app.bsky.embed.video',
         video: blob,
@@ -559,6 +623,7 @@ class TrafficBot {
     });
 
     console.log('Posted video to Bluesky successfully');
+    return { uri: result.uri, cid: result.cid };
   }
 
   /**
@@ -674,7 +739,6 @@ class TrafficBot {
    * @returns {Promise<void>}
    */
   async run() {
-    // Handle --list flag (no login required)
     if (argv.list) {
       try {
         await this.listCameras();
@@ -694,7 +758,6 @@ class TrafficBot {
       }
 
       this.agent = new AtpAgent({ service: keys.service });
-
       await this.agent.login({
         identifier: account.identifier,
         password: account.password,
@@ -713,101 +776,147 @@ class TrafficBot {
         return;
       }
 
-      if (!_.isUndefined(argv.id)) {
-        this.chosenCamera = _.find(cameras, c => c.id == argv.id);
-      } else {
-        const recentIds = this.getRecentCameraIds();
-        const freshCameras = cameras.filter(c => !recentIds.includes(String(c.id)));
-        this.chosenCamera = _.sample(freshCameras.length > 0 ? freshCameras : cameras);
+      const isThread = !argv.id && !argv['dry-run'] && this.threadProbability > 0 && Math.random() < this.threadProbability;
+      const threadCount = isThread ? _.sample([2, 3]) : 1;
+
+      if (threadCount > 1) {
+        console.log(`[Thread] Starting ${threadCount}-camera thread`);
       }
 
-      if (!this.chosenCamera) {
-        console.error('Could not select a camera');
-        process.exitCode = 1;
-        return;
-      }
+      const recentIds = this.getRecentCameraIds();
+      const usedCameraIds = new Set();
+      let threadRoot = null;
+      let threadParent = null;
+      let anySuccess = false;
 
-      this.saveRecentCameraId(this.chosenCamera.id);
+      for (let camIdx = 0; camIdx < threadCount; camIdx++) {
+        const prefix = threadCount > 1 ? `[Camera ${camIdx + 1}/${threadCount}] ` : '';
 
-      console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-      Fs.ensureDirSync(this.assetDirectory);
+        // Reset per-camera state
+        this.imageHashes = new Set();
+        this.uniqueImageCount = 0;
+        this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
+        this.pathToVideo = `${this.assetDirectory}camera.mp4`;
+        this.weatherStart = null;
+        this.weatherEnd = null;
+        this.startTime = null;
+        this.endTime = null;
+        this.chosenCamera = null;
 
-      this.startTime = new Date();
-
-      if (this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0) {
         try {
-          this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
-        } catch (err) {
-          console.log('Weather fetch (start) failed:', err.message);
-        }
-      }
-
-      const numImages = this.getNumImages();
-      console.log(`Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
-
-      let currentDelay = this.delayBetweenImageFetches;
-      const maxDelay = this.delayBetweenImageFetches * 4;
-      const collectionStart = Date.now();
-
-      for (let i = 0; i < numImages; i++) {
-        const countBefore = this.uniqueImageCount;
-        await this.downloadImage(i);
-        const wasUnique = this.uniqueImageCount > countBefore;
-
-        if (i >= 9 && this.shouldAbort()) {
-          return;
-        }
-
-        if (i < numImages - 1) {
-          if (!wasUnique) {
-            const newDelay = Math.min(Math.round(currentDelay * 1.5), maxDelay);
-            if (newDelay !== currentDelay) {
-              console.log(`Duplicate image, increasing interval to ${newDelay / 1000}s`);
-              currentDelay = newDelay;
-            }
+          // Camera selection
+          if (!_.isUndefined(argv.id)) {
+            this.chosenCamera = _.find(cameras, c => c.id == argv.id);
           } else {
-            currentDelay = this.delayBetweenImageFetches;
+            const freshCameras = cameras.filter(c =>
+              !recentIds.includes(String(c.id)) && !usedCameraIds.has(String(c.id))
+            );
+            const pool = freshCameras.length > 0 ? freshCameras : cameras.filter(c => !usedCameraIds.has(String(c.id)));
+            this.chosenCamera = _.sample(pool);
           }
 
-          if (Date.now() - collectionStart + currentDelay > this.maxImageCollectionMs) {
-            console.log(`Max collection time reached after ${i + 1} images, stopping early`);
-            break;
+          if (!this.chosenCamera) {
+            console.error(`${prefix}Could not select a camera`);
+            process.exitCode = 1;
+            continue;
           }
 
-          await this.sleep(currentDelay);
+          usedCameraIds.add(String(this.chosenCamera.id));
+          this.saveRecentCameraId(this.chosenCamera.id);
+
+          console.log(`${prefix}ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+          Fs.ensureDirSync(this.assetDirectory);
+
+          this.startTime = new Date();
+
+          if (this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0) {
+            try {
+              this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+            } catch (err) {
+              console.log(`${prefix}Weather fetch (start) failed: ${err.message}`);
+            }
+          }
+
+          const numImages = this.getNumImages();
+          console.log(`${prefix}Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
+
+          let currentDelay = this.delayBetweenImageFetches;
+          const maxDelay = this.delayBetweenImageFetches * 4;
+          const collectionStart = Date.now();
+          let aborted = false;
+
+          for (let i = 0; i < numImages; i++) {
+            const countBefore = this.uniqueImageCount;
+            await this.downloadImage(i);
+            const wasUnique = this.uniqueImageCount > countBefore;
+
+            if (i >= 9 && this.shouldAbort()) {
+              aborted = true;
+              break;
+            }
+
+            if (i < numImages - 1) {
+              if (!wasUnique) {
+                const newDelay = Math.min(Math.round(currentDelay * 1.5), maxDelay);
+                if (newDelay !== currentDelay) {
+                  console.log(`${prefix}Duplicate image, increasing interval to ${newDelay / 1000}s`);
+                  currentDelay = newDelay;
+                }
+              } else {
+                currentDelay = this.delayBetweenImageFetches;
+              }
+
+              if (Date.now() - collectionStart + currentDelay > this.maxImageCollectionMs) {
+                console.log(`${prefix}Max collection time reached after ${i + 1} images, stopping early`);
+                break;
+              }
+
+              await this.sleep(currentDelay);
+            }
+          }
+
+          this.endTime = new Date();
+
+          if (this.weatherStart) {
+            try {
+              this.weatherEnd = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+            } catch (err) {
+              console.log(`${prefix}Weather fetch (end) failed: ${err.message}`);
+            }
+          }
+
+          if (aborted || this.uniqueImageCount < 2) {
+            console.log(`${prefix}Only ${this.uniqueImageCount} unique image(s) captured, skipping`);
+            if (threadCount === 1) process.exitCode = 1;
+            continue;
+          }
+
+          await this.createVideo();
+
+          if (argv['dry-run']) {
+            console.log(`${prefix}Dry run - skipping post to Bluesky`);
+            anySuccess = true;
+          } else {
+            const replyRef = threadRoot ? { root: threadRoot, parent: threadParent } : null;
+            const postResult = await this.postToBluesky(replyRef);
+            if (!threadRoot) threadRoot = postResult;
+            threadParent = postResult;
+            anySuccess = true;
+          }
+        } catch (error) {
+          console.error(`${prefix}Error: ${error.message}`);
+          if (error.stack) console.error(error.stack);
+        } finally {
+          this.cleanup();
         }
       }
 
-      this.endTime = new Date();
-
-      if (this.weatherStart) {
-        try {
-          this.weatherEnd = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
-        } catch (err) {
-          console.log('Weather fetch (end) failed:', err.message);
-        }
-      }
-
-      console.log('Download complete');
-
-      if (this.uniqueImageCount < 2) {
-        console.log(`Only ${this.uniqueImageCount} unique image(s) captured. Skipping video creation.`);
+      if (!anySuccess) {
         process.exitCode = 1;
-        return;
-      }
-
-      await this.createVideo();
-
-      if (argv['dry-run']) {
-        console.log('Dry run - skipping post to Bluesky');
-      } else {
-        await this.postToBluesky();
       }
     } catch (error) {
       console.error(error);
       process.exitCode = 1;
-    } finally {
-      this.cleanup();
     }
   }
 }

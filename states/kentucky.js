@@ -13,6 +13,7 @@ class KentuckyBot extends TrafficBot {
       tzAbbrev: 'ET',
       framerate: 10,
       delayBetweenImageFetches: 6000,
+      threadProbability: 0.25,
     });
   }
 
@@ -113,4 +114,5 @@ class KentuckyBot extends TrafficBot {
 }
 
 const bot = new KentuckyBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = KentuckyBot;

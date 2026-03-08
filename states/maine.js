@@ -179,4 +179,5 @@ class MaineBot extends TrafficBot {
 }
 
 const bot = new MaineBot();
-bot.start();
+if (require.main === module) bot.start();
+module.exports = MaineBot;
