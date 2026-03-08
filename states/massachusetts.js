@@ -19,7 +19,7 @@ class MassachusettsBot extends TrafficBot {
     });
   }
 
-  async fetchCameras() {
+  async fetchCameras(options = {}) {
     console.log('Fetching cameras from Mass511...');
 
     try {
@@ -51,43 +51,59 @@ class MassachusettsBot extends TrafficBot {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
       };
 
-      // Fetch one record to get the total count
-      const countResponse = await Axios.post('https://mass511.com/api/graphql', {
-        query,
-        variables: {
-          input: {
-            west: -180, south: -85, east: 180, north: 85,
-            sortDirection: 'DESC',
-            sortType: 'ROADWAY',
-            freeSearchTerm: '',
-            classificationsOrSlugs: [],
-            recordLimit: 1,
-            recordOffset: 0,
+      let response;
+      if (options.limit) {
+        response = await Axios.post('https://mass511.com/api/graphql', {
+          query,
+          variables: {
+            input: {
+              west: -180, south: -85, east: 180, north: 85,
+              sortDirection: 'DESC',
+              sortType: 'ROADWAY',
+              freeSearchTerm: options.search || '',
+              classificationsOrSlugs: [],
+              recordLimit: options.limit,
+              recordOffset: 0,
+            },
           },
-        },
-      }, { headers });
-
-      const totalCameras = countResponse.data.data.listCameraViewsQuery.totalRecords;
-      console.log(`Total cameras: ${totalCameras}`);
-
-      const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
-      const randomOffset = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
-
-      console.log(`Fetching page at offset ${randomOffset}...`);
-      const response = await Axios.post('https://mass511.com/api/graphql', {
-        query,
-        variables: {
-          input: {
-            west: -180, south: -85, east: 180, north: 85,
-            sortDirection: 'DESC',
-            sortType: 'ROADWAY',
-            freeSearchTerm: '',
-            classificationsOrSlugs: [],
-            recordLimit: CAMERAS_PER_PAGE,
-            recordOffset: randomOffset,
+        }, { headers });
+      } else {
+        // Fetch one record to get the total count
+        const countResponse = await Axios.post('https://mass511.com/api/graphql', {
+          query,
+          variables: {
+            input: {
+              west: -180, south: -85, east: 180, north: 85,
+              sortDirection: 'DESC',
+              sortType: 'ROADWAY',
+              freeSearchTerm: '',
+              classificationsOrSlugs: [],
+              recordLimit: 1,
+              recordOffset: 0,
+            },
           },
-        },
-      }, { headers });
+        }, { headers });
+
+        const totalCameras = countResponse.data.data.listCameraViewsQuery.totalRecords;
+        console.log(`Total cameras: ${totalCameras}`);
+        const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
+        const randomOffset = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
+        console.log(`Fetching page at offset ${randomOffset}...`);
+        response = await Axios.post('https://mass511.com/api/graphql', {
+          query,
+          variables: {
+            input: {
+              west: -180, south: -85, east: 180, north: 85,
+              sortDirection: 'DESC',
+              sortType: 'ROADWAY',
+              freeSearchTerm: '',
+              classificationsOrSlugs: [],
+              recordLimit: CAMERAS_PER_PAGE,
+              recordOffset: randomOffset,
+            },
+          },
+        }, { headers });
+      }
 
       const data = response.data.data.listCameraViewsQuery;
       if (data.error) {
@@ -116,6 +132,10 @@ class MassachusettsBot extends TrafficBot {
       console.error('Error fetching Massachusetts cameras:', error.message);
       return [];
     }
+  }
+
+  async fetchAllCameras(highway) {
+    return this.fetchCameras({ search: highway, limit: 500 });
   }
 
   async downloadVideoSegment(duration) {

@@ -342,8 +342,12 @@ class TrafficBot {
    * @param {string} highway - e.g. "I-75"
    * @returns {Promise<Camera|null>}
    */
+  async fetchAllCameras(_highway) {
+    return this.fetchCameras();
+  }
+
   async findCameraOnHighway(highway) {
-    const cameras = await this.fetchCameras();
+    const cameras = await this.fetchAllCameras(highway);
     if (cameras.length === 0) return null;
 
     // Normalize for matching: "I-75" → ["I-75", "I 75", "I75", "75"]

@@ -57,7 +57,7 @@ class NorthCarolinaBot extends TrafficBot {
     };
   }
 
-  async fetchCameras() {
+  async fetchCameras(options = {}) {
     console.log('Fetching cameras from North Carolina DOT...');
 
     try {
@@ -86,24 +86,27 @@ class NorthCarolinaBot extends TrafficBot {
         ],
         start,
         length,
-        search: { value: '' },
+        search: { value: options.search || '' },
       });
 
       const makeUrl = (query) =>
         `https://nc.prod.traveliq.co/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en`;
 
-      const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
-      const totalCameras = countResponse.data.recordsTotal;
-      console.log(`Total cameras: ${totalCameras}`);
-
-      const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
-      const randomStart = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
-
-      console.log(`Fetching page at offset ${randomStart}...`);
-      const response = await Axios.get(makeUrl(makeQuery(randomStart, CAMERAS_PER_PAGE)), { headers: apiHeaders });
+      let response;
+      if (options.limit) {
+        response = await Axios.get(makeUrl(makeQuery(0, options.limit)), { headers: apiHeaders });
+      } else {
+        const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
+        const totalCameras = countResponse.data.recordsTotal;
+        console.log(`Total cameras: ${totalCameras}`);
+        const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
+        const randomStart = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
+        console.log(`Fetching page at offset ${randomStart}...`);
+        response = await Axios.get(makeUrl(makeQuery(randomStart, CAMERAS_PER_PAGE)), { headers: apiHeaders });
+      }
 
       const data = response.data;
-      console.log(`Total cameras: ${data.recordsTotal}, fetched ${data.data.length} from offset ${randomStart}`);
+      console.log(`Fetched ${data.data.length} cameras`);
 
       const cameras = data.data
         .filter(cam => {
@@ -137,6 +140,10 @@ class NorthCarolinaBot extends TrafficBot {
       console.error('Error fetching North Carolina cameras:', error.message);
       return [];
     }
+  }
+
+  async fetchAllCameras(highway) {
+    return this.fetchCameras({ search: highway, limit: 500 });
   }
 
   async downloadImage(index, retries = 3) {

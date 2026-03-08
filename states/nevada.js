@@ -57,7 +57,7 @@ class NevadaBot extends TrafficBot {
     };
   }
 
-  async fetchCameras() {
+  async fetchCameras(options = {}) {
     console.log('Fetching cameras from Nevada DOT...');
 
     try {
@@ -87,25 +87,28 @@ class NevadaBot extends TrafficBot {
         ],
         start,
         length,
-        search: { value: '' },
+        search: { value: options.search || '' },
       });
 
       const makeUrl = (query) =>
         `https://www.nvroads.com/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en-US`;
 
-      // Fetch one record to get the total count
-      const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
-      const totalCameras = countResponse.data.recordsTotal;
-      console.log(`Total cameras: ${totalCameras}`);
-
-      const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
-      const randomStart = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
-
-      console.log(`Fetching page at offset ${randomStart}...`);
-      const response = await Axios.get(makeUrl(makeQuery(randomStart, CAMERAS_PER_PAGE)), { headers: apiHeaders });
+      let response;
+      if (options.limit) {
+        response = await Axios.get(makeUrl(makeQuery(0, options.limit)), { headers: apiHeaders });
+      } else {
+        // Fetch one record to get the total count
+        const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
+        const totalCameras = countResponse.data.recordsTotal;
+        console.log(`Total cameras: ${totalCameras}`);
+        const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
+        const randomStart = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
+        console.log(`Fetching page at offset ${randomStart}...`);
+        response = await Axios.get(makeUrl(makeQuery(randomStart, CAMERAS_PER_PAGE)), { headers: apiHeaders });
+      }
 
       const data = response.data;
-      console.log(`Total cameras: ${data.recordsTotal}, fetched ${data.data.length} from offset ${randomStart}`);
+      console.log(`Fetched ${data.data.length} cameras`);
 
       const cameras = data.data
         .filter(cam => {
@@ -139,6 +142,10 @@ class NevadaBot extends TrafficBot {
       console.error('Error fetching Nevada cameras:', error.message);
       return [];
     }
+  }
+
+  async fetchAllCameras(highway) {
+    return this.fetchCameras({ search: highway, limit: 500 });
   }
 
   async downloadImage(index, retries = 3) {
