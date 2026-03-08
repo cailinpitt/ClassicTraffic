@@ -1,21 +1,36 @@
 #!/bin/bash
-# Usage: ./run-bot.sh <state>
+# Usage: ./run-bot.sh <state> [--lock-key <key>] [extra args passed to node]
 # Runs a bot with logging and Grafana Loki telemetry
 
 set -euo pipefail
 
 STATE="$1"
+shift
 DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Parse optional --lock-key before forwarding remaining args to node
+LOCK_KEY="$STATE"
+EXTRA_ARGS=()
+while [[ $# -gt 0 ]]; do
+  if [[ "$1" == "--lock-key" ]]; then
+    LOCK_KEY="$2"
+    shift 2
+  else
+    EXTRA_ARGS+=("$1")
+    shift
+  fi
+done
+
 LOG_DIR="$DIR/cron"
-LOG_FILE="$LOG_DIR/$STATE-$(date +%Y-%m-%d).log"
+LOG_FILE="$LOG_DIR/$LOCK_KEY-$(date +%Y-%m-%d).log"
 
 mkdir -p "$LOG_DIR"
 
 # Prevent overlapping runs: if this bot is already running, skip this invocation
-LOCKFILE="$LOG_DIR/$STATE.lock"
+LOCKFILE="$LOG_DIR/$LOCK_KEY.lock"
 exec 9>"$LOCKFILE"
 if ! flock -n 9; then
-  echo "$(date): Bot $STATE already running, skipping" >> "$LOG_FILE"
+  echo "$(date): Bot $LOCK_KEY already running, skipping" >> "$LOG_FILE"
   exit 0
 fi
 
@@ -39,7 +54,7 @@ STDERR_FILE=$(mktemp)
 EXIT_CODE=0
 BOT_TIMEOUT=$(/usr/bin/node "$DIR/states/$STATE.js" --get-timeout 2>/dev/null)
 if ! [[ "$BOT_TIMEOUT" =~ ^[0-9]+$ ]]; then BOT_TIMEOUT=7200; fi
-timeout "$BOT_TIMEOUT" /usr/bin/node "$DIR/states/$STATE.js" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
+timeout "$BOT_TIMEOUT" /usr/bin/node "$DIR/states/$STATE.js" "${EXTRA_ARGS[@]}" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
 cat "$STDERR_FILE" >> "$LOG_FILE"
 DURATION=$(( $(date +%s) - START_TIME ))
 
@@ -49,14 +64,14 @@ TIMESTAMP=$(date +%s%N)
 TS=$(($(date +%s) * 1000))
 PAYLOAD=$(/usr/bin/node -e "
   const fs = require('fs');
-  const logData = { state: '$STATE', exit_code: $EXIT_CODE, duration_seconds: $DURATION, ts: $TS };
+  const logData = { state: '$LOCK_KEY', exit_code: $EXIT_CODE, duration_seconds: $DURATION, ts: $TS };
   if ($EXIT_CODE !== 0) {
     const raw = fs.readFileSync('$STDERR_FILE', 'utf8').trim();
     logData.error = raw.length > 2000 ? raw.slice(0, 2000) + '...' : raw;
   }
   console.log(JSON.stringify({
     streams: [{
-      stream: { job: 'classictraffic', state: '$STATE' },
+      stream: { job: 'classictraffic', state: '$LOCK_KEY' },
       values: [['$TIMESTAMP', JSON.stringify(logData)]]
     }]
   }));
