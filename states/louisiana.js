@@ -321,7 +321,7 @@ class LouisianaBot extends TrafficBot {
         await this.downloadVideoSegment(duration);
       } else {
         const numImages = this.getNumImages();
-        console.log(`Downloading ${numImages} images every 6s...`);
+        console.log(`Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
         for (let i = 0; i < numImages; i++) {
           await this.downloadImage(i);
           if (i < numImages - 1) await this.sleep(this.delayBetweenImageFetches);

@@ -733,7 +733,7 @@ class TrafficBot {
       }
 
       const numImages = this.getNumImages();
-      console.log(`Downloading traffic camera images. ${numImages} images...`);
+      console.log(`Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
 
       let currentDelay = this.delayBetweenImageFetches;
       const maxDelay = this.delayBetweenImageFetches * 4;

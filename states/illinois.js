@@ -283,7 +283,7 @@ class IllinoisBot extends TrafficBot {
         await this.downloadVideoSegment(duration);
       } else {
         const numImages = this.getNumImages();
-        console.log(`Downloading ${numImages} images every 6s...`);
+        console.log(`Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
 
         if (this.chosenCamera.latitude && this.chosenCamera.longitude) {
           this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
