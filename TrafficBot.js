@@ -313,9 +313,9 @@ class TrafficBot {
       }
     }
 
-    const city = locality || sublocality || county;
+    const city = locality || sublocality || county || null;
     const location = city && area ? `${city}, ${area}` : (area || null);
-    return { route, location };
+    return { route, city, location };
   }
 
   /**
@@ -511,9 +511,10 @@ class TrafficBot {
 
       let postTitle = this.chosenCamera.name;
       try {
-        const { route, location } = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
+        const { route, city, location } = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
         geocodedLocation = location;
-        if (route && location) postTitle = `${route}, ${location}`;
+        if (route && city) postTitle = `${route}, ${city}`;
+        else if (city) postTitle = city;
         else if (location) postTitle = location;
       } catch (err) {
         console.log('Reverse geocoding failed:', err.message);
