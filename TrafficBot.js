@@ -350,17 +350,18 @@ class TrafficBot {
     const cameras = await this.fetchAllCameras(highway);
     if (cameras.length === 0) return null;
 
-    // Normalize for matching: "I-75" → ["I-75", "I 75", "I75", "75"]
+    // Normalize for matching: "I-75" → patterns covering common conventions
     const num = highway.replace(/^I-?/i, '');
     const patterns = [
       new RegExp(`\\bI-${num}\\b`, 'i'),
       new RegExp(`\\bI ${num}\\b`, 'i'),
       new RegExp(`\\bI${num}\\b`, 'i'),
       new RegExp(`\\bInterstate ${num}\\b`, 'i'),
+      new RegExp(`\\bIH-?\\s*0*${num}\\b`, 'i'),  // Texas: "IH 10", "IH0010", "IH-10"
     ];
 
-    // Pass 1: camera name contains the highway
-    const byName = cameras.filter(c => patterns.some(p => p.test(c.name)));
+    // Pass 1: camera name or route field contains the highway
+    const byName = cameras.filter(c => patterns.some(p => p.test(c.name) || (c.route && p.test(c.route))));
     if (byName.length > 0) {
       console.log(`Found ${byName.length} cameras matching ${highway} by name`);
       return _.sample(byName);
