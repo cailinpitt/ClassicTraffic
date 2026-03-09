@@ -80,7 +80,7 @@ class MinnesotaBot extends TrafficBot {
           url: `${this.chosenCamera.url}?t=${Date.now()}`,
           method: 'GET',
           responseType: 'stream',
-          timeout: 10000,
+          timeout: 20000,
           headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
           },

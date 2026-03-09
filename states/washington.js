@@ -70,7 +70,7 @@ class WashingtonBot extends TrafficBot {
           url: `${this.chosenCamera.url}?a=${Date.now()}`,
           method: 'GET',
           responseType: 'stream',
-          timeout: 10000,
+          timeout: 20000,
         });
 
         return await new Promise((resolve, reject) => {

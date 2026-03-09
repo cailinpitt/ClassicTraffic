@@ -159,7 +159,7 @@ class NevadaBot extends TrafficBot {
           url: this.chosenCamera.url,
           method: 'GET',
           responseType: 'stream',
-          timeout: 10000,
+          timeout: 20000,
         });
 
         return await new Promise((resolve, reject) => {
