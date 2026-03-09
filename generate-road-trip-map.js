@@ -45,8 +45,8 @@ async function generateRoadTripMap(highway, stateNames) {
     const highlighted = highlightFips.has(fips);
     const d = path(feature);
     if (!d) return '';
-    const fill = highlighted ? '#f59e0b' : '#1e3a5f';
-    return `<path d="${d}" fill="${fill}" stroke="#0f172a" stroke-width="0.8"/>`;
+    const fill = highlighted ? '#f59e0b' : '#cbd5e1';
+    return `<path d="${d}" fill="${fill}" stroke="#f8fafc" stroke-width="0.8"/>`;
   }).join('');
 
   // Load pre-fetched route geometry if available
@@ -54,12 +54,12 @@ async function generateRoadTripMap(highway, stateNames) {
   try {
     const routeFeature = require(`./highway-routes/${highway}.json`);
     const d = path(routeFeature);
-    if (d) routePath = `<path d="${d}" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
+    if (d) routePath = `<path d="${d}" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
   } catch {}
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${MAP_W}" height="${TOTAL_H}">
-  <rect width="${MAP_W}" height="${TOTAL_H}" fill="#0f172a"/>
+  <rect width="${MAP_W}" height="${TOTAL_H}" fill="#f8fafc"/>
   <text
     x="${MAP_W / 2}"
     y="${TITLE_H / 2 + 10}"
@@ -68,7 +68,7 @@ async function generateRoadTripMap(highway, stateNames) {
     font-family="DejaVu Sans, Arial, Helvetica, sans-serif"
     font-size="30"
     font-weight="bold"
-    fill="#f9fafb"
+    fill="#1e293b"
     letter-spacing="1"
   >${highway} Road Trip</text>
   <g transform="translate(0, ${TITLE_H})">${statePaths}${routePath}</g>
