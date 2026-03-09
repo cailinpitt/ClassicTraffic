@@ -98,6 +98,67 @@ function chainSegments(lines) {
   return chained;
 }
 
+// Haversine distance in km between two [lon, lat] points
+function haversineKm(a, b) {
+  const R = 6371;
+  const dLat = (b[1] - a[1]) * Math.PI / 180;
+  const dLon = (b[0] - a[0]) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos(a[1] * Math.PI / 180) * Math.cos(b[1] * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+function routeLengthMiles(feature) {
+  let km = 0;
+  for (const line of feature.geometry.coordinates) {
+    for (let i = 1; i < line.length; i++) km += haversineKm(line[i - 1], line[i]);
+  }
+  return Math.round(km * 0.621371);
+}
+
+// Sample up to `count` evenly-spaced points from the MultiLineString
+function sampleRoutePoints(feature, count = 20) {
+  const all = feature.geometry.coordinates.flatMap(line => line);
+  if (all.length === 0) return [];
+  const step = Math.max(1, Math.floor(all.length / count));
+  const pts = [];
+  for (let i = 0; i < all.length; i += step) pts.push(all[i]);
+  return pts;
+}
+
+// Reverse geocode a [lon, lat] point using Nominatim, returning the state account name
+// e.g. "New Hampshire" → "newhampshire"
+async function geocodeState(lon, lat) {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+  const resp = await Axios.get(url, {
+    timeout: 10000,
+    headers: { 'User-Agent': 'ClassicTraffic/1.0 (github.com/cailinpitt/ClassicTraffic)' },
+  });
+  const state = resp.data?.address?.state;
+  if (!state) return null;
+  return state.toLowerCase().replace(/\s+/g, '');
+}
+
+// Determine ordered state list by sampling points along the route
+async function determineStates(feature) {
+  const points = sampleRoutePoints(feature, 20);
+  const states = [];
+  const seen = new Set();
+  for (const [lon, lat] of points) {
+    await sleep(1200); // Nominatim: max 1 req/s
+    try {
+      const state = await geocodeState(lon, lat);
+      if (state && !seen.has(state)) {
+        seen.add(state);
+        states.push(state);
+      }
+    } catch {
+      // ignore individual geocoding failures
+    }
+  }
+  return states;
+}
+
 async function fetchHighwayRoute(highway) {
   const ref = highway.replace('I-', '');
   const query = `[out:json][timeout:90];relation["network"="US:I"]["ref"="${ref}"]["route"="road"];out geom;`;
@@ -128,6 +189,9 @@ async function fetchHighwayRoute(highway) {
 async function main() {
   Fs.ensureDirSync('./highway-routes');
 
+  const highwaysPath = './highways.json';
+  const highwaysData = JSON.parse(Fs.readFileSync(highwaysPath, 'utf8'));
+
   for (const highway of HIGHWAYS) {
     const outPath = `./highway-routes/${highway}.json`;
     if (Fs.existsSync(outPath) && !FORCE) {
@@ -144,6 +208,17 @@ async function main() {
         const kb = Math.round(Fs.statSync(outPath).size / 1024);
         console.log(`${feature.geometry.coordinates.length} segments (${kb} KB)`);
         success = true;
+
+        // Determine states and miles, update highways.json if entry is missing
+        if (!highwaysData[highway] || FORCE) {
+          process.stdout.write(`  Determining states via geocoding... `);
+          const miles = routeLengthMiles(feature);
+          const states = await determineStates(feature);
+          highwaysData[highway] = { miles, states };
+          Fs.writeFileSync(highwaysPath, JSON.stringify(highwaysData, null, 2) + '\n');
+          console.log(`${states.join(', ')} (${miles} mi)`);
+        }
+
         break;
       } catch (err) {
         if (attempt === MAX_RETRIES) {

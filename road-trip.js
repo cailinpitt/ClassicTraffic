@@ -29,8 +29,6 @@ function getDisplayName(accountName) {
 }
 
 const DURATION_OPTIONS = [60, 90, 120, 180, 240, 360];
-const ROAD_TRIP_IMAGE_COUNT = 15;
-const ROAD_TRIP_IMAGE_DELAY_MS = 2000;
 
 // Capture one state's video or image timelapse. Returns { bot, titleOverride } on success,
 // null if the state should be silently skipped (no camera found). Throws on hard errors.
@@ -70,10 +68,12 @@ async function captureState(stateName, BotClass, highway, duration) {
   }
 
   if (isImageBot) {
-    console.log(`[${stateName}] Capturing ${ROAD_TRIP_IMAGE_COUNT} images from ${camera.name}...`);
-    for (let i = 0; i < ROAD_TRIP_IMAGE_COUNT; i++) {
+    const delayMs = bot.delayBetweenImageFetches;
+    const imageCount = Math.max(1, Math.min(20, Math.floor((duration * 1000) / delayMs)));
+    console.log(`[${stateName}] Capturing ${imageCount} images (${delayMs / 1000}s interval) from ${camera.name}...`);
+    for (let i = 0; i < imageCount; i++) {
       await bot.downloadImage(i);
-      if (i < ROAD_TRIP_IMAGE_COUNT - 1) await bot.sleep(ROAD_TRIP_IMAGE_DELAY_MS);
+      if (i < imageCount - 1) await bot.sleep(delayMs);
     }
     if (bot.uniqueImageCount < 2) {
       console.log(`[${stateName}] Only ${bot.uniqueImageCount} unique image(s), skipping`);

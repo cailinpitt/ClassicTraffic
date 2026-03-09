@@ -3,10 +3,6 @@
     "miles": 2460,
     "states": ["california", "arizona", "newmexico", "texas", "louisiana", "mississippi", "alabama", "florida"]
   },
-  "I-22": {
-    "miles": 215,
-    "states": ["mississippi", "alabama"]
-  },
   "I-20": {
     "miles": 1535,
     "states": ["texas", "louisiana", "mississippi", "alabama", "georgia", "southcarolina"]
@@ -18,10 +14,6 @@
   "I-35": {
     "miles": 1568,
     "states": ["texas", "oklahoma", "kansas", "missouri", "iowa", "minnesota"]
-  },
-  "I-44": {
-    "miles": 632,
-    "states": ["texas", "oklahoma", "missouri"]
   },
   "I-40": {
     "miles": 2555,
@@ -43,10 +35,6 @@
     "miles": 981,
     "states": ["missouri", "illinois", "indiana", "kentucky", "westvirginia", "virginia"]
   },
-  "I-68": {
-    "miles": 113,
-    "states": ["westvirginia", "maryland"]
-  },
   "I-70": {
     "miles": 2153,
     "states": ["utah", "colorado", "kansas", "missouri", "illinois", "indiana", "ohio", "westvirginia", "pennsylvania", "maryland"]
@@ -59,10 +47,6 @@
     "miles": 610,
     "states": ["southcarolina", "northcarolina", "virginia", "westvirginia", "ohio"]
   },
-  "I-78": {
-    "miles": 143,
-    "states": ["pennsylvania", "newjersey", "newyork"]
-  },
   "I-80": {
     "miles": 2909,
     "states": ["california", "nevada", "utah", "wyoming", "nebraska", "iowa", "illinois", "indiana", "ohio", "pennsylvania", "newjersey", "newyork"]
@@ -71,21 +55,9 @@
     "miles": 855,
     "states": ["tennessee", "virginia", "westvirginia", "maryland", "pennsylvania", "newyork"]
   },
-  "I-82": {
-    "miles": 144,
-    "states": ["washington", "oregon"]
-  },
-  "I-83": {
-    "miles": 84,
-    "states": ["maryland", "pennsylvania"]
-  },
   "I-85": {
     "miles": 666,
     "states": ["alabama", "georgia", "southcarolina", "northcarolina", "virginia"]
-  },
-  "I-89": {
-    "miles": 191,
-    "states": ["newhampshire", "vermont"]
   },
   "I-90": {
     "miles": 3020,
@@ -94,10 +66,6 @@
   "I-94": {
     "miles": 1585,
     "states": ["michigan", "indiana", "illinois", "wisconsin", "minnesota", "northdakota", "montana"]
-  },
-  "I-93": {
-    "miles": 189,
-    "states": ["massachusetts", "newhampshire", "vermont"]
   },
   "I-95": {
     "miles": 1920,
