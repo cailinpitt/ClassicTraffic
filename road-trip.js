@@ -29,12 +29,16 @@ function getDisplayName(accountName) {
 }
 
 const DURATION_OPTIONS = [60, 90, 120, 180, 240, 360];
+const ROAD_TRIP_IMAGE_COUNT = 15;
+const ROAD_TRIP_IMAGE_DELAY_MS = 2000;
 
-// Capture one state's video. Returns { bot, titleOverride } on success, null if
-// the state should be silently skipped (no camera found). Throws on hard errors.
+// Capture one state's video or image timelapse. Returns { bot, titleOverride } on success,
+// null if the state should be silently skipped (no camera found). Throws on hard errors.
 async function captureState(stateName, BotClass, highway, duration) {
   const bot = new BotClass();
   bot.targetOutputSeconds = duration / 4;
+
+  const isImageBot = typeof bot.downloadVideoSegment !== 'function';
 
   const account = keys.accounts[bot.accountName];
   bot.agent = new AtpAgent({ service: keys.service });
@@ -45,8 +49,8 @@ async function captureState(stateName, BotClass, highway, duration) {
   console.log(`[${stateName}] Finding camera on ${highway}...`);
   const camera = await bot.findCameraOnHighway(highway);
 
-  if (!camera || camera.hasVideo === false) {
-    console.log(`[${stateName}] No video camera found on ${highway}, skipping`);
+  if (!camera || (!isImageBot && camera.hasVideo === false)) {
+    console.log(`[${stateName}] No camera found on ${highway}, skipping`);
     bot.cleanup();
     return null;
   }
@@ -65,7 +69,21 @@ async function captureState(stateName, BotClass, highway, duration) {
     }
   }
 
-  await bot.downloadVideoSegment(duration);
+  if (isImageBot) {
+    console.log(`[${stateName}] Capturing ${ROAD_TRIP_IMAGE_COUNT} images from ${camera.name}...`);
+    for (let i = 0; i < ROAD_TRIP_IMAGE_COUNT; i++) {
+      await bot.downloadImage(i);
+      if (i < ROAD_TRIP_IMAGE_COUNT - 1) await bot.sleep(ROAD_TRIP_IMAGE_DELAY_MS);
+    }
+    if (bot.uniqueImageCount < 2) {
+      console.log(`[${stateName}] Only ${bot.uniqueImageCount} unique image(s), skipping`);
+      bot.cleanup();
+      return null;
+    }
+    await bot.createVideo();
+  } else {
+    await bot.downloadVideoSegment(duration);
+  }
 
   bot.endTime = new Date();
 
@@ -113,10 +131,6 @@ async function main() {
       continue;
     }
     const bot = new BotClass();
-    if (typeof bot.downloadVideoSegment !== 'function') {
-      console.log(`[${stateName}] Image-only bot, skipping`);
-      continue;
-    }
     if (!keys.accounts[bot.accountName]) {
       console.log(`[${stateName}] No account in keys.js, skipping`);
       continue;
