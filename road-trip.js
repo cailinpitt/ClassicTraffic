@@ -145,8 +145,10 @@ async function main() {
     const { stateName } = eligibleStates[i];
     const result = captureResults[i];
     if (result.status === 'rejected') {
-      console.error(`[${stateName}] Capture error: ${result.reason.message}`);
-      results.push({ state: stateName, success: false, error: result.reason.message });
+      const err = result.reason;
+      const detail = err.stderr ? `\n${err.stderr.trim()}` : '';
+      console.error(`[${stateName}] Capture error: ${err.message}${detail}`);
+      results.push({ state: stateName, success: false, error: err.message });
     } else if (result.value !== null) {
       captured.push({ stateName, ...result.value });
     }
