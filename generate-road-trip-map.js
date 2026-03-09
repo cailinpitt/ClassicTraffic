@@ -27,11 +27,18 @@ const TITLE_H = 56;
 const TOTAL_H = MAP_H + TITLE_H;
 
 async function generateRoadTripMap(highway, stateNames) {
-  const projection = geoAlbersUsa().scale(1300).translate([MAP_W / 2, MAP_H / 2]);
-  const path = geoPath().projection(projection);
-
   const states = topojson.feature(us, us.objects.states);
   const highlightFips = new Set(stateNames.map(s => STATE_FIPS[s]).filter(Boolean));
+
+  // Fit projection to the highlighted states with padding
+  const highlightedCollection = {
+    type: 'FeatureCollection',
+    features: states.features.filter(f => highlightFips.has(String(f.id).padStart(2, '0'))),
+  };
+  const padding = 40;
+  const projection = geoAlbersUsa()
+    .fitExtent([[padding, padding], [MAP_W - padding, MAP_H - padding]], highlightedCollection);
+  const path = geoPath().projection(projection);
 
   const statePaths = states.features.map(feature => {
     const fips = String(feature.id).padStart(2, '0');
