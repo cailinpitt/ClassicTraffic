@@ -66,7 +66,7 @@ async function generateRoadTripMap(highway, stateNames) {
     x="${MAP_W / 2}"
     y="${TITLE_H - 20}"
     text-anchor="middle"
-    font-family="DejaVu Sans, Arial, Helvetica, sans-serif"
+    font-family="Arial, sans-serif"
     font-size="32"
     font-weight="bold"
     fill="#1e293b"
