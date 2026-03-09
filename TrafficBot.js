@@ -64,6 +64,8 @@ class TrafficBot {
     this.maxImageCollectionMs = config.maxImageCollectionMs || Infinity;
     /** @type {number} Target output video duration in seconds for dynamic speed calculation */
     this.targetOutputSeconds = config.targetOutputSeconds || 30;
+    /** @type {number|null} Speed multiplier applied during encode (e.g. 4 for 4x), set by getSetpts() */
+    this.videoSpeedFactor = null;
     /** @type {boolean} */
     this.is24HourTimelapse = config.is24HourTimelapse || false;
     /** @type {number} Probability (0-1) of posting a multi-camera thread instead of single post */
@@ -237,6 +239,7 @@ class TrafficBot {
   getSetpts(captureDurationS) {
     const MAX_SPEED = 8;
     const speed = Math.min(captureDurationS / this.targetOutputSeconds, MAX_SPEED);
+    this.videoSpeedFactor = Math.round(speed);
     return (1 / speed).toFixed(6);
   }
 
@@ -549,7 +552,8 @@ class TrafficBot {
     };
 
     const timeRange = `${formatTime(this.startTime)} - ${formatTime(this.endTime)} ${this.tzAbbrev}`;
-    const timeLabel = this.is24HourTimelapse ? `24-Hour Timelapse: ${timeRange}` : timeRange;
+    const speedSuffix = this.videoSpeedFactor ? ` (${this.videoSpeedFactor}x speed)` : '';
+    const timeLabel = this.is24HourTimelapse ? `24-Hour Timelapse: ${timeRange}${speedSuffix}` : `${timeRange}${speedSuffix}`;
 
     let postText;
     let facets = [];
@@ -807,6 +811,7 @@ class TrafficBot {
         this.startTime = null;
         this.endTime = null;
         this.chosenCamera = null;
+        this.videoSpeedFactor = null;
 
         try {
           // Camera selection
