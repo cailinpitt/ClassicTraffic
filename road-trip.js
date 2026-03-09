@@ -175,20 +175,25 @@ async function main() {
   })).filter(w => w.description);
 
   if (weatherStates.length > 0) {
-    let group = [weatherStates[0].displayName];
-    let currentDesc = weatherStates[0].description;
-    for (let i = 1; i < weatherStates.length; i++) {
-      if (weatherStates[i].description === currentDesc) {
-        group.push(weatherStates[i].displayName);
-      } else {
-        const stateList = group.length === 1 ? group[0] : group.slice(0, -1).join(', ') + ' and ' + group[group.length - 1];
-        weatherParts.push(`${currentDesc} in ${stateList}`);
-        group = [weatherStates[i].displayName];
-        currentDesc = weatherStates[i].description;
+    const allSame = weatherStates.every(w => w.description === weatherStates[0].description);
+    if (allSame) {
+      weatherParts.push(`${weatherStates[0].description} in all states`);
+    } else {
+      let group = [weatherStates[0].displayName];
+      let currentDesc = weatherStates[0].description;
+      for (let i = 1; i < weatherStates.length; i++) {
+        if (weatherStates[i].description === currentDesc) {
+          group.push(weatherStates[i].displayName);
+        } else {
+          const stateList = group.length === 1 ? group[0] : group.slice(0, -1).join(', ') + ' and ' + group[group.length - 1];
+          weatherParts.push(`${currentDesc} in ${stateList}`);
+          group = [weatherStates[i].displayName];
+          currentDesc = weatherStates[i].description;
+        }
       }
+      const stateList = group.length === 1 ? group[0] : group.slice(0, -1).join(', ') + ' and ' + group[group.length - 1];
+      weatherParts.push(`${currentDesc} in ${stateList}`);
     }
-    const stateList = group.length === 1 ? group[0] : group.slice(0, -1).join(', ') + ' and ' + group[group.length - 1];
-    weatherParts.push(`${currentDesc} in ${stateList}`);
   }
 
   const miles = highwayConfig.miles ? `${highwayConfig.miles.toLocaleString()} miles` : null;
