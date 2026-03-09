@@ -47,6 +47,9 @@ if [ "$FLAG_EXIT" -eq 1 ]; then
   exit 0
 fi
 
+# Run from project root so relative paths (e.g. ./cron/recent.json) resolve correctly
+cd "$DIR"
+
 # Run bot, capturing stderr separately so errors can be included in Grafana on failure
 START_TIME=$(date +%s)
 printf "\n\n=== $(date) ===\n" >> "$LOG_FILE" 2>&1

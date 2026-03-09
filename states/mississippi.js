@@ -181,7 +181,10 @@ class MississippiBot extends TrafficBot {
       if (!_.isUndefined(argv.id)) {
         selectedSite = _.find(cameras, { id: String(argv.id) });
       } else {
-        selectedSite = _.sample(cameras);
+        const recentIds = this.getRecentCameraIds();
+        const filtered = cameras.filter(c => !recentIds.includes(String(c.id)));
+        const pool = filtered.length > 0 ? filtered : cameras;
+        selectedSite = _.sample(pool);
       }
 
       if (!selectedSite) {
@@ -189,6 +192,7 @@ class MississippiBot extends TrafficBot {
         return;
       }
 
+      this.saveRecentCameraId(selectedSite.id);
       console.log(`Selected site ${selectedSite.id}: ${selectedSite.name}`);
 
       // Fetch streams for this site

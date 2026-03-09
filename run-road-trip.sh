@@ -41,6 +41,8 @@ GRAFANA_LOKI_URL=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.lo
 GRAFANA_USER=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.user)")
 GRAFANA_API_KEY=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.apiKey)")
 
+cd "$DIR"
+
 START_TIME=$(date +%s)
 printf "\n\n=== $(date) ===\n" >> "$LOG_FILE" 2>&1
 STDERR_FILE=$(mktemp)

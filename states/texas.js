@@ -146,10 +146,13 @@ class TexasBot extends TrafficBot {
       }
 
       // Select a random page of cameras, then pick one
-      const page = _.sampleSize(cameras, CAMERAS_PER_PAGE);
       if (!_.isUndefined(argv.id)) {
         this.chosenCamera = _.find(cameras, c => c.id == argv.id);
       } else {
+        const recentIds = this.getRecentCameraIds();
+        const filtered = cameras.filter(c => !recentIds.includes(String(c.id)));
+        const pool = filtered.length > 0 ? filtered : cameras;
+        const page = _.sampleSize(pool, CAMERAS_PER_PAGE);
         this.chosenCamera = _.sample(page);
       }
 
@@ -159,6 +162,7 @@ class TexasBot extends TrafficBot {
         return;
       }
 
+      this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} - ${this.chosenCamera.description} (${this.chosenCamera.jurisdiction})`);
       Fs.ensureDirSync(this.assetDirectory);
 

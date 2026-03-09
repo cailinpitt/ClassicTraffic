@@ -195,7 +195,10 @@ class CaliforniaBot extends TrafficBot {
         this.chosenCamera = _.find(cameras, { id: argv.id });
       } else {
         // Verify stream URL is reachable before committing to a video camera
-        const shuffled = _.shuffle(cameras);
+        const recentIds = this.getRecentCameraIds();
+        const filtered = cameras.filter(c => !recentIds.includes(String(c.id)));
+        const pool = filtered.length > 0 ? filtered : cameras;
+        const shuffled = _.shuffle(pool);
         for (const cam of shuffled) {
           if (cam.streamingUrl) {
             try {
@@ -219,6 +222,7 @@ class CaliforniaBot extends TrafficBot {
         return;
       }
 
+      this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
       Fs.ensureDirSync(this.assetDirectory);
 

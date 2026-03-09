@@ -150,7 +150,10 @@ class OklahomaBot extends TrafficBot {
       if (!_.isUndefined(argv.id)) {
         this.chosenCamera = _.find(cameras, { id: argv.id });
       } else {
-        this.chosenCamera = _.sample(cameras);
+        const recentIds = this.getRecentCameraIds();
+        const filtered = cameras.filter(c => !recentIds.includes(String(c.id)));
+        const pool = filtered.length > 0 ? filtered : cameras;
+        this.chosenCamera = _.sample(pool);
       }
 
       if (!this.chosenCamera) {
@@ -159,6 +162,7 @@ class OklahomaBot extends TrafficBot {
         return;
       }
 
+      this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
       Fs.ensureDirSync(this.assetDirectory);
 

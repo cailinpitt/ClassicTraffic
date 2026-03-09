@@ -144,16 +144,21 @@ class WestVirginiaBot extends TrafficBot {
         this.startTime = new Date();
         await this.downloadVideoSegment(_.sample(durationOptions));
       } else {
+        const recentIds = this.getRecentCameraIds();
+        const filtered = cameras.filter(c => !recentIds.includes(String(c.id)));
+        const pool = filtered.length > 0 ? filtered : cameras;
+
         const MAX_ATTEMPTS = 5;
         const triedIds = new Set();
         let downloaded = false;
 
         while (!downloaded && triedIds.size < MAX_ATTEMPTS) {
-          const available = cameras.filter(c => !triedIds.has(c.id));
+          const available = pool.filter(c => !triedIds.has(c.id));
           if (available.length === 0) break;
 
           this.chosenCamera = _.sample(available);
           triedIds.add(this.chosenCamera.id);
+          if (triedIds.size === 1) this.saveRecentCameraId(this.chosenCamera.id);
 
           console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
           this.startTime = new Date();

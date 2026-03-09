@@ -201,7 +201,10 @@ class HawaiiBot extends TrafficBot {
         this.chosenCamera = _.find(cameras, { id: argv.id });
       } else {
         // For video cameras, verify the stream URL is reachable before committing
-        const shuffled = _.shuffle(cameras);
+        const recentIds = this.getRecentCameraIds();
+        const filtered = cameras.filter(c => !recentIds.includes(String(c.id)));
+        const pool = filtered.length > 0 ? filtered : cameras;
+        const shuffled = _.shuffle(pool);
         for (const cam of shuffled) {
           if (cam.hasVideo) {
             try {
@@ -225,6 +228,7 @@ class HawaiiBot extends TrafficBot {
         return;
       }
 
+      this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
       Fs.ensureDirSync(this.assetDirectory);
 
