@@ -8,7 +8,14 @@
 const Axios = require('axios');
 const Fs = require('fs-extra');
 
-const HIGHWAYS = Object.keys(require('./highways.json'));
+const argv = require('minimist')(process.argv.slice(2));
+const allHighways = Object.keys(require('./highways.json'));
+// Usage: node fetch-highway-routes.js         (fetch all missing)
+//        node fetch-highway-routes.js I-26     (fetch specific, re-download even if cached)
+//        node fetch-highway-routes.js I-26 I-95 (fetch specific)
+const specificHighways = argv._.map(h => h.toUpperCase());
+const HIGHWAYS = specificHighways.length > 0 ? specificHighways : allHighways;
+const FORCE = specificHighways.length > 0; // re-download when specific highways named
 const DELAY_BETWEEN_MS = 8000;
 const MAX_RETRIES = 5;
 
@@ -24,7 +31,7 @@ function chainSegments(lines) {
   if (lines.length === 0) return lines;
 
   const SNAP_DIST = 0.005; // ~500m for snapping true adjacent ways
-  const MAX_BRIDGE = 2.0;  // ~200km max bridge (skip truly separate routes)
+  const MAX_BRIDGE = 0.55; // ~55km max bridge — covers concurrent section gaps (e.g. I-26/I-40 through Asheville ~51km)
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
   // Pass 1: snap-chain by endpoint proximity
@@ -123,7 +130,7 @@ async function main() {
 
   for (const highway of HIGHWAYS) {
     const outPath = `./highway-routes/${highway}.json`;
-    if (Fs.existsSync(outPath)) {
+    if (Fs.existsSync(outPath) && !FORCE) {
       console.log(`${highway}: already cached, skipping`);
       continue;
     }
