@@ -45,8 +45,8 @@ async function generateRoadTripMap(highway, stateNames) {
     const highlighted = highlightFips.has(fips);
     const d = path(feature);
     if (!d) return '';
-    const fill = highlighted ? '#f59e0b' : '#cbd5e1';
-    return `<path d="${d}" fill="${fill}" stroke="#f8fafc" stroke-width="0.8"/>`;
+    const fill = highlighted ? '#c0634a' : '#b5a48a';
+    return `<path d="${d}" fill="${fill}" stroke="#c8b99a" stroke-width="0.8"/>`;
   }).join('');
 
   // Load pre-fetched route geometry if available
@@ -59,7 +59,7 @@ async function generateRoadTripMap(highway, stateNames) {
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${MAP_W}" height="${TOTAL_H}">
-  <rect width="${MAP_W}" height="${TOTAL_H}" fill="#f8fafc"/>
+  <rect width="${MAP_W}" height="${TOTAL_H}" fill="#c8b99a"/>
   <text
     x="${MAP_W / 2}"
     y="${TITLE_H / 2 + 10}"

@@ -218,23 +218,30 @@ Road trip mode posts a Bluesky thread showing live traffic across multiple state
 
 Each state's post is titled `"I-75 through Tennessee 🛣️"`. The thread requires at least 2 states to post successfully; if fewer succeed, the run exits with code 1. All states use the same randomly chosen clip duration (1–6 minutes), played back at 4x speed.
 
+The intro post includes a generated map image showing the highway's route overlaid on the states it passes through, zoomed in to the relevant region. The map is generated using `d3-geo`, `us-atlas`, and `sharp`. Route geometry is pre-fetched from OpenStreetMap's Overpass API and stored in `highway-routes/` — run `node fetch-highway-routes.js` to populate or refresh it.
+
 Only states with live video support (those with `downloadVideoSegment`) participate — image-only states are skipped. The bot finds a camera on the target highway by searching camera names first, then falling back to reverse geocoding a sample of cameras.
 
-**Supported interstates** (44 total): I-5, I-8, I-10, I-11, I-15, I-20, I-22, I-24, I-25, I-26, I-29, I-30, I-35, I-39, I-40, I-44, I-49, I-55, I-59, I-64, I-65, I-68, I-69, I-70, I-71, I-72, I-74, I-75, I-76, I-77, I-78, I-79, I-80, I-81, I-82, I-83, I-84, I-85, I-89, I-90, I-91, I-93, I-94, I-95
+**Supported interstates** (18 total, each with 3+ video-capable states): I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95
 
 To add or modify interstates, edit `highways.json`.
 
 ## Project Structure
 
 ```
-states/              # State-specific bot implementations (one file per state)
-TrafficBot.js        # Base class with shared workflow
-run-bot.sh           # Cron wrapper (logging, feature flags, health checks)
-status.js            # Reports last successful post time for all bots
-keys.js              # Bluesky credentials (gitignored)
-assets/              # Temporary download directory (gitignored)
-cron/                # Per-bot log files written by run-bot.sh (gitignored)
-map.svg              # US map highlighting active states
+states/                   # State-specific bot implementations (one file per state)
+TrafficBot.js             # Base class with shared workflow
+run-bot.sh                # Cron wrapper (logging, feature flags, health checks)
+run-road-trip.sh          # Cron wrapper for road trip mode
+road-trip.js              # Road trip thread logic
+generate-road-trip-map.js # Generates the intro post map image
+fetch-highway-routes.js   # One-time script to fetch route GeoJSON from Overpass API
+highways.json             # Interstate definitions (states, miles)
+highway-routes/           # Pre-fetched route GeoJSON per highway (gitignored, generate with fetch-highway-routes.js)
+status.js                 # Reports last successful post time for all bots
+keys.js                   # Bluesky credentials (gitignored)
+assets/                   # Temporary download directory (gitignored)
+cron/                     # Per-bot log files and recent camera state (gitignored)
 ```
 
 ## Monitoring

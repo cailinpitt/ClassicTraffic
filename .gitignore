@@ -7,4 +7,5 @@ log/
 cron/
 yarn.lock
 assets/
+highway-routes/
 .claude/
