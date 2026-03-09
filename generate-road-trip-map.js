@@ -23,7 +23,7 @@ const STATE_FIPS = {
 
 const MAP_W = 960;
 const MAP_H = 600;
-const TITLE_H = 56;
+const TITLE_H = 72;
 const TOTAL_H = MAP_H + TITLE_H;
 
 async function generateRoadTripMap(highway, stateNames) {
@@ -54,24 +54,24 @@ async function generateRoadTripMap(highway, stateNames) {
   try {
     const routeFeature = require(`./highway-routes/${highway}.json`);
     const d = path(routeFeature);
-    if (d) routePath = `<path d="${d}" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+    if (d) routePath = `<path d="${d}" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
   } catch {}
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${MAP_W}" height="${TOTAL_H}">
   <rect width="${MAP_W}" height="${TOTAL_H}" fill="#c8b99a"/>
+  <g transform="translate(0, ${TITLE_H})">${statePaths}${routePath}</g>
+  <rect width="${MAP_W}" height="${TITLE_H}" fill="#b5a48a"/>
   <text
     x="${MAP_W / 2}"
-    y="${TITLE_H / 2 + 10}"
+    y="${TITLE_H - 20}"
     text-anchor="middle"
-    dominant-baseline="middle"
     font-family="DejaVu Sans, Arial, Helvetica, sans-serif"
-    font-size="30"
+    font-size="32"
     font-weight="bold"
     fill="#1e293b"
     letter-spacing="1"
   >${highway} Road Trip</text>
-  <g transform="translate(0, ${TITLE_H})">${statePaths}${routePath}</g>
 </svg>`;
 
   return sharp(Buffer.from(svg)).png().toBuffer();
