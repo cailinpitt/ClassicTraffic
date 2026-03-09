@@ -42,6 +42,14 @@ async function generateRoadTripMap(highway, stateNames) {
     return `<path d="${d}" fill="${fill}" stroke="#0f172a" stroke-width="0.8"/>`;
   }).join('');
 
+  // Load pre-fetched route geometry if available
+  let routePath = '';
+  try {
+    const routeFeature = require(`./highway-routes/${highway}.json`);
+    const d = path(routeFeature);
+    if (d) routePath = `<path d="${d}" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
+  } catch {}
+
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${MAP_W}" height="${TOTAL_H}">
   <rect width="${MAP_W}" height="${TOTAL_H}" fill="#0f172a"/>
@@ -56,7 +64,7 @@ async function generateRoadTripMap(highway, stateNames) {
     fill="#f9fafb"
     letter-spacing="1"
   >${highway} Road Trip</text>
-  <g transform="translate(0, ${TITLE_H})">${statePaths}</g>
+  <g transform="translate(0, ${TITLE_H})">${statePaths}${routePath}</g>
 </svg>`;
 
   return sharp(Buffer.from(svg)).png().toBuffer();
