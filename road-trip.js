@@ -202,9 +202,8 @@ async function main() {
 
   let introText = `${highway} road trip!`;
   if (miles) introText += ` ${miles} —`;
-  introText += ` Here's what traffic looks like right now passing through ${statesText}`;
-  if (weatherSummary) introText += `. ${weatherSummary}`;
-  introText += ' 🛣️';
+  introText += ` Here's what traffic looks like right now passing through ${statesText} 🛣️`;
+  if (weatherSummary) introText += `\n\n${weatherSummary}`;
 
   let threadRoot = null;
   let threadParent = null;
