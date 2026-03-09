@@ -1,0 +1,65 @@
+'use strict';
+
+const { geoAlbersUsa, geoPath } = require('d3-geo');
+const topojson = require('topojson-client');
+const us = require('us-atlas/states-10m.json');
+const sharp = require('sharp');
+
+const STATE_FIPS = {
+  alabama: '01', alaska: '02', arizona: '04', arkansas: '05',
+  california: '06', colorado: '08', connecticut: '09', delaware: '10',
+  florida: '12', georgia: '13', hawaii: '15', idaho: '16',
+  illinois: '17', indiana: '18', iowa: '19', kansas: '20',
+  kentucky: '21', louisiana: '22', maine: '23', maryland: '24',
+  massachusetts: '25', michigan: '26', minnesota: '27', mississippi: '28',
+  missouri: '29', montana: '30', nebraska: '31', nevada: '32',
+  newhampshire: '33', newjersey: '34', newmexico: '35', newyork: '36',
+  northcarolina: '37', northdakota: '38', ohio: '39', oklahoma: '40',
+  oregon: '41', pennsylvania: '42', rhodeisland: '44', southcarolina: '45',
+  southdakota: '46', tennessee: '47', texas: '48', utah: '49',
+  vermont: '50', virginia: '51', washington: '53', westvirginia: '54',
+  wisconsin: '55', wyoming: '56',
+};
+
+const MAP_W = 960;
+const MAP_H = 600;
+const TITLE_H = 56;
+const TOTAL_H = MAP_H + TITLE_H;
+
+async function generateRoadTripMap(highway, stateNames) {
+  const projection = geoAlbersUsa().scale(1300).translate([MAP_W / 2, MAP_H / 2]);
+  const path = geoPath().projection(projection);
+
+  const states = topojson.feature(us, us.objects.states);
+  const highlightFips = new Set(stateNames.map(s => STATE_FIPS[s]).filter(Boolean));
+
+  const statePaths = states.features.map(feature => {
+    const fips = String(feature.id).padStart(2, '0');
+    const highlighted = highlightFips.has(fips);
+    const d = path(feature);
+    if (!d) return '';
+    const fill = highlighted ? '#f59e0b' : '#1e3a5f';
+    return `<path d="${d}" fill="${fill}" stroke="#0f172a" stroke-width="0.8"/>`;
+  }).join('');
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${MAP_W}" height="${TOTAL_H}">
+  <rect width="${MAP_W}" height="${TOTAL_H}" fill="#0f172a"/>
+  <text
+    x="${MAP_W / 2}"
+    y="${TITLE_H / 2 + 10}"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-family="DejaVu Sans, Arial, Helvetica, sans-serif"
+    font-size="30"
+    font-weight="bold"
+    fill="#f9fafb"
+    letter-spacing="1"
+  >${highway} Road Trip</text>
+  <g transform="translate(0, ${TITLE_H})">${statePaths}</g>
+</svg>`;
+
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+module.exports = { generateRoadTripMap };

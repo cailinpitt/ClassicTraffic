@@ -9,6 +9,7 @@ const { AtpAgent } = require('@atproto/api');
 
 const keys = require('./keys.js');
 const highways = require('./highways.json');
+const { generateRoadTripMap } = require('./generate-road-trip-map.js');
 
 // Display names for states where the account name differs from title case
 const STATE_DISPLAY_NAMES = {
@@ -209,13 +210,32 @@ async function main() {
   let threadParent = null;
   let successCount = 0;
 
+  // Generate map image with highlighted states (upload only when not dry-run)
+  let mapEmbed = null;
+  let mapGenerated = false;
+  try {
+    const mapBuffer = await generateRoadTripMap(highway, captured.map(c => c.stateName));
+    mapGenerated = true;
+    if (!argv['dry-run']) {
+      const uploadResp = await captured[0].bot.agent.uploadBlob(mapBuffer, { encoding: 'image/png' });
+      mapEmbed = {
+        $type: 'app.bsky.embed.images',
+        images: [{ image: uploadResp.data.blob, alt: `Map of the United States with ${highway} states highlighted` }],
+      };
+      console.log('Map image generated and uploaded');
+    }
+  } catch (err) {
+    console.log(`Map generation failed (continuing without image): ${err.message}`);
+  }
+
   if (argv['dry-run']) {
-    console.log(`Dry run — would post intro: "${introText}"`);
+    console.log(`Dry run — would post intro: "${introText}" ${mapGenerated ? '[with map]' : '[no map]'}`);
   } else {
     try {
       const introPost = await captured[0].bot.agent.post({
         text: introText,
         createdAt: new Date().toISOString(),
+        ...(mapEmbed && { embed: mapEmbed }),
       });
       threadRoot = introPost;
       threadParent = introPost;
