@@ -166,7 +166,39 @@ async function main() {
   const statesText = stateDisplayNames.length === 2
     ? `${stateDisplayNames[0]} and ${stateDisplayNames[1]}`
     : stateDisplayNames.slice(0, -1).join(', ') + ', and ' + stateDisplayNames[stateDisplayNames.length - 1];
-  const introText = `${highway} road trip! Here's what traffic looks like right now passing through ${statesText} 🛣️`;
+
+  // Build weather summary by grouping consecutive states with the same condition
+  const weatherParts = [];
+  const weatherStates = captured.map(c => ({
+    displayName: getDisplayName(c.stateName),
+    description: c.bot.weatherStart?.description || null,
+  })).filter(w => w.description);
+
+  if (weatherStates.length > 0) {
+    let group = [weatherStates[0].displayName];
+    let currentDesc = weatherStates[0].description;
+    for (let i = 1; i < weatherStates.length; i++) {
+      if (weatherStates[i].description === currentDesc) {
+        group.push(weatherStates[i].displayName);
+      } else {
+        const stateList = group.length === 1 ? group[0] : group.slice(0, -1).join(', ') + ' and ' + group[group.length - 1];
+        weatherParts.push(`${currentDesc} in ${stateList}`);
+        group = [weatherStates[i].displayName];
+        currentDesc = weatherStates[i].description;
+      }
+    }
+    const stateList = group.length === 1 ? group[0] : group.slice(0, -1).join(', ') + ' and ' + group[group.length - 1];
+    weatherParts.push(`${currentDesc} in ${stateList}`);
+  }
+
+  const miles = highwayConfig.miles ? `${highwayConfig.miles.toLocaleString()} miles` : null;
+  const weatherSummary = weatherParts.length > 0 ? weatherParts.join(', ') : null;
+
+  let introText = `${highway} road trip!`;
+  if (miles) introText += ` ${miles} —`;
+  introText += ` Here's what traffic looks like right now passing through ${statesText}`;
+  if (weatherSummary) introText += `. ${weatherSummary}`;
+  introText += ' 🛣️';
 
   let threadRoot = null;
   let threadParent = null;

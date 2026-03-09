@@ -1,134 +1,178 @@
 {
   "I-5": {
+    "miles": 1381,
     "states": ["california", "oregon", "washington"]
   },
   "I-8": {
+    "miles": 172,
     "states": ["california", "arizona"]
   },
   "I-10": {
+    "miles": 2460,
     "states": ["california", "arizona", "newmexico", "texas", "louisiana", "mississippi", "alabama", "florida"]
   },
   "I-11": {
+    "miles": 25,
     "states": ["nevada", "arizona"]
   },
   "I-15": {
+    "miles": 1433,
     "states": ["california", "nevada", "utah", "idaho", "montana"]
   },
   "I-20": {
+    "miles": 1535,
     "states": ["texas", "louisiana", "mississippi", "alabama", "georgia", "southcarolina"]
   },
   "I-22": {
+    "miles": 98,
     "states": ["mississippi", "alabama"]
   },
   "I-24": {
+    "miles": 319,
     "states": ["illinois", "kentucky", "tennessee"]
   },
   "I-25": {
+    "miles": 1062,
     "states": ["newmexico", "colorado", "wyoming"]
   },
   "I-26": {
+    "miles": 346,
     "states": ["tennessee", "northcarolina", "southcarolina"]
   },
   "I-29": {
+    "miles": 751,
     "states": ["missouri", "iowa", "southdakota", "northdakota"]
   },
   "I-30": {
+    "miles": 367,
     "states": ["texas", "arkansas"]
   },
   "I-35": {
+    "miles": 1568,
     "states": ["texas", "oklahoma", "kansas", "missouri", "iowa", "minnesota"]
   },
   "I-39": {
+    "miles": 219,
     "states": ["illinois", "wisconsin"]
   },
   "I-40": {
+    "miles": 2555,
     "states": ["california", "arizona", "newmexico", "oklahoma", "arkansas", "tennessee", "northcarolina"]
   },
   "I-44": {
+    "miles": 631,
     "states": ["oklahoma", "missouri"]
   },
   "I-49": {
+    "miles": 535,
     "states": ["louisiana", "arkansas", "missouri"]
   },
   "I-55": {
+    "miles": 965,
     "states": ["louisiana", "mississippi", "arkansas", "tennessee", "missouri", "illinois"]
   },
   "I-59": {
+    "miles": 447,
     "states": ["louisiana", "mississippi", "alabama", "georgia"]
   },
   "I-64": {
+    "miles": 981,
     "states": ["missouri", "illinois", "indiana", "kentucky", "westvirginia", "virginia"]
   },
   "I-65": {
+    "miles": 887,
     "states": ["alabama", "tennessee", "kentucky", "indiana"]
   },
   "I-68": {
+    "miles": 112,
     "states": ["westvirginia", "maryland"]
   },
   "I-69": {
+    "miles": 500,
     "states": ["michigan", "indiana", "kentucky"]
   },
   "I-70": {
+    "miles": 2153,
     "states": ["utah", "colorado", "kansas", "missouri", "illinois", "indiana", "ohio", "westvirginia", "pennsylvania", "maryland"]
   },
   "I-71": {
+    "miles": 346,
     "states": ["kentucky", "ohio"]
   },
   "I-72": {
+    "miles": 218,
     "states": ["missouri", "illinois"]
   },
   "I-74": {
+    "miles": 420,
     "states": ["iowa", "illinois", "indiana", "ohio"]
   },
   "I-75": {
+    "miles": 1786,
     "states": ["florida", "georgia", "tennessee", "kentucky", "ohio", "michigan"]
   },
   "I-76": {
+    "miles": 359,
     "states": ["pennsylvania", "newjersey"]
   },
   "I-77": {
+    "miles": 610,
     "states": ["southcarolina", "northcarolina", "virginia", "westvirginia", "ohio"]
   },
   "I-78": {
+    "miles": 143,
     "states": ["newjersey", "pennsylvania"]
   },
   "I-79": {
+    "miles": 343,
     "states": ["westvirginia", "pennsylvania"]
   },
   "I-80": {
+    "miles": 2909,
     "states": ["california", "nevada", "utah", "wyoming", "nebraska", "iowa", "illinois", "indiana", "ohio", "pennsylvania", "newjersey", "newyork"]
   },
   "I-81": {
+    "miles": 855,
     "states": ["tennessee", "virginia", "westvirginia", "maryland", "pennsylvania", "newyork"]
   },
   "I-82": {
+    "miles": 145,
     "states": ["washington", "oregon"]
   },
   "I-83": {
+    "miles": 85,
     "states": ["maryland", "pennsylvania"]
   },
   "I-84": {
+    "miles": 771,
     "states": ["oregon", "idaho", "utah"]
   },
   "I-85": {
+    "miles": 666,
     "states": ["alabama", "georgia", "southcarolina", "northcarolina", "virginia"]
   },
   "I-89": {
+    "miles": 191,
     "states": ["newhampshire", "vermont"]
   },
   "I-90": {
+    "miles": 3020,
     "states": ["washington", "idaho", "montana", "wyoming", "southdakota", "minnesota", "wisconsin", "illinois", "indiana", "ohio", "pennsylvania", "newyork", "massachusetts", "rhodeisland"]
   },
   "I-91": {
+    "miles": 291,
     "states": ["connecticut", "massachusetts", "vermont"]
   },
   "I-93": {
+    "miles": 189,
     "states": ["massachusetts", "newhampshire"]
   },
   "I-94": {
+    "miles": 1585,
     "states": ["michigan", "indiana", "illinois", "wisconsin", "minnesota", "northdakota", "montana"]
   },
   "I-95": {
+    "miles": 1920,
     "states": ["florida", "georgia", "southcarolina", "northcarolina", "virginia", "maryland", "delaware", "newjersey", "newyork", "connecticut", "rhodeisland", "massachusetts", "newhampshire", "maine"]
   }
 }
