@@ -36,7 +36,7 @@ class NorthDakotaBot extends TrafficBot {
     console.log('Fetching cameras from North Dakota DOT...');
 
     try {
-      const response = await Axios.get('https://travelfiles.dot.nd.gov/geojson/cameras/1770735753007/cameras.json', {
+      const response = await Axios.get('https://travelfiles.dot.nd.gov/geojson/cameras/cameras.json', {
         headers: {
           'Referer': 'https://travel.dot.nd.gov/',
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
