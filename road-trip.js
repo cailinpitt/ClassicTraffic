@@ -244,7 +244,7 @@ async function main() {
   let mapEmbed = null;
   let mapGenerated = false;
   try {
-    const mapBuffer = await generateRoadTripMap(highway, captured.map(c => c.stateName));
+    const mapBuffer = await generateRoadTripMap(highway, highwayConfig.states);
     mapGenerated = true;
     if (!argv['dry-run']) {
       const uploadResp = await roadtripAgent.uploadBlob(mapBuffer, { encoding: 'image/png' });
