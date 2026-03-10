@@ -8,7 +8,7 @@ const argv = require('minimist')(process.argv.slice(2));
 const durationOptions = [60, 90, 120, 180, 240, 360];
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 30;
-const DIVAS_AUTH_URL = 'https://divas.cloud/VDS-API/SecureTokenUri/GetSecureTokenUriBySourceId';
+const PA_AUTH_URL = 'https://pa.arcadis-ivds.com/api/SecureTokenUri/GetSecureTokenUriBySourceId';
 
 class PennsylvaniaBot extends TrafficBot {
   constructor() {
@@ -78,8 +78,8 @@ class PennsylvaniaBot extends TrafficBot {
       return authResp.data;
     }
 
-    // Step 2: Exchange auth data for a secure token via DIVAS
-    const divasResp = await Axios.post(DIVAS_AUTH_URL, authResp.data, {
+    // Step 2: Exchange auth data for a secure token via PA arcadis endpoint
+    const divasResp = await Axios.post(PA_AUTH_URL, authResp.data, {
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
