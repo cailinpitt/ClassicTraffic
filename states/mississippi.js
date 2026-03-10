@@ -101,6 +101,23 @@ class MississippiBot extends TrafficBot {
     return streams;
   }
 
+  async findCameraOnHighway(highway) {
+    const camera = await super.findCameraOnHighway(highway);
+    if (!camera) return null;
+
+    const streams = await this.getStreamsForSite(camera.id);
+    if (streams.length === 0) return null;
+
+    const stream = _.sample(streams);
+    return {
+      id: stream.streamId,
+      name: stream.title,
+      url: stream.hlsUrl,
+      latitude: camera.latitude,
+      longitude: camera.longitude,
+    };
+  }
+
   async downloadVideoSegment(duration) {
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
 
