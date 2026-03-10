@@ -170,13 +170,17 @@ module.exports = {
     service: 'https://bsky.social',
     videoService: 'https://video.bsky.app',
 
-    // Account credentials (one entry per state bot)
+    // Account credentials (one entry per state bot, plus roadtrip for road trip mode)
     accounts: {
         ohio: {
             identifier: '...',
             password: '...',
         },
         // ... add an entry for each state
+        roadtrip: {
+            identifier: '...',
+            password: '...',
+        },
     },
 };
 ```
@@ -216,15 +220,27 @@ Road trip mode posts a Bluesky thread showing live traffic across multiple state
 ./run-road-trip.sh --highway I-95 --dry-run
 ```
 
-Each state's post is titled `"I-75 through Tennessee 🛣️"`. The thread requires at least 2 states to post successfully; if fewer succeed, the run exits with code 1. All states use the same randomly chosen clip duration (1–6 minutes), played back at 4x speed.
+The thread is started by a dedicated `roadtrip` Bluesky account (configured in `keys.js` as `accounts.roadtrip`), which posts the intro and map image. Each state bot then replies to that thread using its own account.
 
-The intro post includes a generated map image showing the highway's route overlaid on the states it passes through, zoomed in to the relevant region. The map is generated using `d3-geo`, `us-atlas`, and `sharp`. Route geometry is pre-fetched from OpenStreetMap's Overpass API and stored in `highway-routes/` — run `node fetch-highway-routes.js` to populate or refresh it.
+Each state's post is titled `"I-75 through Tennessee 🛣️"` and includes the clip time range, speed (e.g. `(4x speed)`), and weather. The thread requires at least 2 states to post successfully; if fewer succeed, the run exits with code 1. All states use the same randomly chosen clip duration (1–6 minutes).
 
-Only states with live video support (those with `downloadVideoSegment`) participate — image-only states are skipped. The bot finds a camera on the target highway by searching camera names first, then falling back to reverse geocoding a sample of cameras.
+**Live video bots** capture a clip at the chosen duration and encode it at 2–8x speed (targeting a ~30s output). **Image bots** capture a burst of images at their native refresh interval, capped to fit within the clip duration window; states with slow-refresh cameras (60s+) will rarely produce enough unique frames and are soft-skipped.
 
-**Supported interstates** (18 total, each with 3+ video-capable states): I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95
+The intro post includes a generated map image showing the highway's route overlaid on the states it passes through, zoomed in to the relevant region. The map is generated using `d3-geo`, `us-atlas`, and `sharp`. Route geometry is pre-fetched from OpenStreetMap's Overpass API and stored in `highway-routes/`.
 
-To add or modify interstates, edit `highways.json`.
+The bot finds a camera on the target highway by searching camera names first, then falling back to reverse geocoding a sample of cameras.
+
+**Supported interstates**: I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95
+
+### Adding interstates
+
+To add a new interstate, run `fetch-highway-routes.js` with the highway name(s):
+
+```
+node fetch-highway-routes.js I-22 I-68 I-82
+```
+
+This fetches the route geometry from OpenStreetMap, computes the total mileage, determines the ordered list of states via Nominatim reverse geocoding, and writes the entry to `highways.json` automatically. Re-run with a highway name to force a refresh.
 
 ## Project Structure
 
@@ -235,7 +251,7 @@ run-bot.sh                # Cron wrapper (logging, feature flags, health checks)
 run-road-trip.sh          # Cron wrapper for road trip mode
 road-trip.js              # Road trip thread logic
 generate-road-trip-map.js # Generates the intro post map image
-fetch-highway-routes.js   # One-time script to fetch route GeoJSON from Overpass API
+fetch-highway-routes.js   # Fetches route GeoJSON from Overpass API and populates highways.json
 highways.json             # Interstate definitions (states, miles)
 highway-routes/           # Pre-fetched route GeoJSON per highway (gitignored, generate with fetch-highway-routes.js)
 status.js                 # Reports last successful post time for all bots
