@@ -26,6 +26,10 @@ class KentuckyBot extends TrafficBot {
       console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
       return true;
     }
+    if (this.consecutiveDuplicates >= 10) {
+      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} frozen mid-session (${this.consecutiveDuplicates} consecutive duplicates). Exiting`);
+      return true;
+    }
     return false;
   }
 

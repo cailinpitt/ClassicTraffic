@@ -79,6 +79,8 @@ class TrafficBot {
     this.imageHashes = new Set();
     /** @type {number} */
     this.uniqueImageCount = 0;
+    /** @type {number} */
+    this.consecutiveDuplicates = 0;
     /** @type {Camera|null} */
     this.chosenCamera = null;
     /** @type {AtpAgent|null} */
@@ -805,6 +807,7 @@ class TrafficBot {
         // Reset per-camera state
         this.imageHashes = new Set();
         this.uniqueImageCount = 0;
+        this.consecutiveDuplicates = 0;
         this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
         this.pathToVideo = `${this.assetDirectory}camera.mp4`;
         this.weatherStart = null;
@@ -860,6 +863,11 @@ class TrafficBot {
             const countBefore = this.uniqueImageCount;
             await this.downloadImage(i);
             const wasUnique = this.uniqueImageCount > countBefore;
+            if (wasUnique) {
+              this.consecutiveDuplicates = 0;
+            } else {
+              this.consecutiveDuplicates++;
+            }
 
             if (i >= 9 && this.shouldAbort()) {
               aborted = true;
