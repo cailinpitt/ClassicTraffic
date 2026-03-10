@@ -131,9 +131,14 @@ class TrafficBot {
   /**
    * Check if the bot should abort after downloading images.
    * Override to implement checks like frozen camera detection.
+   * Base class aborts if camera has been frozen for 10+ consecutive duplicates.
    * @returns {boolean} True to abort (skip video creation and posting)
    */
   shouldAbort() {
+    if (this.consecutiveDuplicates >= 10) {
+      console.log(`Camera ${this.chosenCamera?.id}: ${this.chosenCamera?.name} frozen (${this.consecutiveDuplicates} consecutive duplicates). Exiting`);
+      return true;
+    }
     return false;
   }
 
