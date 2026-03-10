@@ -99,6 +99,21 @@ async function captureState(stateName, BotClass, highway, duration) {
 }
 
 async function main() {
+  // Login the shared road trip account used for the intro post
+  const roadtripAccount = keys.accounts.roadtrip;
+  if (!roadtripAccount) {
+    console.error('No roadtrip account found in keys.js');
+    process.exitCode = 1;
+    return;
+  }
+  const roadtripAgent = new AtpAgent({ service: keys.service });
+  await roadtripAgent.login({ identifier: roadtripAccount.identifier, password: roadtripAccount.password });
+  if (!roadtripAgent.session?.did) {
+    console.error('Failed to login roadtrip account');
+    process.exitCode = 1;
+    return;
+  }
+
   const highwayKeys = Object.keys(highways);
   const highway = argv.highway || _.sample(highwayKeys);
 
@@ -232,7 +247,7 @@ async function main() {
     const mapBuffer = await generateRoadTripMap(highway, captured.map(c => c.stateName));
     mapGenerated = true;
     if (!argv['dry-run']) {
-      const uploadResp = await captured[0].bot.agent.uploadBlob(mapBuffer, { encoding: 'image/png' });
+      const uploadResp = await roadtripAgent.uploadBlob(mapBuffer, { encoding: 'image/png' });
       mapEmbed = {
         $type: 'app.bsky.embed.images',
         images: [{ image: uploadResp.data.blob, alt: `Map of the United States with ${highway} states highlighted` }],
@@ -247,7 +262,7 @@ async function main() {
     console.log(`Dry run — would post intro: "${introText}" ${mapGenerated ? '[with map]' : '[no map]'}`);
   } else {
     try {
-      const introPost = await captured[0].bot.agent.post({
+      const introPost = await roadtripAgent.post({
         text: introText,
         createdAt: new Date().toISOString(),
         ...(mapEmbed && { embed: mapEmbed }),
