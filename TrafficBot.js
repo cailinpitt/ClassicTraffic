@@ -245,7 +245,7 @@ class TrafficBot {
    */
   getSetpts(captureDurationS) {
     const MIN_SPEED = 2;
-    const MAX_SPEED = 8;
+    const MAX_SPEED = 16;
     const speed = Math.max(MIN_SPEED, Math.min(captureDurationS / this.targetOutputSeconds, MAX_SPEED));
     this.videoSpeedFactor = Math.round(speed);
     return (1 / speed).toFixed(6);
