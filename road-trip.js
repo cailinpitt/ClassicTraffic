@@ -194,11 +194,6 @@ async function main() {
   // Phase 2: post intro + videos in highway order
   console.log('\nPosting thread in highway order...\n');
 
-  const stateDisplayNames = captured.map(c => getDisplayName(c.stateName));
-  const statesText = stateDisplayNames.length === 2
-    ? `${stateDisplayNames[0]} and ${stateDisplayNames[1]}`
-    : stateDisplayNames.slice(0, -1).join(', ') + ', and ' + stateDisplayNames[stateDisplayNames.length - 1];
-
   // Build weather summary by grouping consecutive states with the same condition
   const weatherParts = [];
   const weatherStates = captured.map(c => ({
@@ -233,7 +228,7 @@ async function main() {
 
   let introText = `${highway} road trip!`;
   if (miles) introText += ` ${miles} —`;
-  introText += ` Here's what traffic looks like right now passing through ${statesText} 🛣️`;
+  introText += ` Here's what traffic looks like right now 🛣️`;
   if (weatherSummary) introText += `\n\n${weatherSummary}`;
 
   let threadRoot = null;
