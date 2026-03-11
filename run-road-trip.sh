@@ -25,15 +25,14 @@ if [[ -z "$HIGHWAY" ]]; then
   HIGHWAY=$(/usr/bin/node -e "const h=require('$DIR/highways.json'); const k=Object.keys(h); console.log(k[Math.floor(Math.random()*k.length)])")
 fi
 
-LOCK_KEY="road-trip-${HIGHWAY//-/}"  # e.g. road-trip-I75
-LOG_FILE="$LOG_DIR/${LOCK_KEY}-$(date +%Y-%m-%d).log"
+LOG_FILE="$LOG_DIR/road-trip-$(date +%Y-%m-%d).log"
 
 mkdir -p "$LOG_DIR"
 
-LOCKFILE="$LOG_DIR/${LOCK_KEY}.lock"
+LOCKFILE="$LOG_DIR/road-trip.lock"
 exec 9>"$LOCKFILE"
 if ! flock -n 9; then
-  echo "$(date): Road trip ${HIGHWAY} already running, skipping" >> "$LOG_FILE"
+  echo "$(date): Road trip already running, skipping" >> "$LOG_FILE"
   exit 0
 fi
 
@@ -56,14 +55,14 @@ TIMESTAMP=$(date +%s%N)
 TS=$(($(date +%s) * 1000))
 PAYLOAD=$(/usr/bin/node -e "
   const fs = require('fs');
-  const logData = { state: '${LOCK_KEY}', highway: '${HIGHWAY}', exit_code: $EXIT_CODE, duration_seconds: $DURATION, ts: $TS };
+  const logData = { state: 'road-trip', highway: '${HIGHWAY}', exit_code: $EXIT_CODE, duration_seconds: $DURATION, ts: $TS };
   if ($EXIT_CODE !== 0) {
     const raw = fs.readFileSync('$STDERR_FILE', 'utf8').trim();
     logData.error = raw.length > 2000 ? raw.slice(0, 2000) + '...' : raw;
   }
   console.log(JSON.stringify({
     streams: [{
-      stream: { job: 'classictraffic', state: '${LOCK_KEY}' },
+      stream: { job: 'classictraffic', state: 'road-trip' },
       values: [['$TIMESTAMP', JSON.stringify(logData)]]
     }]
   }));
@@ -75,6 +74,6 @@ curl -s -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
   -d "$PAYLOAD" \
   > /dev/null 2>&1 || true
 
-find "$LOG_DIR" -name "${LOCK_KEY}-*.log" -mtime +7 -delete 2>/dev/null || true
+find "$LOG_DIR" -name "road-trip-*.log" -mtime +7 -delete 2>/dev/null || true
 
 exit $EXIT_CODE
