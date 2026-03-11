@@ -25,7 +25,7 @@ class AlabamaBot extends TrafficBot {
   }
 
   shouldAbort() {
-    if (this.uniqueImageCount === 1) {
+    if (this.uniqueImageCount === 1 || this.consecutiveDuplicates >= 3) {
       console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
       return true;
     }

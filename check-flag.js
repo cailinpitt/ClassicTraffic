@@ -19,7 +19,6 @@ async function checkFlag() {
 
     const timeout = setTimeout(() => {
         console.error('LaunchDarkly timeout, defaulting to enabled');
-        client.close();
         process.exit(0);
     }, TIMEOUT_MS);
 

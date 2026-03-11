@@ -326,19 +326,35 @@ class PennsylvaniaBot extends TrafficBot {
 
       if (this.chosenCamera.hasVideo) {
         const duration = _.sample(durationOptions);
-        const maxRetries = _.isUndefined(argv.id) ? 3 : 1;
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            await this.downloadVideoSegment(duration);
-            break;
-          } catch (e) {
-            if (attempt === maxRetries) throw e;
-            console.log(`Stream failed for ${this.chosenCamera.id}, trying another camera...`);
-            this.cleanup();
-            this.chosenCamera = _.sample(cameras);
-            console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-            Fs.ensureDirSync(this.assetDirectory);
+        if (_.isUndefined(argv.id)) {
+          const videoCameras = _.shuffle(cameras.filter(c => c.hasVideo));
+          // Start with the already-chosen camera, then try others in shuffled order
+          const firstIdx = videoCameras.findIndex(c => c.id === this.chosenCamera.id);
+          if (firstIdx > 0) {
+            const [first] = videoCameras.splice(firstIdx, 1);
+            videoCameras.unshift(first);
           }
+          let succeeded = false;
+          let first = true;
+          for (const cam of videoCameras.slice(0, 10)) {
+            this.chosenCamera = cam;
+            if (!first) {
+              console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+            }
+            first = false;
+            try {
+              await this.downloadVideoSegment(duration);
+              succeeded = true;
+              break;
+            } catch (e) {
+              console.log(`Stream failed for ${this.chosenCamera.id}, trying another camera...`);
+              this.cleanup();
+              Fs.ensureDirSync(this.assetDirectory);
+            }
+          }
+          if (!succeeded) throw new Error('All video cameras failed');
+        } else {
+          await this.downloadVideoSegment(duration);
         }
       } else {
         const numImages = this.getNumImages();

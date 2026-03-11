@@ -20,8 +20,12 @@ class WyomingBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
+  getTimeout() {
+    return (Math.max(...numImagesPerVideoOptions) - 1) * (this.delayBetweenImageFetches * 4) / 1000 + 600;
+  }
+
   shouldAbort() {
-    if (this.uniqueImageCount === 1) {
+    if (this.uniqueImageCount === 1 || this.consecutiveDuplicates >= 3) {
       console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
       return true;
     }

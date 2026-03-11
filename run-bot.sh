@@ -35,13 +35,13 @@ if ! flock -n 9; then
 fi
 
 # Load Grafana credentials from keys.js
-GRAFANA_LOKI_URL=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.lokiUrl)")
-GRAFANA_USER=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.user)")
-GRAFANA_API_KEY=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.apiKey)")
+GRAFANA_LOKI_URL=$(timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.lokiUrl)")
+GRAFANA_USER=$(timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.user)")
+GRAFANA_API_KEY=$(timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.apiKey)")
 
 # Check if bot is enabled via LaunchDarkly
 FLAG_EXIT=0
-/usr/bin/node "$DIR/check-flag.js" "$STATE" 2>/dev/null || FLAG_EXIT=$?
+timeout 10 /usr/bin/node "$DIR/check-flag.js" "$STATE" 2>/dev/null || FLAG_EXIT=$?
 if [ "$FLAG_EXIT" -eq 1 ]; then
   echo "$(date): Bot $STATE is disabled via feature flag, skipping" >> "$LOG_FILE"
   exit 0
@@ -55,7 +55,7 @@ START_TIME=$(date +%s)
 printf "\n\n=== $(date) ===\n" >> "$LOG_FILE" 2>&1
 STDERR_FILE=$(mktemp)
 EXIT_CODE=0
-BOT_TIMEOUT=$(/usr/bin/node "$DIR/states/$STATE.js" --get-timeout 2>/dev/null)
+BOT_TIMEOUT=$(timeout 10 /usr/bin/node "$DIR/states/$STATE.js" --get-timeout 2>/dev/null)
 if ! [[ "$BOT_TIMEOUT" =~ ^[0-9]+$ ]]; then BOT_TIMEOUT=7200; fi
 timeout "$BOT_TIMEOUT" /usr/bin/node "$DIR/states/$STATE.js" "${EXTRA_ARGS[@]}" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
 cat "$STDERR_FILE" >> "$LOG_FILE"
@@ -80,7 +80,7 @@ PAYLOAD=$(/usr/bin/node -e "
   }));
 ")
 rm -f "$STDERR_FILE"
-curl -s -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
+curl -s --max-time 30 -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
   -u "${GRAFANA_USER}:${GRAFANA_API_KEY}" \
   -H "Content-Type: application/json" \
   -d "$PAYLOAD" \
