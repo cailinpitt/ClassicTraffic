@@ -8,9 +8,6 @@ const { exec } = require('child_process');
 const { AtpAgent } = require('@atproto/api');
 const argv = require('minimist')(process.argv.slice(2));
 const crypto = require('crypto');
-const GoogleMapsAPI = require('googlemaps');
-
-const gmAPI = new GoogleMapsAPI({ key: keys.googleKey });
 
 /**
  * @typedef {Object} Camera
@@ -303,49 +300,6 @@ class TrafficBot {
     });
   }
 
-  /**
-   * Reverse geocode coordinates to a human-readable location name.
-   * Returns a string like "Columbus, Ohio" or null on failure.
-   * @param {number} lat
-   * @param {number} lon
-   * @returns {Promise<string|null>}
-   */
-  /**
-   * Reverse geocode coordinates to structured location info.
-   * Scans all results to extract road name, city, and state.
-   * @param {number} lat
-   * @param {number} lon
-   * @returns {Promise<{route: string|null, location: string|null}>}
-   */
-  async reverseGeocode(lat, lon) {
-    const params = { latlng: `${lat},${lon}` };
-
-    const result = await new Promise((resolve, reject) => {
-      gmAPI.reverseGeocode(params, (err, data) => err ? reject(err) : resolve(data));
-    });
-
-    if (!result?.results?.length) return { route: null, location: null };
-
-    let route = null;
-    let locality = null;
-    let sublocality = null;
-    let county = null;
-    let area = null;
-
-    for (const r of result.results) {
-      for (const comp of r.address_components) {
-        if (!route && comp.types.includes('route')) route = comp.short_name || comp.long_name;
-        if (!locality && comp.types.includes('locality')) locality = comp.long_name;
-        if (!sublocality && comp.types.includes('sublocality')) sublocality = comp.long_name;
-        if (!county && comp.types.includes('administrative_area_level_2')) county = comp.long_name;
-        if (!area && comp.types.includes('administrative_area_level_1')) area = comp.long_name;
-      }
-    }
-
-    const city = locality || sublocality || county || null;
-    const location = city && area ? `${city}, ${area}` : (area || null);
-    return { route, city, location };
-  }
 
   /**
    * Find a camera on or near a given highway (e.g. "I-75").
@@ -378,22 +332,8 @@ class TrafficBot {
       return _.sample(byName);
     }
 
-    // Pass 2: geocode a sample and match by route
-    console.log(`No name matches for ${highway}, trying geocoding...`);
-    const sample = _.sampleSize(cameras.filter(c => c.latitude && c.longitude && (c.latitude !== 0 || c.longitude !== 0)), 20);
-    const results = await Promise.all(
-      sample.map(async cam => {
-        try {
-          const { route } = await this.reverseGeocode(cam.latitude, cam.longitude);
-          if (route && patterns.some(p => p.test(route))) return cam;
-          return null;
-        } catch { return null; }
-      })
-    );
-    const match = results.find(r => r !== null) || null;
-    if (match) console.log(`Found camera on ${highway} via geocoding: ${match.name}`);
-    else console.log(`No camera found on ${highway}`);
-    return match;
+    console.log(`No camera found on ${highway}`);
+    return null;
   }
 
   /**
@@ -438,10 +378,9 @@ class TrafficBot {
    * @param {{tempF: number, description: string}|null} weather
    * @returns {string}
    */
-  buildAltText(geocodedLocation, weatherStart, weatherEnd) {
+  buildAltText(weatherStart, weatherEnd) {
     const type = this.is24HourTimelapse ? '24-hour traffic camera timelapse' : 'Traffic camera footage';
     let text = `${type} of ${this.chosenCamera.name}`;
-    if (geocodedLocation) text += ` in ${geocodedLocation}`;
     if (this.startTime && this.endTime) {
       const formatTime = (date) => date.toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', hour12: true, timeZone: this.timezone,
@@ -565,7 +504,6 @@ class TrafficBot {
 
     let postText;
     let facets = [];
-    let geocodedLocation = null;
 
     let weatherLine = '';
     if (this.weatherStart) {
@@ -588,18 +526,7 @@ class TrafficBot {
       const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
       const coordinates = `${lat},${lon}`;
 
-      let postTitle = this.chosenCamera.name;
-      try {
-        const { route, city, location } = await this.reverseGeocode(this.chosenCamera.latitude, this.chosenCamera.longitude);
-        geocodedLocation = location;
-        if (route && city) postTitle = `${route}, ${city}`;
-        else if (city) postTitle = city;
-        else if (location) postTitle = location;
-      } catch (err) {
-        console.log('Reverse geocoding failed:', err.message);
-      }
-
-      if (titleOverride) postTitle = titleOverride;
+      let postTitle = titleOverride || this.chosenCamera.name;
 
       postText = `${postTitle}\n🕒 ${timeLabel}${weatherLine}\n\n📍: ${coordinates}`;
 
@@ -625,7 +552,7 @@ class TrafficBot {
       postText = `${noCoordTitle}\n🕒 ${timeLabel}${weatherLine}`;
     }
 
-    const altText = this.buildAltText(geocodedLocation, this.weatherStart, this.weatherEnd);
+    const altText = this.buildAltText(this.weatherStart, this.weatherEnd);
 
     const result = await this.agent.post({
       text: postText,
