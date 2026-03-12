@@ -2,194 +2,149 @@
 
 ![Traffic Cam](example.gif)
 
-Bluesky bots that post videos of traffic camera timelapses.
+Bluesky bots that post traffic camera videos for every U.S. state. Each bot runs on a 30-minute cron and posts a timelapse or live video clip from a randomly chosen camera.
 
 ![US Map](map.svg)
 
+## How It Works
+
+There are two core bot types, plus hybrids that support both:
+
+**Image timelapse bots** download a series of snapshots from a DOT camera API at a fixed interval, deduplicate them by hash (to detect frozen cameras), stitch them into an MP4 with ffmpeg, and post to Bluesky. The resulting video is sped up to target a ~30-second output.
+
+**Live video clip bots** capture a segment of a live HLS stream directly with ffmpeg, then re-encode it at a dynamic speed (2–16×) to target a ~30-second output. Some states require authentication: Florida, Georgia, and Pennsylvania use DIVAS token exchange; Arkansas and Massachusetts use token-redirect auth.
+
+**Video speed** is calculated dynamically: `speed = clamp(captureDuration / 30s, 2×, 16×)`. A 60-second clip encodes at 2× (30s output); a 480-second clip encodes at 16× (30s output). The speed is shown in every post (e.g., `4x speed`).
+
+Each bot tracks the last 48 chosen cameras and prefers cameras it hasn't used recently. Posts include the camera name or a reverse-geocoded location, timestamp, speed, and weather (temperature and conditions at start and end of the capture window, via Open-Meteo).
+
 ## Bots
 
-### Ohio - [@classictraffic.bsky.social](https://bsky.app/profile/classictraffic.bsky.social)
-Each video consists of 150-900 images downloaded from a single randomly chosen traffic camera every 6 seconds at 10 fps, so 15-90 minutes worth of images compressed into 15-90 seconds. Cameras sourced from the [OHGO](https://ohgo.com/) road-markers API.
+### Image Timelapses
 
-### Montana - [@montanatrafficcams.bsky.social](https://bsky.app/profile/montanatrafficcams.bsky.social)
-24-hour timelapses from Montana DOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [Montana MDT](https://www.mdt.mt.gov/).
+| State | Account | Cameras | Interval | fps | Source |
+|-------|---------|---------|----------|-----|--------|
+| Ohio | [@classictraffic.bsky.social](https://bsky.app/profile/classictraffic.bsky.social) | 2000+ | 6s | 10 | [OHGO](https://ohgo.com/) |
+| Montana | [@montanatrafficcams.bsky.social](https://bsky.app/profile/montanatrafficcams.bsky.social) | 400+ | 15 min | 5 | [Montana MDT](https://www.mdt.mt.gov/) |
+| Utah | [@utahtrafficcams.bsky.social](https://bsky.app/profile/utahtrafficcams.bsky.social) | 2000+ | 2 min | 10 | [Utah 511](https://prod-ut.ibi511.com/) |
+| Alabama | [@alabamatrafficcams.bsky.social](https://bsky.app/profile/alabamatrafficcams.bsky.social) | 640+ | 15 min | 5 | [AlgoTraffic](https://algotraffic.com/) |
+| Connecticut | [@connecticuttrafficcams.bsky.social](https://bsky.app/profile/connecticuttrafficcams.bsky.social) | 400+ | 8s | 10 | [CTRoads](https://ctroads.org/) |
+| Idaho | [@idahotrafficcams.bsky.social](https://bsky.app/profile/idahotrafficcams.bsky.social) | 300+ | 60s | 5 | [511 Idaho](https://511.idaho.gov/) |
+| Arizona | [@arizonatrafficcams.bsky.social](https://bsky.app/profile/arizonatrafficcams.bsky.social) | 500+ | 60s | 10 | [AZ511](https://www.az511.gov/) |
+| Alaska | [@alaskatrafficcams.bsky.social](https://bsky.app/profile/alaskatrafficcams.bsky.social) | 300+ | 60s | 10 | [511 Alaska](https://511.alaska.gov/) |
+| Washington | [@washingtontrafficcams.bsky.social](https://bsky.app/profile/washingtontrafficcams.bsky.social) | 1600+ | 2 min | 10 | [WSDOT](https://wsdot.com/travel/real-time/cameras) |
+| Kansas | [@kansastrafficcams.bsky.social](https://bsky.app/profile/kansastrafficcams.bsky.social) | 360+ | 6s | 10 | [KanDrive](https://www.kandrive.gov/) |
+| New Hampshire | [@newhampshiretraffic.bsky.social](https://bsky.app/profile/newhampshiretraffic.bsky.social) | 100+ | 2 min | 5 | [New England 511](https://newengland511.org/) |
+| Maine | [@mainetrafficcams.bsky.social](https://bsky.app/profile/mainetrafficcams.bsky.social) | 100+ | 2 min | 5 | [New England 511](https://newengland511.org/) |
+| Vermont | [@vermonttrafficcams.bsky.social](https://bsky.app/profile/vermonttrafficcams.bsky.social) | 100+ | 2 min | 5 | [New England 511](https://newengland511.org/) |
+| South Dakota | [@southdakotatraffic.bsky.social](https://bsky.app/profile/southdakotatraffic.bsky.social) | 570+ | 10 min | 5 | [SD511](https://www.sd511.org/) |
+| North Dakota | [@ndtrafficcams.bsky.social](https://bsky.app/profile/ndtrafficcams.bsky.social) | 570+ | 15 min | 5 | [ND Travel](https://travel.dot.nd.gov/) |
+| Nebraska | [@nebraskatrafficcams.bsky.social](https://bsky.app/profile/nebraskatrafficcams.bsky.social) | 1080+ | 5 min | 5 | [Nebraska 511](https://www.511.nebraska.gov/) |
+| Michigan | [@michigantrafficcams.bsky.social](https://bsky.app/profile/michigantrafficcams.bsky.social) | 750+ | 6s | 10 | [MiDrive](https://mdotjboss.state.mi.us/MiDrive/cameras) |
+| Oregon | [@oregontrafficcams.bsky.social](https://bsky.app/profile/oregontrafficcams.bsky.social) | 1100+ | 5 min | 5 | [TripCheck](https://www.tripcheck.com/) |
+| Indiana | [@indianatrafficcams.bsky.social](https://bsky.app/profile/indianatrafficcams.bsky.social) | 730+ | 60s | 5 | [511IN](https://511in.org/) |
+| Kentucky | [@kentuckytrafficcams.bsky.social](https://bsky.app/profile/kentuckytrafficcams.bsky.social) | 240+ | 6s | 10 | [KYTC](https://maps.kytc.ky.gov/trafficcameras/) |
+| Wyoming | [@wyomingtrafficcams.bsky.social](https://bsky.app/profile/wyomingtrafficcams.bsky.social) | 220+ | 2 min | 5 | [WYOROAD](https://www.wyoroad.info/) |
 
-### Nevada - [@nevadatrafficcams.bsky.social](https://bsky.app/profile/nevadatrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects a page of 10 cameras from the 645+ available, then picks one. Cameras sourced from [NVRoads](https://www.nvroads.com/).
+Montana posts 24-hour timelapses (images captured every 15 minutes over a full day). Ohio has a 25% chance of posting a multi-camera thread instead of a single post.
 
-### Florida - [@floridatrafficcams.bsky.social](https://bsky.app/profile/floridatrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 4500+ cameras. Cameras sourced from [FL511](https://fl511.com/).
+### Live Video Clips
 
-### Wisconsin - [@wisconsintrafficcams.bsky.social](https://bsky.app/profile/wisconsintrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 480+ cameras. Cameras sourced from [511WI](https://511wi.gov/).
+Clip durations are sampled randomly from 1–8 minutes per run and encoded at 2–16× speed.
 
-### Utah - [@utahtrafficcams.bsky.social](https://bsky.app/profile/utahtrafficcams.bsky.social)
-Image timelapses from 2000+ Utah DOT cameras. Images captured every 2 minutes, played back at 10 fps. Cameras sourced from [Utah 511](https://prod-ut.ibi511.com/).
+| State | Account | Cameras | Auth | Source |
+|-------|---------|---------|------|--------|
+| Nevada | [@nevadatrafficcams.bsky.social](https://bsky.app/profile/nevadatrafficcams.bsky.social) | 645+ | — | [NVRoads](https://www.nvroads.com/) |
+| Florida | [@floridatrafficcams.bsky.social](https://bsky.app/profile/floridatrafficcams.bsky.social) | 4500+ | DIVAS | [FL511](https://fl511.com/) |
+| Wisconsin | [@wisconsintrafficcams.bsky.social](https://bsky.app/profile/wisconsintrafficcams.bsky.social) | 480+ | — | [511WI](https://511wi.gov/) |
+| New York | [@newyorktrafficcams.bsky.social](https://bsky.app/profile/newyorktrafficcams.bsky.social) | 3000+ | — | [511NY](https://511ny.org/) |
+| Delaware | [@delawaretrafficcams.bsky.social](https://bsky.app/profile/delawaretrafficcams.bsky.social) | 330+ | — | [DelDOT](https://deldot.gov/) |
+| Georgia | [@georgiatrafficcams.bsky.social](https://bsky.app/profile/georgiatrafficcams.bsky.social) | 3800+ | DIVAS | [511GA](https://511ga.org/) |
+| South Carolina | [@southcarolinatraffic.bsky.social](https://bsky.app/profile/southcarolinatraffic.bsky.social) | 730+ | — | [511SC](https://www.511sc.org/) |
+| North Carolina | [@northcarolinatraffic.bsky.social](https://bsky.app/profile/northcarolinatraffic.bsky.social) | 1100+ | — | [NCDOT](https://nc.prod.traveliq.co/) |
+| Tennessee | [@tennesseetrafficcams.bsky.social](https://bsky.app/profile/tennesseetrafficcams.bsky.social) | 660+ | — | [SmartWay](https://smartway.tn.gov/) |
+| Arkansas | [@arkansastrafficcams.bsky.social](https://bsky.app/profile/arkansastrafficcams.bsky.social) | 540+ | Token | [IDriveArkansas](https://www.idrivearkansas.com/) |
+| Oklahoma | [@oklahomatrafficcams.bsky.social](https://bsky.app/profile/oklahomatrafficcams.bsky.social) | 390+ | — | [OKTraffic](https://oktraffic.org/) |
+| Virginia | [@virginiatrafficcams.bsky.social](https://bsky.app/profile/virginiatrafficcams.bsky.social) | 500+ | — | [VDOT 511](https://511.vdot.virginia.gov/) |
+| Mississippi | [@mstrafficcams.bsky.social](https://bsky.app/profile/mstrafficcams.bsky.social) | 390+ | — | [MDOTtraffic](https://www.mdottraffic.com/) |
+| Pennsylvania | [@pennsylvaniatraffic.bsky.social](https://bsky.app/profile/pennsylvaniatraffic.bsky.social) | 1430+ | DIVAS | [511PA](https://www.511pa.com/) |
+| Massachusetts | [@massachusettstraffic.bsky.social](https://bsky.app/profile/massachusettstraffic.bsky.social) | 290+ | Token | [Mass511](https://mass511.com/) |
+| New Jersey | [@newjerseytrafficcams.bsky.social](https://bsky.app/profile/newjerseytrafficcams.bsky.social) | 110+ | — | [511NJ](https://511nj.org/) |
+| Maryland | [@marylandtrafficcams.bsky.social](https://bsky.app/profile/marylandtrafficcams.bsky.social) | 550+ | — | [CHART](https://chart.maryland.gov/) |
+| Missouri | [@missouritrafficcams.bsky.social](https://bsky.app/profile/missouritrafficcams.bsky.social) | 870+ | — | [MoDOT Traveler](https://traveler.modot.org/) |
+| Texas | [@texastrafficcams.bsky.social](https://bsky.app/profile/texastrafficcams.bsky.social) | 3400+ | — | [DriveTexas](https://drivetexas.org/) |
+| West Virginia | [@westvirginiatraffic.bsky.social](https://bsky.app/profile/westvirginiatraffic.bsky.social) | 120+ | — | [WV511](https://wv511.org/) |
+| New Mexico | [@newmexicotrafficcams.bsky.social](https://bsky.app/profile/newmexicotrafficcams.bsky.social) | 180+ | — | [NMRoads](https://nmroads.com/) |
+| Rhode Island | [@rhodeislandtraffic.bsky.social](https://bsky.app/profile/rhodeislandtraffic.bsky.social) | 130+ | — | [RIDOT](https://www.dot.ri.gov/travel/cameras_metro.php) |
 
-### New York - [@newyorktrafficcams.bsky.social](https://bsky.app/profile/newyorktrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 3000+ cameras. Cameras sourced from [511NY](https://511ny.org/).
+**DIVAS auth**: The 511 platform (FL511, 511GA, 511PA) requires a two-step token exchange — a session token from the 511 portal is exchanged with the arcadis-ivds.com API to get an authenticated HLS URL. Georgia and Pennsylvania use the image ID (not the camera ID) for this exchange.
 
-### Delaware - [@delawaretrafficcams.bsky.social](https://bsky.app/profile/delawaretrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 330+ cameras. Cameras sourced from [DelDOT](https://deldot.gov/).
+### Hybrid (Video + Image Fallback)
 
-### Alabama - [@alabamatrafficcams.bsky.social](https://bsky.app/profile/alabamatrafficcams.bsky.social)
-Image timelapses from ALDOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [ALDOT](https://algotraffic.com/).
+These bots post a live video clip if the chosen camera has an HLS stream, or fall back to an image timelapse otherwise.
 
-### Connecticut - [@connecticuttrafficcams.bsky.social](https://bsky.app/profile/connecticuttrafficcams.bsky.social)
-Image timelapses from Connecticut DOT cameras. Images captured every 8 seconds, played back at 10 fps. Cameras sourced from [CTRoads](https://ctroads.org/).
+| State | Account | Cameras | Source |
+|-------|---------|---------|--------|
+| California | [@californiatrafficcams.bsky.social](https://bsky.app/profile/californiatrafficcams.bsky.social) | 2000+ across 12 Caltrans districts | [Caltrans](https://cwwp2.dot.ca.gov/) |
+| Colorado | [@coloradotrafficcams.bsky.social](https://bsky.app/profile/coloradotrafficcams.bsky.social) | 1000+ (800+ video, 200+ image-only) | [COtrip](https://www.cotrip.org/) |
+| Iowa | [@iowatrafficcams.bsky.social](https://bsky.app/profile/iowatrafficcams.bsky.social) | 1170+ (620+ video, 540+ image-only) | [511 Iowa](https://511ia.org/) |
+| Hawaii | [@hawaiitrafficcams.bsky.social](https://bsky.app/profile/hawaiitrafficcams.bsky.social) | 310+ (280+ video, 30+ image-only) | [GoAkamai](http://www.goakamai.org/) |
+| Minnesota | [@minnesotatrafficcams.bsky.social](https://bsky.app/profile/minnesotatrafficcams.bsky.social) | 1510+ (1230+ video, 270+ image-only) | [511MN](https://511mn.org/) |
+| Illinois | [@illinoistrafficcams.bsky.social](https://bsky.app/profile/illinoistrafficcams.bsky.social) | 870+ image cameras + Jane Byrne Interchange live video | [Travel Midwest](https://travelmidwest.com/) |
 
-### Idaho - [@idahotrafficcams.bsky.social](https://bsky.app/profile/idahotrafficcams.bsky.social)
-Image timelapses from Idaho DOT cameras. Images captured every minute, played back at 10 fps. Cameras sourced from [511 Idaho](https://511.idaho.gov/).
+## Road Trips
 
-### Georgia - [@georgiatrafficcams.bsky.social](https://bsky.app/profile/georgiatrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 3800+ cameras. Cameras sourced from [511GA](https://511ga.org/).
+Road trip mode posts a Bluesky thread showing live traffic across multiple states along a single interstate — one post per state, each reply linking to the next.
 
-### South Carolina - [@southcarolinatraffic.bsky.social](https://bsky.app/profile/southcarolinatraffic.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 730+ cameras. Cameras sourced from [511SC](https://www.511sc.org/).
+```
+./run-road-trip.sh --highway I-75
+./run-road-trip.sh --highway I-95 --dry-run
+```
 
-### North Carolina - [@northcarolinatraffic.bsky.social](https://bsky.app/profile/northcarolinatraffic.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 1100+ cameras. Cameras sourced from [NCDOT](https://nc.prod.traveliq.co/).
+The thread is started by a dedicated `roadtrip` Bluesky account, which posts an intro with a generated map image showing the highway's route. Each state bot then replies using its own account, with a post title like `"I-75 through Tennessee 🛣️"` including the clip time range, speed, and weather.
 
-### Tennessee - [@tennesseetrafficcams.bsky.social](https://bsky.app/profile/tennesseetrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 660+ cameras. Cameras sourced from [SmartWay](https://smartway.tn.gov/).
+The thread requires at least 2 states to succeed. All states use the same randomly sampled clip duration (1–8 minutes). The bot finds a camera on the target highway by searching camera names first, then falling back to reverse geocoding a sample of cameras. States with slow-refresh image cameras (60s+ intervals) are unlikely to produce enough unique frames within the clip window and are soft-skipped.
 
-### Arkansas - [@arkansastrafficcams.bsky.social](https://bsky.app/profile/arkansastrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured from token-authenticated HLS streams. Randomly selects from 540+ cameras. Cameras sourced from [IDriveArkansas](https://www.idrivearkansas.com/).
+**Supported interstates**: I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95
 
-### Arizona - [@arizonatrafficcams.bsky.social](https://bsky.app/profile/arizonatrafficcams.bsky.social)
-Image timelapses from ADOT cameras. Images captured every 60 seconds, played back at 10 fps. Cameras sourced from [AZ511](https://www.az511.gov/).
+### Adding Interstates
 
-### Oklahoma - [@oklahomatrafficcams.bsky.social](https://bsky.app/profile/oklahomatrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from 390+ cameras. Cameras sourced from [OKTraffic](https://oktraffic.org/).
+```
+node fetch-highway-routes.js I-22 I-68 I-82
+```
 
-### Alaska - [@alaskatrafficcams.bsky.social](https://bsky.app/profile/alaskatrafficcams.bsky.social)
-Image timelapses from Alaska DOT cameras. Images captured every 60 seconds, played back at 10 fps. Cameras sourced from [511 Alaska](https://511.alaska.gov/).
-
-### California - [@californiatrafficcams.bsky.social](https://bsky.app/profile/californiatrafficcams.bsky.social)
-Randomly selects one of 12 Caltrans districts, then picks a camera. Cameras with HLS streams get live video clips (30 seconds to 6 minutes); image-only cameras get timelapses captured every 6 seconds at 10 fps. Cameras sourced from [Caltrans](https://cwwp2.dot.ca.gov/).
-
-### Washington - [@washingtontrafficcams.bsky.social](https://bsky.app/profile/washingtontrafficcams.bsky.social)
-Image timelapses from 1600+ WSDOT cameras. Images captured every 2 minutes, played back at 10 fps. Cameras sourced from [WSDOT](https://wsdot.com/travel/real-time/cameras).
-
-### Louisiana - [@louisianatrafficcams.bsky.social](https://bsky.app/profile/louisianatrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from HLS streams, with image timelapse fallback. Randomly selects from 320+ cameras. Cameras sourced from [511LA](https://www.511la.org/).
-
-### Colorado - [@coloradotrafficcams.bsky.social](https://bsky.app/profile/coloradotrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) from 800+ HLS streams, with image timelapse fallback for 200+ snapshot-only cameras. Cameras sourced from [COtrip](https://www.cotrip.org/).
-
-### Kansas - [@kansastrafficcams.bsky.social](https://bsky.app/profile/kansastrafficcams.bsky.social)
-Image timelapses from 360+ KanDrive cameras. Images captured every 6 seconds, played back at 10 fps. Cameras sourced from [KanDrive](https://www.kandrive.gov/).
-
-### Iowa - [@iowatrafficcams.bsky.social](https://bsky.app/profile/iowatrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) from 620+ HLS streams, with image timelapse fallback for 540+ snapshot-only cameras. Randomly selects from 1170+ cameras. Cameras sourced from [511 Iowa](https://511ia.org/).
-
-### New Hampshire - [@newhampshiretraffic.bsky.social](https://bsky.app/profile/newhampshiretraffic.bsky.social)
-Image timelapses from New Hampshire DOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [New England 511](https://newengland511.org/).
-
-### Maine - [@mainetrafficcams.bsky.social](https://bsky.app/profile/mainetrafficcams.bsky.social)
-Image timelapses from Maine DOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [New England 511](https://newengland511.org/).
-
-### Vermont - [@vermonttrafficcams.bsky.social](https://bsky.app/profile/vermonttrafficcams.bsky.social)
-Image timelapses from Vermont DOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [New England 511](https://newengland511.org/).
-
-### Virginia - [@virginiatrafficcams.bsky.social](https://bsky.app/profile/virginiatrafficcams.bsky.social)
-Live video clips (30 seconds to 3 minutes) captured directly from HLS streams. Randomly selects from VDOT cameras. Cameras sourced from [VDOT 511](https://511.vdot.virginia.gov/).
-
-### South Dakota - [@southdakotatraffic.bsky.social](https://bsky.app/profile/southdakotatraffic.bsky.social)
-Image timelapses from South Dakota DOT cameras. Images captured every 10 minutes, played back at 5 fps. Cameras sourced from [SD511](https://www.sd511.org/).
-
-### Hawaii - [@hawaiitrafficcams.bsky.social](https://bsky.app/profile/hawaiitrafficcams.bsky.social)
-Live video clips (1 to 3 minutes) from 280+ HLS streams, with image timelapse fallback for 30+ snapshot-only cameras. Randomly selects from 310+ cameras. Cameras sourced from [GoAkamai](http://www.goakamai.org/).
-
-### North Dakota - [@ndtrafficcams.bsky.social](https://bsky.app/profile/ndtrafficcams.bsky.social)
-Image timelapses from 570+ North Dakota DOT cameras. Images captured every 15 minutes, played back at 5 fps. Cameras sourced from [ND Travel](https://travel.dot.nd.gov/).
-
-### Mississippi - [@mstrafficcams.bsky.social](https://bsky.app/profile/mstrafficcams.bsky.social)
-Live video clips (1 to 3 minutes) captured directly from HLS streams. Randomly selects from 390+ camera sites with multiple views each. Cameras sourced from [MDOTtraffic](https://www.mdottraffic.com/).
-
-### Pennsylvania - [@pennsylvaniatraffic.bsky.social](https://bsky.app/profile/pennsylvaniatraffic.bsky.social)
-Live video clips (1 to 6 minutes) captured from DIVAS-authenticated HLS streams. Randomly selects from 1400+ cameras. Cameras sourced from [511PA](https://www.511pa.com/).
-
-### Massachusetts - [@massachusettstraffic.bsky.social](https://bsky.app/profile/massachusettstraffic.bsky.social)
-Live video clips (1 to 4 minutes) captured from token-authenticated HLS streams. Randomly selects from 290+ cameras. Cameras sourced from [Mass511](https://mass511.com/).
-
-### New Jersey - [@newjerseytrafficcams.bsky.social](https://bsky.app/profile/newjerseytrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 110+ NJ Turnpike cameras. Cameras sourced from [511NJ](https://511nj.org/).
-
-### Maryland - [@marylandtrafficcams.bsky.social](https://bsky.app/profile/marylandtrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 550+ cameras. Cameras sourced from [CHART](https://chart.maryland.gov/).
-
-### Nebraska - [@nebraskatrafficcams.bsky.social](https://bsky.app/profile/nebraskatrafficcams.bsky.social)
-Image timelapses from 1080+ Nebraska DOT cameras. Images captured every 5 minutes, played back at 5 fps. Cameras sourced from [Nebraska 511](https://www.511.nebraska.gov/).
-
-### Missouri - [@missouritrafficcams.bsky.social](https://bsky.app/profile/missouritrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 870+ cameras. Cameras sourced from [MoDOT Traveler](https://traveler.modot.org/).
-
-### Michigan - [@michigantrafficcams.bsky.social](https://bsky.app/profile/michigantrafficcams.bsky.social)
-Image timelapses from 750+ MiDrive cameras. Images captured every 6 seconds, played back at 10 fps. Cameras sourced from [MiDrive](https://mdotjboss.state.mi.us/MiDrive/cameras).
-
-### Texas - [@texastrafficcams.bsky.social](https://bsky.app/profile/texastrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 3400+ cameras across 25 TxDOT districts. Cameras sourced from [DriveTexas](https://drivetexas.org/).
-
-### West Virginia - [@westvirginiatraffic.bsky.social](https://bsky.app/profile/westvirginiatraffic.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 120+ cameras. Cameras sourced from [WV511](https://wv511.org/).
-
-### New Mexico - [@newmexicotrafficcams.bsky.social](https://bsky.app/profile/newmexicotrafficcams.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from RTMP streams. Randomly selects from 180+ cameras. Cameras sourced from [NMRoads](https://nmroads.com/).
-
-### Oregon - [@oregontrafficcams.bsky.social](https://bsky.app/profile/oregontrafficcams.bsky.social)
-Image timelapses from 1100+ ODOT cameras. Images captured every 5 minutes, played back at 5 fps. Cameras sourced from [TripCheck](https://www.tripcheck.com/).
-
-### Rhode Island - [@rhodeislandtraffic.bsky.social](https://bsky.app/profile/rhodeislandtraffic.bsky.social)
-Live video clips (1 to 6 minutes) captured directly from HLS streams. Randomly selects from 130+ cameras. Cameras sourced from [RIDOT](https://www.dot.ri.gov/travel/cameras_metro.php).
-
-### Indiana - [@indianatrafficcams.bsky.social](https://bsky.app/profile/indianatrafficcams.bsky.social)
-Image timelapses from 730+ INDOT cameras. Preview images captured every 60 seconds, played back at 5 fps. Cameras sourced from [511IN](https://511in.org/).
-
-### Minnesota - [@minnesotatrafficcams.bsky.social](https://bsky.app/profile/minnesotatrafficcams.bsky.social)
-Hybrid bot - live video clips from 1230+ HLS streams, with image timelapse fallback for 270+ snapshot-only cameras. Randomly selects from 1510+ cameras. Cameras sourced from [511MN](https://511mn.org/).
-
-### Kentucky - [@kentuckytrafficcams.bsky.social](https://bsky.app/profile/kentuckytrafficcams.bsky.social)
-Image timelapses from 240+ KYTC cameras. Images captured every 6 seconds, played back at 10 fps. Cameras sourced from [KYTC](https://maps.kytc.ky.gov/trafficcameras/).
-
-### Illinois - [@illinoistrafficcams.bsky.social](https://bsky.app/profile/illinoistrafficcams.bsky.social)
-Image timelapses from 870+ IDOT cameras. Images captured every 6 seconds, played back at 10 fps. Cameras sourced from [Travel Midwest](https://travelmidwest.com/).
-
-### Wyoming - [@wyomingtrafficcams.bsky.social](https://bsky.app/profile/wyomingtrafficcams.bsky.social)
-Image timelapses from 220+ WYDOT cameras. Images captured every 2 minutes, played back at 5 fps. Cameras sourced from [WYOROAD](https://www.wyoroad.info/).
+This fetches route geometry from OpenStreetMap, computes total mileage, determines the ordered list of states via Nominatim reverse geocoding, and writes the entry to `highways.json`. Re-run with a highway name to force a refresh.
 
 ## Installation
-Create a `keys.js` file with your Bluesky credentials:
+
+Create a `keys.js` file (gitignored):
 
 ```js
 module.exports = {
-    // Google Maps API key (used for reverse geocoding coordinates in posts)
-    googleKey: '...',
-
-    // Shared Bluesky service URLs
+    googleKey: '...',           // Google Maps API key (reverse geocoding)
     service: 'https://bsky.social',
     videoService: 'https://video.bsky.app',
-
-    // Account credentials (one entry per state bot, plus roadtrip for road trip mode)
+    launchDarklyKey: '...',     // Optional: LaunchDarkly SDK key for per-bot feature flags
+    grafana: {                  // Optional: Grafana Loki run telemetry
+        lokiUrl: '...',
+        user: '...',
+        apiKey: '...',
+    },
     accounts: {
-        ohio: {
-            identifier: '...',
-            password: '...',
-        },
-        // ... add an entry for each state
-        roadtrip: {
-            identifier: '...',
-            password: '...',
-        },
+        ohio: { identifier: '...', password: '...' },
+        // one entry per state, plus:
+        roadtrip: { identifier: '...', password: '...' },
     },
 };
 ```
 
-Then, install dependencies:
+Then install dependencies:
 
-`npm ci`
+```
+npm ci
+```
 
-## Run
+## Running
 
 ```
 node states/<state>.js
@@ -197,72 +152,111 @@ node states/<state>.js
 npm run <state>
 ```
 
-For example:
-```
-npm run ohio
-npm run tennessee
-```
-
-### Options
 | Flag | Description |
 |------|-------------|
 | `--list` | List available cameras and exit (no login required) |
-| `--dry-run` | Do everything except post to Bluesky |
-| `--persist` | Keep the assets folder (downloaded images and video) |
-| `--id <id>` | Use a specific camera instead of random |
+| `--dry-run` | Capture and encode but skip posting to Bluesky |
+| `--persist` | Keep the assets folder after the run |
+| `--id <id>` | Force a specific camera instead of random selection |
 
-## Road Trips
+Bots are normally invoked by `run-bot.sh`, which adds file locking (prevents overlapping runs), Grafana Loki telemetry, LaunchDarkly feature flag checks, and process timeout enforcement.
 
-Road trip mode posts a Bluesky thread showing live traffic across multiple states on the same interstate — one post per state, each reply linking to the next.
-
-```
-./run-road-trip.sh --highway I-75
-./run-road-trip.sh --highway I-95 --dry-run
-```
-
-The thread is started by a dedicated `roadtrip` Bluesky account (configured in `keys.js` as `accounts.roadtrip`), which posts the intro and map image. Each state bot then replies to that thread using its own account.
-
-Each state's post is titled `"I-75 through Tennessee 🛣️"` and includes the clip time range, speed (e.g. `(4x speed)`), and weather. The thread requires at least 2 states to post successfully; if fewer succeed, the run exits with code 1. All states use the same randomly chosen clip duration (1–6 minutes).
-
-**Live video bots** capture a clip at the chosen duration and encode it at 2–8x speed (targeting a ~30s output). **Image bots** capture a burst of images at their native refresh interval, capped to fit within the clip duration window; states with slow-refresh cameras (60s+) will rarely produce enough unique frames and are soft-skipped.
-
-The intro post includes a generated map image showing the highway's route overlaid on the states it passes through, zoomed in to the relevant region. The map is generated using `d3-geo`, `us-atlas`, and `sharp`. Route geometry is pre-fetched from OpenStreetMap's Overpass API and stored in `highway-routes/`.
-
-The bot finds a camera on the target highway by searching camera names first, then falling back to reverse geocoding a sample of cameras.
-
-**Supported interstates**: I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95
-
-### Adding interstates
-
-To add a new interstate, run `fetch-highway-routes.js` with the highway name(s):
+## Architecture
 
 ```
-node fetch-highway-routes.js I-22 I-68 I-82
-```
-
-This fetches the route geometry from OpenStreetMap, computes the total mileage, determines the ordered list of states via Nominatim reverse geocoding, and writes the entry to `highways.json` automatically. Re-run with a highway name to force a refresh.
-
-## Project Structure
-
-```
-states/                   # State-specific bot implementations (one file per state)
-TrafficBot.js             # Base class with shared workflow
-run-bot.sh                # Cron wrapper (logging, feature flags, health checks)
+TrafficBot.js             # Base class: image loop, deduplication, video encoding, Bluesky posting
+states/                   # One file per state, extends TrafficBot
+run-bot.sh                # Cron wrapper: locking, timeouts, feature flags, telemetry
 run-road-trip.sh          # Cron wrapper for road trip mode
 road-trip.js              # Road trip thread logic
-generate-road-trip-map.js # Generates the intro post map image
-fetch-highway-routes.js   # Fetches route GeoJSON from Overpass API and populates highways.json
-highways.json             # Interstate definitions (states, miles)
-highway-routes/           # Pre-fetched route GeoJSON per highway (gitignored, generate with fetch-highway-routes.js)
-status.js                 # Reports last successful post time for all bots
-keys.js                   # Bluesky credentials (gitignored)
+generate-road-trip-map.js # Generates the highway map image for road trip intro posts
+fetch-highway-routes.js   # Fetches route GeoJSON from Overpass API, populates highways.json
+highways.json             # Interstate definitions (ordered state list, total miles)
+highway-routes/           # Cached route GeoJSON per highway (gitignored)
+status.js                 # Reports last successful post time per bot
+keys.js                   # Credentials (gitignored)
 assets/                   # Temporary download directory (gitignored)
-cron/                     # Per-bot log files and recent camera state (gitignored)
+cron/                     # Per-bot logs, lock files, recent camera lists (gitignored)
 ```
+
+### TrafficBot Base Class
+
+Handles the shared workflow for image timelapse bots:
+
+1. Login to Bluesky
+2. Fetch and select a camera (prefers cameras not used in the last 48 runs)
+3. Download images at a fixed interval, deduplicating by MD5 hash
+4. If duplicates are detected, increase the interval by 1.5× (up to 4× the base) and reset on the next unique image; abort if the camera appears frozen
+5. Create a timelapse video with ffmpeg
+6. Upload and post to Bluesky with location, timestamp, speed factor, and weather
+7. Clean up temp files
+
+**Constructor config:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `accountName` | string | Key in `keys.js` accounts (e.g. `'ohio'`) |
+| `timezone` | string | IANA timezone for timestamps (e.g. `'America/New_York'`) |
+| `tzAbbrev` | string | Timezone abbreviation shown in posts (e.g. `'ET'`) |
+| `framerate` | number | Video playback fps |
+| `delayBetweenImageFetches` | number | Base milliseconds between image downloads |
+| `maxImageCollectionMs` | number | Optional cap on total collection time |
+| `targetOutputSeconds` | number | Target output video length in seconds (default: 30) |
+| `is24HourTimelapse` | boolean | If true, labels the post as a "24-Hour Timelapse:" |
+| `threadProbability` | number | Probability (0–1) of posting a multi-camera thread instead of a single post |
+
+**Methods subclasses implement:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `fetchCameras()` | `Promise<Camera[]>` | Fetch available cameras from the state's data source |
+| `downloadImage(index)` | `Promise<boolean>` | Download one image; return `true` if unique |
+| `getNumImages()` | `number` | How many images to capture per run |
+| `shouldAbort()` | `boolean` | Return `true` to skip video and post (e.g. frozen camera). Default: abort after 10 consecutive duplicates |
+| `getTimeout()` | `number` | Max runtime in seconds before the process is killed (default: 7200) |
+
+**Helper methods available to subclasses:**
+
+| Method | Description |
+|--------|-------------|
+| `this.checkAndStoreImage(path, index)` | Validates JPEG, deduplicates by hash, deletes duplicates; returns `true` if unique |
+| `this.getImagePath(index)` | Returns the file path for a given image index |
+| `this.getSetpts(captureDurationS)` | Computes the ffmpeg `setpts` factor for dynamic speed (2–16×) |
+| `this.downloadVideoSegment(duration)` | *(video bots)* Capture and encode an HLS stream segment |
+| `this.reverseGeocode(lat, lon)` | Returns a location string via Google Maps Geocoding API |
+| `this.fetchWeather(lat, lon)` | Returns `{tempF, description}` via Open-Meteo (no API key needed) |
+| `this.sleep(ms)` | Async delay |
+
+**Camera object:**
+
+```js
+{
+  id: string,        // Unique identifier (source-specific)
+  name: string,      // Display name
+  url: string,       // Snapshot URL or HLS stream URL
+  latitude: number,  // GPS latitude (0 if unknown)
+  longitude: number, // GPS longitude (0 if unknown)
+  hasVideo?: boolean, // Hybrid bots: true if camera has an HLS stream
+  imageId?: string,  // 511 platform bots: image ID used for DIVAS auth (may differ from camera ID)
+}
+```
+
+## Adding a New Bot
+
+1. Add credentials to `keys.js`
+2. Create `states/<state>.js` extending `TrafficBot`:
+   - **Image timelapse**: use `states/ohio.js` as a template — implement `fetchCameras()`, `downloadImage()`, and `getNumImages()`
+   - **Live video clip**: use `states/nevada.js` as a template — override `run()` and add `downloadVideoSegment()`
+   - **Live video with DIVAS auth**: use `states/florida.js` as a template
+   - **Hybrid**: use `states/california.js` as a template
+3. Add an npm script to `package.json`:
+   ```json
+   "newstate": "node states/newstate.js"
+   ```
 
 ## Monitoring
 
-`status.js` reads all `cron/*.log` files and reports when each bot last successfully posted. Bots run every 30 minutes, so any bot without a successful post in over an hour is flagged.
+`status.js` reads all `cron/*.log` files and reports when each bot last successfully posted. Bots run every 30 minutes, so any bot without a post in over an hour is flagged as stale.
 
 ```
 node status.js
@@ -282,88 +276,6 @@ Stale threshold: >1 hour without a successful post (bots run every 30 min)
     florida         Thu Feb 20 15:40:01 PST 2026           5m ago
 
 2 bot(s) stale, 48 healthy
-```
-
-## Architecture
-
-The project uses a class-based architecture with `TrafficBot` as the base class. There are two patterns:
-
-**Image timelapse bots** (Ohio, Montana, Utah, Alabama, Connecticut, Idaho, Arizona, Alaska, Washington, Kansas, New Hampshire, Maine, Vermont, South Dakota, North Dakota, Nebraska, Michigan, Oregon, Indiana, Kentucky, Illinois, Wyoming) extend `TrafficBot` and use the standard workflow: download images over time, deduplicate, stitch into video with ffmpeg, and post.
-
-**Live video clip bots** (Nevada, Florida, Wisconsin, New York, Delaware, Georgia, South Carolina, North Carolina, Tennessee, Arkansas, Oklahoma, Louisiana, Virginia, Mississippi, Pennsylvania, Massachusetts, New Jersey, Maryland, Missouri, Texas, West Virginia, New Mexico, Rhode Island) override `run()` to skip the image loop entirely. They capture a segment of a live HLS video stream directly with ffmpeg. Florida, Georgia, and Pennsylvania add DIVAS authentication, and Arkansas uses a token redirect for stream access.
-
-**Hybrid bots** (California, Colorado, Iowa, Hawaii, Minnesota) override `run()` to support both modes. If the chosen camera has an HLS stream, it records a live video clip; otherwise, it falls back to image timelapse.
-
-### TrafficBot (base class)
-
-Handles the common workflow:
-1. Login to Bluesky
-2. Fetch and select a camera (calls subclass `fetchCameras()`)
-3. Download images over time (calls subclass `downloadImage()`), with adaptive interval backoff
-4. Create timelapse video with ffmpeg
-5. Upload and post to Bluesky
-6. Cleanup temp files
-
-### Constructor Config
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `accountName` | string | Key in `keys.js` accounts object (e.g., `'ohio'`) |
-| `timezone` | string | IANA timezone for timestamps (e.g., `'America/New_York'`) |
-| `tzAbbrev` | string | Timezone abbreviation for display (e.g., `'ET'`) |
-| `framerate` | number | Video playback fps |
-| `delayBetweenImageFetches` | number | Base milliseconds between downloads. If a downloaded image is a duplicate (camera hasn't refreshed), the interval increases by 1.5x up to a max of 4x, then resets to base on the next unique image. |
-| `is24HourTimelapse` | boolean | If true, shows "24-Hour Timelapse:" in post |
-
-### Required Methods (image timelapse bots)
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `fetchCameras()` | `Promise<Camera[]>` | Fetch available cameras from data source |
-| `downloadImage(index)` | `Promise<boolean>` | Download image at index, return true if unique |
-| `getNumImages()` | `number` | Number of images to capture |
-
-### Optional Methods
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `shouldAbort()` | `boolean` | Return true to skip video/post (e.g., frozen camera) |
-
-### Helper Methods
-
-| Method | Description |
-|--------|-------------|
-| `this.getImagePath(index)` | Get file path for image |
-| `this.checkAndStoreImage(path, index)` | Dedupe check, deletes duplicates, updates count |
-| `this.sleep(ms)` | Async sleep |
-| `this.reverseGeocode(lat, lon)` | Returns a human-readable location string (e.g. `"Columbus, Ohio"`) via the Google Maps Geocoding API. Falls back through sublocality → county → state if no city is found. Returns `null` on failure, in which case posts show raw coordinates only. |
-
-### Camera Object
-
-```js
-{
-  id: string,        // Unique identifier
-  name: string,      // Display name
-  url: string,       // Image or video stream URL
-  latitude: number,  // GPS lat (0 if unknown)
-  longitude: number  // GPS long (0 if unknown)
-}
-```
-
-## Adding a New Bot
-
-1. Add credentials to `keys.js`
-
-2. Create a new file in `states/` that extends `TrafficBot`. See existing bots for examples:
-   - **Image timelapse**: Use `states/ohio.js` as a template. Implement `fetchCameras()`, `downloadImage()`, and `getNumImages()`.
-   - **Live video clip**: Use `states/nevada.js` as a template. Override `run()` and add a `downloadVideoSegment()` method.
-   - **Live video clip with auth**: Use `states/florida.js` as a template if the HLS streams require token authentication.
-
-3. Add an npm script to `package.json`:
-```json
-"scripts": {
-    "newstate": "node states/newstate.js"
-}
 ```
 
 ## Credits
