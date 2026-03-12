@@ -199,10 +199,10 @@ class IllinoisBot extends TrafficBot {
 
     segmentPaths.forEach(p => Fs.removeSync(p));
 
-    const speed = Math.min(duration / this.targetOutputSeconds, 8);
-    const outputDurationS = duration / speed;
+    const setpts = this.getSetpts(duration);
+    const outputDurationS = duration / this.videoSpeedFactor;
     const targetBitrateKbps = Math.floor((90 * 1024 * 1024 * 8) / outputDurationS / 1000);
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -b:v ${targetBitrateKbps}k -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -b:v ${targetBitrateKbps}k -pix_fmt yuv420p -vf "setpts=${setpts}*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
