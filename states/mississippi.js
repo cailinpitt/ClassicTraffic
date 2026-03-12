@@ -5,7 +5,7 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180];
+const durationOptions = [60, 90, 120, 180, 480];
 
 class MississippiBot extends TrafficBot {
   constructor() {
