@@ -215,7 +215,6 @@ class TrafficBot {
     const hash = this.getImageHash(filePath);
 
     if (this.imageHashes.has(hash)) {
-      console.log(`Skipping duplicate image ${index}`);
       Fs.removeSync(filePath);
       return false;
     } else {
@@ -270,7 +269,7 @@ class TrafficBot {
       Fs.renameSync(oldPath, newPath);
     });
 
-    const cmd = `ffmpeg -y -framerate ${this.framerate} -i ${this.assetDirectory}seq-%d.jpg -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p ${this.pathToVideo}`;
+    const cmd = `ffmpeg -y -framerate ${this.framerate} -i ${this.assetDirectory}seq-%d.jpg -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p ${this.pathToVideo}`;
 
     await new Promise((resolve, reject) => {
       exec(cmd, (error, stdout, stderr) => {
@@ -796,6 +795,9 @@ class TrafficBot {
             await this.downloadImage(i);
             const wasUnique = this.uniqueImageCount > countBefore;
             if (wasUnique) {
+              if (this.consecutiveDuplicates > 0) {
+                console.log(`${prefix}${this.consecutiveDuplicates} duplicate(s) skipped`);
+              }
               this.consecutiveDuplicates = 0;
             } else {
               this.consecutiveDuplicates++;

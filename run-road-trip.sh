@@ -22,7 +22,21 @@ for arg in "$@"; do
 done
 
 if [[ -z "$HIGHWAY" ]]; then
-  HIGHWAY=$(/usr/bin/node -e "const h=require('$DIR/highways.json'); const k=Object.keys(h); console.log(k[Math.floor(Math.random()*k.length)])")
+  HIGHWAY=$(timeout 10 /usr/bin/node -e "
+    const Fs = require('fs');
+    const h = require('$DIR/highways.json');
+    const all = Object.keys(h);
+    const recentPath = '$DIR/cron/road-trip-recent-highways.json';
+    let recent = [];
+    try { recent = JSON.parse(Fs.readFileSync(recentPath, 'utf8')); } catch {}
+    const fresh = all.filter(k => !recent.includes(k));
+    const pool = fresh.length > 0 ? fresh : all;
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    recent = [chosen, ...recent.filter(k => k !== chosen)].slice(0, Math.floor(all.length / 2));
+    Fs.mkdirSync('$DIR/cron', { recursive: true });
+    Fs.writeFileSync(recentPath, JSON.stringify(recent));
+    console.log(chosen);
+  ")
 fi
 
 LOG_FILE="$LOG_DIR/road-trip-$(date +%Y-%m-%d).log"
