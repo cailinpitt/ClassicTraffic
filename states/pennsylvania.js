@@ -359,14 +359,7 @@ class PennsylvaniaBot extends TrafficBot {
       } else {
         const numImages = this.getNumImages();
         console.log(`Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
-        for (let i = 0; i < numImages; i++) {
-          await this.downloadImage(i);
-          if (i < numImages - 1) await this.sleep(this.delayBetweenImageFetches);
-        }
-
-        if (this.shouldAbort()) {
-          return;
-        }
+        if (await this.collectImages(numImages)) return;
 
         await this.createVideo();
       }

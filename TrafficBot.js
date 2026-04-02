@@ -234,6 +234,57 @@ class TrafficBot {
   }
 
   /**
+   * Download images with adaptive backoff, duplicate detection, and abort support.
+   * Extracted so subclasses with custom run() loops can reuse the same logic.
+   * @param {number} numImages - Number of images to collect
+   * @param {string} [prefix] - Log line prefix (e.g. "[Camera 1/2] ")
+   * @returns {Promise<boolean>} True if aborted early, false if completed normally
+   */
+  async collectImages(numImages, prefix = '') {
+    let currentDelay = this.delayBetweenImageFetches;
+    const maxDelay = this.delayBetweenImageFetches * 4;
+    const collectionStart = Date.now();
+
+    for (let i = 0; i < numImages; i++) {
+      const countBefore = this.uniqueImageCount;
+      await this.downloadImage(i);
+      const wasUnique = this.uniqueImageCount > countBefore;
+      if (wasUnique) {
+        if (this.consecutiveDuplicates > 0) {
+          console.log(`${prefix}${this.consecutiveDuplicates} duplicate(s) skipped`);
+        }
+        this.consecutiveDuplicates = 0;
+      } else {
+        this.consecutiveDuplicates++;
+      }
+
+      if (i >= 9 && this.shouldAbort()) {
+        return true;
+      }
+
+      if (i < numImages - 1) {
+        if (!wasUnique) {
+          const newDelay = Math.min(Math.round(currentDelay * 1.5), maxDelay);
+          if (newDelay !== currentDelay) {
+            console.log(`${prefix}Duplicate image, increasing interval to ${newDelay / 1000}s`);
+            currentDelay = newDelay;
+          }
+        } else {
+          currentDelay = Math.max(this.delayBetweenImageFetches, Math.round(currentDelay / 1.5));
+        }
+
+        if (Date.now() - collectionStart + currentDelay > this.maxImageCollectionMs) {
+          console.log(`${prefix}Max collection time reached after ${i + 1} images, stopping early`);
+          return false;
+        }
+
+        await this.sleep(currentDelay);
+      }
+    }
+    return false;
+  }
+
+  /**
    * Calculate the ffmpeg setpts factor to target a consistent output duration.
    * Speed is capped at 8x to avoid unwatchably fast video.
    * @param {number} captureDurationS - Raw capture duration in seconds
@@ -785,48 +836,7 @@ class TrafficBot {
           const numImages = this.getNumImages();
           console.log(`${prefix}Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
 
-          let currentDelay = this.delayBetweenImageFetches;
-          const maxDelay = this.delayBetweenImageFetches * 4;
-          const collectionStart = Date.now();
-          let aborted = false;
-
-          for (let i = 0; i < numImages; i++) {
-            const countBefore = this.uniqueImageCount;
-            await this.downloadImage(i);
-            const wasUnique = this.uniqueImageCount > countBefore;
-            if (wasUnique) {
-              if (this.consecutiveDuplicates > 0) {
-                console.log(`${prefix}${this.consecutiveDuplicates} duplicate(s) skipped`);
-              }
-              this.consecutiveDuplicates = 0;
-            } else {
-              this.consecutiveDuplicates++;
-            }
-
-            if (i >= 9 && this.shouldAbort()) {
-              aborted = true;
-              break;
-            }
-
-            if (i < numImages - 1) {
-              if (!wasUnique) {
-                const newDelay = Math.min(Math.round(currentDelay * 1.5), maxDelay);
-                if (newDelay !== currentDelay) {
-                  console.log(`${prefix}Duplicate image, increasing interval to ${newDelay / 1000}s`);
-                  currentDelay = newDelay;
-                }
-              } else {
-                currentDelay = Math.max(this.delayBetweenImageFetches, Math.round(currentDelay / 1.5));
-              }
-
-              if (Date.now() - collectionStart + currentDelay > this.maxImageCollectionMs) {
-                console.log(`${prefix}Max collection time reached after ${i + 1} images, stopping early`);
-                break;
-              }
-
-              await this.sleep(currentDelay);
-            }
-          }
+          const aborted = await this.collectImages(numImages, prefix);
 
           this.endTime = new Date();
 
