@@ -34,10 +34,10 @@ if ! flock -n 9; then
   exit 0
 fi
 
-# Load Grafana credentials from keys.js
-GRAFANA_LOKI_URL=$(timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.lokiUrl)")
-GRAFANA_USER=$(timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.user)")
-GRAFANA_API_KEY=$(timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.apiKey)")
+# Load Grafana credentials from keys.js (single node invocation)
+read -r GRAFANA_LOKI_URL GRAFANA_USER GRAFANA_API_KEY < <(
+  timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.lokiUrl, k.grafana.user, k.grafana.apiKey)"
+)
 
 # Check if bot is enabled via LaunchDarkly
 FLAG_EXIT=0
@@ -86,7 +86,7 @@ curl -s --max-time 30 -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
   -d "$PAYLOAD" \
   > /dev/null 2>&1 || true
 
-# Rotate: delete logs for this state older than 7 days
-find "$LOG_DIR" -name "$STATE-*.log" -mtime +7 -delete 2>/dev/null || true
+# Rotate: delete logs for this lock key older than 7 days
+find "$LOG_DIR" -name "$LOCK_KEY-*.log" -mtime +7 -delete 2>/dev/null || true
 
 exit $EXIT_CODE

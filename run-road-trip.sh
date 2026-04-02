@@ -36,9 +36,9 @@ if ! flock -n 9; then
   exit 0
 fi
 
-GRAFANA_LOKI_URL=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.lokiUrl)")
-GRAFANA_USER=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.user)")
-GRAFANA_API_KEY=$(/usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.apiKey)")
+read -r GRAFANA_LOKI_URL GRAFANA_USER GRAFANA_API_KEY < <(
+  timeout 10 /usr/bin/node -e "const k=require('$DIR/keys.js'); console.log(k.grafana.lokiUrl, k.grafana.user, k.grafana.apiKey)"
+)
 
 cd "$DIR"
 
@@ -62,13 +62,13 @@ PAYLOAD=$(/usr/bin/node -e "
   }
   console.log(JSON.stringify({
     streams: [{
-      stream: { job: 'classictraffic', state: 'road-trip' },
+      stream: { job: 'classictraffic', state: 'road-trip', highway: '${HIGHWAY}' },
       values: [['$TIMESTAMP', JSON.stringify(logData)]]
     }]
   }));
 ")
 rm -f "$STDERR_FILE"
-curl -s -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
+curl -s --max-time 30 -X POST "${GRAFANA_LOKI_URL}/loki/api/v1/push" \
   -u "${GRAFANA_USER}:${GRAFANA_API_KEY}" \
   -H "Content-Type: application/json" \
   -d "$PAYLOAD" \

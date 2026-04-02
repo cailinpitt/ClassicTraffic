@@ -814,7 +814,7 @@ class TrafficBot {
                   currentDelay = newDelay;
                 }
               } else {
-                currentDelay = this.delayBetweenImageFetches;
+                currentDelay = Math.max(this.delayBetweenImageFetches, Math.round(currentDelay / 1.5));
               }
 
               if (Date.now() - collectionStart + currentDelay > this.maxImageCollectionMs) {
