@@ -51,7 +51,7 @@ class WyomingBot extends TrafficBot {
       let match;
 
       while ((match = imgRegex.exec(html)) !== null) {
-        let src = match[1].replace(/&#x3D;/g, '=').replace(/&amp;/g, '&');
+        let src = match[1].replace(/&#x3D;/g, '=').replace(/&amp;/g, '&').replace(/&thumb=true$/i, '');
         const alt = match[2];
 
         // Parse: "I 80 Evanston - West showing I80 near Evanston"
