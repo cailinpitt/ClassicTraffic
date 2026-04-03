@@ -17,6 +17,36 @@ const JANE_BYRNE_CAMERA = {
   longitude: -87.6545,
 };
 
+const SKYDECK_CAMERAS = [
+  {
+    id: 'skydeck-east',
+    name: 'Willis Tower Skydeck',
+    fecnetworkId: '22820',
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 41.8789,
+    longitude: -87.6359,
+  },
+  {
+    id: 'skydeck-west',
+    name: 'Willis Tower Skydeck (West View)',
+    fecnetworkId: '42881',
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 41.8789,
+    longitude: -87.6359,
+  },
+  {
+    id: 'skydeck-north',
+    name: 'Willis Tower Skydeck (North View)',
+    fecnetworkId: '27623',
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 41.8789,
+    longitude: -87.6359,
+  },
+];
+
 class IllinoisBot extends TrafficBot {
   constructor() {
     super({
@@ -86,7 +116,8 @@ class IllinoisBot extends TrafficBot {
         });
 
       cameras.push(JANE_BYRNE_CAMERA);
-      console.log(`Found ${cameras.length} cameras (including Jane Byrne live video)`);
+      cameras.push(...SKYDECK_CAMERAS);
+      console.log(`Found ${cameras.length} cameras (including Jane Byrne and Skydeck live video)`);
       return cameras;
     } catch (error) {
       console.error('Error fetching cameras:', error.message);
@@ -140,6 +171,19 @@ class IllinoisBot extends TrafficBot {
     }
   }
 
+  async getEarthCamStreamUrl(fecnetworkId) {
+    console.log(`Fetching EarthCam stream URL for fecnetwork ${fecnetworkId}...`);
+    const response = await Axios.get('https://www.earthcam.com/usa/illinois/chicago/skydeck/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+      },
+    });
+    const match = response.data.match(new RegExp(`"html5_streampath":"(\\\\/fecnetwork\\\\/${fecnetworkId}[^"]+)"`));
+    if (!match) throw new Error(`Could not find stream URL for fecnetwork ID ${fecnetworkId}`);
+    const path = match[1].replace(/\\\//g, '/');
+    return `https://videos-3.earthcam.com${path}`;
+  }
+
   async getCurrentChunklistUrl() {
     const masterResponse = await Axios.get(this.chosenCamera.url);
     const lines = masterResponse.data.split('\n').filter(l => l.trim() && !l.startsWith('#'));
@@ -155,6 +199,11 @@ class IllinoisBot extends TrafficBot {
     const numSegments = Math.ceil(duration / SEG_DURATION);
     const segmentPaths = [];
 
+    let earthCamStreamUrl = null;
+    if (this.chosenCamera.isEarthCam) {
+      earthCamStreamUrl = await this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId);
+    }
+
     for (let i = 0; i < numSegments; i++) {
       const segDuration = Math.min(SEG_DURATION, duration - i * SEG_DURATION);
       const segPath = `${this.assetDirectory}seg-${i}.ts`;
@@ -162,13 +211,18 @@ class IllinoisBot extends TrafficBot {
 
       let chunklistUrl;
       try {
-        chunklistUrl = await this.getCurrentChunklistUrl();
+        chunklistUrl = this.chosenCamera.isEarthCam
+          ? earthCamStreamUrl
+          : await this.getCurrentChunklistUrl();
       } catch (err) {
         console.log(`Failed to get chunklist for segment ${i + 1}: ${err.message}`);
         continue;
       }
 
-      const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} -i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
+      const earthCamFlags = this.chosenCamera.isEarthCam
+        ? `-headers 'Referer: https://www.earthcam.com/\\r\\n' `
+        : '';
+      const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
         exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, (error) => {
