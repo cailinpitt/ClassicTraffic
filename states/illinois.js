@@ -199,11 +199,6 @@ class IllinoisBot extends TrafficBot {
     const numSegments = Math.ceil(duration / SEG_DURATION);
     const segmentPaths = [];
 
-    let earthCamStreamUrl = null;
-    if (this.chosenCamera.isEarthCam) {
-      earthCamStreamUrl = await this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId);
-    }
-
     for (let i = 0; i < numSegments; i++) {
       const segDuration = Math.min(SEG_DURATION, duration - i * SEG_DURATION);
       const segPath = `${this.assetDirectory}seg-${i}.ts`;
@@ -212,7 +207,7 @@ class IllinoisBot extends TrafficBot {
       let chunklistUrl;
       try {
         chunklistUrl = this.chosenCamera.isEarthCam
-          ? earthCamStreamUrl
+          ? await this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
           : await this.getCurrentChunklistUrl();
       } catch (err) {
         console.log(`Failed to get chunklist for segment ${i + 1}: ${err.message}`);
