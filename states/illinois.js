@@ -248,6 +248,9 @@ class IllinoisBot extends TrafficBot {
 
     segmentPaths.forEach(p => Fs.removeSync(p));
 
+    if (argv.speed) {
+      this.targetOutputSeconds = duration / parseInt(argv.speed);
+    }
     const setpts = this.getSetpts(duration);
     const outputDurationS = duration / this.videoSpeedFactor;
     const targetBitrateKbps = Math.floor((90 * 1024 * 1024 * 8) / outputDurationS / 1000);
