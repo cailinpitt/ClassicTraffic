@@ -70,5 +70,37 @@
   "I-95": {
     "miles": 1920,
     "states": ["florida", "georgia", "southcarolina", "northcarolina", "virginia", "maryland", "delaware", "newjersey", "newyork", "connecticut", "rhodeisland", "massachusetts", "newhampshire", "maine"]
+  },
+  "US-1": {
+    "miles": 2369,
+    "states": ["maine", "newhampshire", "massachusetts", "rhodeisland", "connecticut", "newyork", "newjersey", "delaware", "maryland", "virginia", "northcarolina", "southcarolina", "georgia", "florida"]
+  },
+  "US-2": {
+    "miles": 2571,
+    "states": ["maine", "vermont", "newyork", "michigan", "wisconsin", "minnesota", "northdakota", "montana", "idaho", "washington"]
+  },
+  "US-30": {
+    "miles": 3073,
+    "states": ["newjersey", "pennsylvania", "ohio", "indiana", "illinois", "iowa", "nebraska", "wyoming", "idaho", "oregon"]
+  },
+  "US-101": {
+    "miles": 1540,
+    "states": ["california", "oregon", "washington"]
+  },
+  "US-11": {
+    "miles": 1650,
+    "states": ["newyork", "pennsylvania", "maryland", "virginia", "westvirginia", "tennessee", "alabama", "mississippi", "louisiana"]
+  },
+  "US-20": {
+    "miles": 3365,
+    "states": ["massachusetts", "newyork", "pennsylvania", "ohio", "indiana", "illinois", "iowa", "nebraska", "wyoming", "idaho", "oregon"]
+  },
+  "US-41": {
+    "miles": 1990,
+    "states": ["michigan", "wisconsin", "illinois", "indiana", "kentucky", "tennessee", "georgia", "florida"]
+  },
+  "US-50": {
+    "miles": 3011,
+    "states": ["maryland", "westvirginia", "virginia", "ohio", "indiana", "illinois", "missouri", "kansas", "colorado", "utah", "nevada", "california"]
   }
 }

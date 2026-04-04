@@ -160,8 +160,15 @@ async function determineStates(feature) {
 }
 
 async function fetchHighwayRoute(highway) {
-  const ref = highway.replace('I-', '');
-  const query = `[out:json][timeout:90];relation["network"="US:I"]["ref"="${ref}"]["route"="road"];out geom;`;
+  let network, ref;
+  if (/^US-/i.test(highway)) {
+    network = 'US:US';
+    ref = highway.replace(/^US-/i, '');
+  } else {
+    network = 'US:I';
+    ref = highway.replace(/^I-?/i, '');
+  }
+  const query = `[out:json][timeout:90];relation["network"="${network}"]["ref"="${ref}"]["route"="road"];out geom;`;
 
   const response = await Axios.post('https://overpass-api.de/api/interpreter', query, {
     headers: { 'Content-Type': 'text/plain' },

@@ -365,15 +365,32 @@ class TrafficBot {
     const cameras = await this.fetchAllCameras(highway);
     if (cameras.length === 0) return null;
 
-    // Normalize for matching: "I-75" → patterns covering common conventions
-    const num = highway.replace(/^I-?/i, '');
-    const patterns = [
-      new RegExp(`\\bI-${num}\\b`, 'i'),
-      new RegExp(`\\bI ${num}\\b`, 'i'),
-      new RegExp(`\\bI${num}\\b`, 'i'),
-      new RegExp(`\\bInterstate ${num}\\b`, 'i'),
-      new RegExp(`\\bIH-?\\s*0*${num}\\b`, 'i'),  // Texas: "IH 10", "IH0010", "IH-10"
-    ];
+    // Build name-matching patterns based on highway type
+    let patterns;
+    if (/^US-/i.test(highway)) {
+      // US numbered routes: "US-1", "US-101", etc.
+      const num = highway.replace(/^US-/i, '');
+      patterns = [
+        new RegExp(`\\bUS-${num}\\b`, 'i'),
+        new RegExp(`\\bUS ${num}\\b`, 'i'),
+        new RegExp(`\\bUS${num}\\b`, 'i'),
+        new RegExp(`\\bUS[- ]?Hwy[- ]?${num}\\b`, 'i'),
+        new RegExp(`\\bUS[- ]?Highway[- ]?${num}\\b`, 'i'),
+        new RegExp(`\\bUS[- ]?Route[- ]?${num}\\b`, 'i'),
+        new RegExp(`\\bRoute ${num}\\b`, 'i'),
+        new RegExp(`\\bHwy ${num}\\b`, 'i'),
+      ];
+    } else {
+      // Interstate: "I-75", "I-10", etc.
+      const num = highway.replace(/^I-?/i, '');
+      patterns = [
+        new RegExp(`\\bI-${num}\\b`, 'i'),
+        new RegExp(`\\bI ${num}\\b`, 'i'),
+        new RegExp(`\\bI${num}\\b`, 'i'),
+        new RegExp(`\\bInterstate ${num}\\b`, 'i'),
+        new RegExp(`\\bIH-?\\s*0*${num}\\b`, 'i'),  // Texas: "IH 10", "IH0010", "IH-10"
+      ];
+    }
 
     // Pass 1: camera name or route field contains the highway
     const byName = cameras.filter(c => patterns.some(p => p.test(c.name) || (c.route && p.test(c.route))));
