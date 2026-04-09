@@ -195,9 +195,14 @@ class IllinoisBot extends TrafficBot {
   async downloadVideoSegment(duration) {
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} in 60s segments...`);
 
-    const SEG_DURATION = 60;
+    const SEG_DURATION = this.chosenCamera.isEarthCam ? 300 : 60;
     const numSegments = Math.ceil(duration / SEG_DURATION);
     const segmentPaths = [];
+
+    // Pre-fetch the first URL before the loop starts
+    let nextUrlPromise = this.chosenCamera.isEarthCam
+      ? this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
+      : this.getCurrentChunklistUrl();
 
     for (let i = 0; i < numSegments; i++) {
       const segDuration = Math.min(SEG_DURATION, duration - i * SEG_DURATION);
@@ -206,11 +211,15 @@ class IllinoisBot extends TrafficBot {
 
       let chunklistUrl;
       try {
-        chunklistUrl = this.chosenCamera.isEarthCam
-          ? await this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
-          : await this.getCurrentChunklistUrl();
+        chunklistUrl = await nextUrlPromise;
       } catch (err) {
         console.log(`Failed to get chunklist for segment ${i + 1}: ${err.message}`);
+        // Fetch fresh for next segment before skipping
+        if (i + 1 < numSegments) {
+          nextUrlPromise = this.chosenCamera.isEarthCam
+            ? this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
+            : this.getCurrentChunklistUrl();
+        }
         continue;
       }
 
@@ -220,7 +229,7 @@ class IllinoisBot extends TrafficBot {
       const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
-        exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, (error) => {
+        exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, () => {
           if (Fs.existsSync(segPath) && Fs.statSync(segPath).size > 100 * 1024) {
             segmentPaths.push(segPath);
           } else {
@@ -229,6 +238,16 @@ class IllinoisBot extends TrafficBot {
           }
           resolve();
         });
+
+        // Pre-fetch next URL while this segment is recording
+        if (i + 1 < numSegments) {
+          const prefetchAfterMs = Math.max(0, (segDuration - 10) * 1000);
+          setTimeout(() => {
+            nextUrlPromise = this.chosenCamera.isEarthCam
+              ? this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
+              : this.getCurrentChunklistUrl();
+          }, prefetchAfterMs);
+        }
       });
     }
 
