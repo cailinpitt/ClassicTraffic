@@ -5,7 +5,7 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480];
+const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const CAMERAS_PER_PAGE = 10;
 
 const MAPLARGE_HOST = 'https://dtx-e-cdn.maplarge.com';

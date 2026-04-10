@@ -6,7 +6,7 @@ const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
-const durationOptions = [60, 90, 120, 180, 240, 360, 480];
+const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const NUM_DISTRICTS = 12;
 
 class CaliforniaBot extends TrafficBot {

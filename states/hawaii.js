@@ -5,7 +5,7 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 480];
+const durationOptions = [60, 90, 120, 180, 480, 960];
 const numImagesPerVideoOptions = [15, 30, 45];
 
 class HawaiiBot extends TrafficBot {

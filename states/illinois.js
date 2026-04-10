@@ -5,7 +5,7 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480];
+const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const numImagesPerVideoOptions = [10, 15, 20];
 
 const JANE_BYRNE_CAMERA = {
@@ -267,9 +267,6 @@ class IllinoisBot extends TrafficBot {
 
     segmentPaths.forEach(p => Fs.removeSync(p));
 
-    if (argv.speed) {
-      this.targetOutputSeconds = duration / parseInt(argv.speed);
-    }
     const setpts = this.getSetpts(duration);
     const outputDurationS = duration / this.videoSpeedFactor;
     const targetBitrateKbps = Math.floor((90 * 1024 * 1024 * 8) / outputDurationS / 1000);

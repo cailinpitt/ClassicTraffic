@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480];
+const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const AES_KEY = 'lIo3M)_83,ALC0Wz';
 const AES_IV = '.%A}8Qvqm23jYVc9';
 
