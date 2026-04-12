@@ -567,7 +567,9 @@ class TrafficBot {
 
     const timeRange = `${formatTime(this.startTime)} - ${formatTime(this.endTime)} ${this.tzAbbrev}`;
     const speedSuffix = this.videoSpeedFactor ? ` (${this.videoSpeedFactor}x speed)` : '';
-    const timeLabel = this.is24HourTimelapse ? `24-Hour Timelapse: ${timeRange}${speedSuffix}` : `${timeRange}${speedSuffix}`;
+    const eventPrefix = this.sunEvent === 'sunrise' ? 'Sunrise: ' : this.sunEvent === 'sunset' ? 'Sunset: ' : '';
+    const clockEmoji = this.sunEvent === 'sunrise' ? '🌅' : this.sunEvent === 'sunset' ? '🌇' : '🕒';
+    const timeLabel = this.is24HourTimelapse ? `24-Hour Timelapse: ${timeRange}${speedSuffix}` : `${eventPrefix}${timeRange}${speedSuffix}`;
 
     let postText;
     let facets = [];
@@ -595,9 +597,9 @@ class TrafficBot {
 
       let postTitle = titleOverride || this.chosenCamera.name;
 
-      postText = `${postTitle}\n🕒 ${timeLabel}${weatherLine}\n\n📍: ${coordinates}`;
+      postText = `${postTitle}\n${clockEmoji} ${timeLabel}${weatherLine}\n\n📍: ${coordinates}`;
 
-      const byteStart = Buffer.from(`${postTitle}\n🕒 ${timeLabel}${weatherLine}\n\n📍: `).length;
+      const byteStart = Buffer.from(`${postTitle}\n${clockEmoji} ${timeLabel}${weatherLine}\n\n📍: `).length;
       const byteEnd = byteStart + Buffer.from(coordinates).length;
 
       facets = [
@@ -616,7 +618,7 @@ class TrafficBot {
       ];
     } else {
       const noCoordTitle = titleOverride || this.chosenCamera.name;
-      postText = `${noCoordTitle}\n🕒 ${timeLabel}${weatherLine}`;
+      postText = `${noCoordTitle}\n${clockEmoji} ${timeLabel}${weatherLine}`;
     }
 
     const altText = this.buildAltText(this.weatherStart, this.weatherEnd);

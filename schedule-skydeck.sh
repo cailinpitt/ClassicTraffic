@@ -31,8 +31,8 @@ SUNSET_START=$(date -d "$SUNSET today - 5 minutes" +%H:%M)
 
 echo "$(date): Sunrise=$SUNRISE (capture starts $SUNRISE_START) Sunset=$SUNSET (capture starts $SUNSET_START)" >> "$LOG_FILE"
 
-SUNRISE_CMD="$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunrise --id skydeck-east --duration 600 --speed 16"
-SUNSET_CMD="$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunset --id skydeck-west --duration 600 --speed 16"
+SUNRISE_CMD="$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunrise --id skydeck-east --duration 600 --speed 16 --event sunrise"
+SUNSET_CMD="$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunset --id skydeck-west --duration 600 --speed 16 --event sunset"
 
 if $DRY_RUN; then
   echo "DRY RUN — would schedule:"

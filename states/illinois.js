@@ -343,6 +343,7 @@ class IllinoisBot extends TrafficBot {
       }
 
       this.saveRecentCameraId(this.chosenCamera.id);
+      if (argv.event === 'sunrise' || argv.event === 'sunset') this.sunEvent = argv.event;
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
       Fs.ensureDirSync(this.assetDirectory);
 
