@@ -952,7 +952,7 @@ class TrafficBot {
   async getYouTubeStreamUrl(youtubeId) {
     console.log(`Fetching YouTube stream URL for ${youtubeId}...`);
     return new Promise((resolve, reject) => {
-      exec(`yt-dlp -g --format "best" "https://www.youtube.com/watch?v=${youtubeId}"`, { timeout: 30000 }, (error, stdout, stderr) => {
+      exec(`yt-dlp -g --force-ipv4 --format "best" "https://www.youtube.com/watch?v=${youtubeId}"`, { timeout: 30000 }, (error, stdout, stderr) => {
         if (error) return reject(new Error(`yt-dlp failed: ${error.message}\n${stderr}`));
         const url = stdout.trim().split('\n')[0];
         if (!url) return reject(new Error('yt-dlp returned no URL'));

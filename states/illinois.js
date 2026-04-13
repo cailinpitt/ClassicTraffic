@@ -288,7 +288,8 @@ class IllinoisBot extends TrafficBot {
         : this.chosenCamera.isEarthCamNet ? 'https://share.earthcam.net/'
         : null;
       const earthCamFlags = referer ? `-headers 'Referer: ${referer}\\r\\n' ` : '';
-      const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
+      const ipv4Flag = this.chosenCamera.isYouTube ? '-4 ' : '';
+      const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${ipv4Flag}${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
         exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, (error, _stdout, stderr) => {
