@@ -4,8 +4,6 @@
 
 Bluesky bots that post traffic camera videos for every U.S. state. Each bot runs on a 30-minute cron and posts a timelapse or live video clip from a randomly chosen camera.
 
-![US Map](map.svg)
-
 ## How It Works
 
 There are two core bot types, plus hybrids that support both:
@@ -277,7 +275,3 @@ Stale threshold: >1 hour without a successful post (bots run every 30 min)
 
 2 bot(s) stale, 48 healthy
 ```
-
-## Credits
-
-US map SVG adapted from a [GitHub Gist by coryetzkorn](https://gist.github.com/coryetzkorn/3077873), originally sourced from [Wikipedia](https://en.wikipedia.org/wiki/File:Blank_US_Map_(states_only).svg) (public domain).
