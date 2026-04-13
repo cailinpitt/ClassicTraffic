@@ -6,7 +6,7 @@
   "dependencies": {
     "@atproto/api": "^0.18.16",
     "@launchdarkly/node-server-sdk": "^9.10.6",
-    "axios": "^1.13.5",
+    "axios": "^1.15.0",
     "d3-geo": "^2.0.2",
     "fs-extra": "^8.1.0",
     "googlemaps": "^1.12.0",
