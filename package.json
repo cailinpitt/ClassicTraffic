@@ -9,7 +9,7 @@
     "axios": "^1.15.0",
     "d3-geo": "^2.0.2",
     "fs-extra": "^8.1.0",
-    "googlemaps": "^1.12.0",
+    "googlemaps": "^0.1.5",
     "lodash": "^4.18.1",
     "minimist": "^1.2.3",
     "sharp": "^0.34.5",
