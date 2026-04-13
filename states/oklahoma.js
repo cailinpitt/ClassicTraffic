@@ -17,7 +17,23 @@ class OklahomaBot extends TrafficBot {
     });
   }
 
-  getCaptureFlags() { return '-rw_timeout 15000000 -headers "Referer: https://oktraffic.org/\\r\\n"'; }
+  getCaptureFlags() { return '-rw_timeout 15000000 -headers "Referer: https://oktraffic.org/\r\n"'; }
+
+  async getVideoUrl() {
+    // Stream keys rotate frequently, so re-fetch the latest key immediately before recording
+    const response = await Axios.get(`https://oktraffic.org/api/MapCameras/${this.chosenCamera.id}`, {
+      params: { filter: JSON.stringify({ include: 'streamDictionary' }) },
+      headers: {
+        'Accept': 'application/json',
+        'Referer': 'https://oktraffic.org/',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+      },
+    });
+    const streamSrc = response.data?.streamDictionary?.streamSrc;
+    if (!streamSrc) throw new Error(`No streamSrc for camera ${this.chosenCamera.id}`);
+    console.log(`Refreshed stream URL for ${this.chosenCamera.name}`);
+    return streamSrc;
+  }
 
   async fetchCameras() {
     console.log('Fetching cameras from oktraffic.org...');
