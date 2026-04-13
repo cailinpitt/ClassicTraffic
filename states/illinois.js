@@ -288,10 +288,12 @@ class IllinoisBot extends TrafficBot {
         : this.chosenCamera.isEarthCamNet ? 'https://share.earthcam.net/'
         : null;
       const earthCamFlags = referer ? `-headers 'Referer: ${referer}\\r\\n' ` : '';
-      // For YouTube: pipe yt-dlp output directly into ffmpeg so only yt-dlp (with --force-ipv4)
-      // makes network connections. This avoids the IPv6 privacy-extension IP mismatch that causes 403s.
+      // For YouTube: yt-dlp with --downloader native fetches all segments itself (respecting
+      // --force-ipv4), piping raw .ts bytes to ffmpeg. Without --downloader native, yt-dlp
+      // outputs the HLS manifest to stdout and ffmpeg then fetches segments itself over IPv6,
+      // getting 403s because the URL is signed for the Pi's IPv4 address.
       const captureCmd = this.chosenCamera.isYouTube
-        ? `yt-dlp --force-ipv4 --format "best" --no-playlist -o - "https://www.youtube.com/watch?v=${this.chosenCamera.youtubeId}" | ffmpeg -y -t ${segDuration} -i pipe:0 -map 0:v:0 -c copy "${segPath}"`
+        ? `yt-dlp --force-ipv4 --format "best" --no-playlist --downloader native --hls-use-mpegts -o - "https://www.youtube.com/watch?v=${this.chosenCamera.youtubeId}" | ffmpeg -y -t ${segDuration} -i pipe:0 -map 0:v:0 -c copy "${segPath}"`
         : `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
