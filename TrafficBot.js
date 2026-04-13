@@ -67,6 +67,8 @@ class TrafficBot {
     this.is24HourTimelapse = config.is24HourTimelapse || false;
     /** @type {number} Probability (0-1) of posting a multi-camera thread instead of single post */
     this.threadProbability = config.threadProbability || 0;
+    /** @type {string} Short ID for this run, prepended to all log output */
+    this.runId = uuidv4().split('-')[0];
 
     /** @type {string} */
     this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
@@ -158,6 +160,14 @@ class TrafficBot {
       console.log(this.getTimeout());
       return;
     }
+
+    // Prepend run ID to every log line so concurrent bot runs can be distinguished
+    const tag = `[${this.runId}]`;
+    const origLog = console.log.bind(console);
+    const origError = console.error.bind(console);
+    console.log = (...args) => origLog(tag, ...args);
+    console.error = (...args) => origError(tag, ...args);
+
     await this.run();
   }
 
@@ -304,7 +314,7 @@ class TrafficBot {
    * @returns {Promise<void>}
    */
   async createVideo() {
-    console.log('Generating video...');
+    console.log(`Generating video from ${this.uniqueImageCount} images...`);
 
     const files = Fs.readdirSync(this.assetDirectory)
       .filter(f => f.startsWith('camera-') && f.endsWith('.jpg'))
@@ -331,8 +341,7 @@ class TrafficBot {
 
     const stats = Fs.statSync(this.pathToVideo);
     const fileSizeInMB = stats.size / (1024 * 1024);
-    console.log(`Video generated: ${this.pathToVideo} (${fileSizeInMB.toFixed(2)} MB)`);
-    console.log(`Total unique images: ${this.uniqueImageCount}`);
+    console.log(`Video generated: ${fileSizeInMB.toFixed(2)} MB (${this.uniqueImageCount} images)`);
   }
 
   /**
@@ -487,12 +496,16 @@ class TrafficBot {
       }
     }
 
-    console.log('Uploading video to Bluesky...');
+    if (this.weatherStart) {
+      const w = this.weatherStart;
+      console.log(`Weather: ${Math.round(w.tempF)}°F, ${w.description}`);
+    }
 
     const videoBuffer = Fs.readFileSync(this.pathToVideo);
     const stats = Fs.statSync(this.pathToVideo);
     const fileSizeInMB = stats.size / (1024 * 1024);
-    console.log(`Video file size: ${fileSizeInMB.toFixed(2)} MB`);
+
+    console.log(`Uploading video (${fileSizeInMB.toFixed(2)} MB)...`);
 
     const { data: serviceAuth } = await this.agent.com.atproto.server.getServiceAuth({
       aud: `did:web:${this.agent.dispatchUrl.host}`,
@@ -506,7 +519,6 @@ class TrafficBot {
     uploadUrl.searchParams.append('did', this.agent.session.did);
     uploadUrl.searchParams.append('name', 'camera.mp4');
 
-    console.log('Uploading to video service...');
     const uploadResponse = await fetch(uploadUrl.toString(), {
       method: 'POST',
       headers: {
@@ -523,10 +535,10 @@ class TrafficBot {
     }
 
     const jobStatus = await uploadResponse.json();
-    console.log('Video uploaded, processing...');
 
     let blob = jobStatus.blob;
     const videoServiceAgent = new AtpAgent({ service: keys.videoService });
+    let lastLoggedState = null;
 
     while (!blob) {
       await this.sleep(1000);
@@ -536,11 +548,27 @@ class TrafficBot {
           jobId: jobStatus.jobId,
         });
 
-        console.log(`Processing: ${status.jobStatus.state}`, status.jobStatus.progress || '');
+        const state = status.jobStatus.state;
+        const progress = status.jobStatus.progress;
+
+        const stateLabel = {
+          JOB_STATE_CREATED: 'Queued',
+          JOB_STATE_ENCODING: 'Encoding',
+          JOB_STATE_SCANNING: 'Scanning',
+          JOB_STATE_SCANNED: 'Scanned',
+          JOB_STATE_COMPLETED: 'Complete',
+          JOB_STATE_FAILED: 'Failed',
+        }[state] || state;
+
+        const logLine = progress ? `${stateLabel}: ${progress}%` : stateLabel;
+        if (logLine !== lastLoggedState) {
+          console.log(logLine);
+          lastLoggedState = logLine;
+        }
 
         if (status.jobStatus.blob) {
           blob = status.jobStatus.blob;
-        } else if (status.jobStatus.state === 'JOB_STATE_FAILED') {
+        } else if (state === 'JOB_STATE_FAILED') {
           throw new Error(`Video processing failed: ${status.jobStatus.error || 'Unknown error'}`);
         }
       } catch (error) {
@@ -551,8 +579,6 @@ class TrafficBot {
         throw error;
       }
     }
-
-    console.log('Video processing complete!');
 
     const aspectRatio = await this.getAspectRatio();
 
@@ -635,7 +661,10 @@ class TrafficBot {
       },
     });
 
-    console.log('Posted video to Bluesky successfully');
+    const rkey = result.uri.split('/').pop();
+    const did = result.uri.split('/')[2];
+    const postUrl = `https://bsky.app/profile/${did}/post/${rkey}`;
+    console.log(`Posted video to Bluesky successfully: ${postUrl}`);
     return { uri: result.uri, cid: result.cid };
   }
 
@@ -687,7 +716,7 @@ class TrafficBot {
         const stat = Fs.statSync(fullPath);
         if (now - stat.mtimeMs > staleThreshold) {
           Fs.removeSync(fullPath);
-          console.log(`Cleaned up stale asset directory: ${fullPath}`);
+          console.log(`Cleaned up stale assets: ${dir}`);
         }
       } catch (err) {
         console.error(`Failed to clean up ${fullPath}:`, err.message);
@@ -705,7 +734,7 @@ class TrafficBot {
     try {
       if (Fs.existsSync(this.assetDirectory)) {
         Fs.removeSync(this.assetDirectory);
-        console.log(`Removed ${this.assetDirectory}`);
+        console.log('Assets cleaned up');
       }
     } catch (err) {
       console.error(`Failed to cleanup ${this.assetDirectory}:`, err.message);
@@ -764,6 +793,8 @@ class TrafficBot {
 
     this.cleanupStaleAssets();
 
+    const runStart = Date.now();
+
     try {
       const account = keys.accounts[this.accountName];
       if (!account) {
@@ -781,6 +812,8 @@ class TrafficBot {
         process.exitCode = 1;
         return;
       }
+
+      console.log(`Logged in as @${account.identifier}`);
 
       const cameras = await this.fetchCameras();
       if (cameras.length === 0) {
@@ -847,8 +880,9 @@ class TrafficBot {
           if (this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0) {
             try {
               this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+              console.log(`${prefix}Weather: ${Math.round(this.weatherStart.tempF)}°F, ${this.weatherStart.description}`);
             } catch (err) {
-              console.log(`${prefix}Weather fetch (start) failed: ${err.message}`);
+              console.log(`${prefix}Weather fetch failed: ${err.message}`);
             }
           }
 
@@ -863,7 +897,7 @@ class TrafficBot {
             try {
               this.weatherEnd = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
             } catch (err) {
-              console.log(`${prefix}Weather fetch (end) failed: ${err.message}`);
+              // End weather is best-effort; no need to log failure
             }
           }
 
@@ -899,6 +933,12 @@ class TrafficBot {
     } catch (error) {
       console.error(error);
       process.exitCode = 1;
+    } finally {
+      const elapsedMs = Date.now() - runStart;
+      const elapsedMin = Math.floor(elapsedMs / 60000);
+      const elapsedSec = Math.round((elapsedMs % 60000) / 1000);
+      const elapsedStr = elapsedMin > 0 ? `${elapsedMin}m ${elapsedSec}s` : `${elapsedSec}s`;
+      console.log(`Done in ${elapsedStr}`);
     }
   }
 }

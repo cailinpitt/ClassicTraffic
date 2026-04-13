@@ -13,8 +13,8 @@ const KITTY_BREW_CAMERA = {
   name: 'Kitty Brew Cat Cafe',
   url: 'https://kittybrew.lorexddns.net:8888/stream3/index.m3u8',
   hasVideo: true,
-  latitude: 39.3601,
-  longitude: -84.3097,
+  latitude: 39.35096988742476,
+  longitude: -84.32375557204591,
 };
 
 class OhioBot extends TrafficBot {
@@ -83,7 +83,8 @@ class OhioBot extends TrafficBot {
   }
 
   async downloadVideoSegment(duration) {
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
+    this.getSetpts(duration);
+    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} at ${this.videoSpeedFactor}x...`);
 
     const tempPath = `${this.assetDirectory}raw.ts`;
     const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} -i "${this.chosenCamera.url}" -map 0:v:0 -c copy "${tempPath}"`;
@@ -96,7 +97,7 @@ class OhioBot extends TrafficBot {
       });
     });
 
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
@@ -172,6 +173,7 @@ class OhioBot extends TrafficBot {
       const cameras = await this.fetchCameras();
       const cam = _.find(cameras, c => c.id == argv.id);
       if (cam?.hasVideo) {
+        const runStart = Date.now();
         try {
           const keys = require('../keys.js');
           const account = keys.accounts[this.accountName];
@@ -181,6 +183,7 @@ class OhioBot extends TrafficBot {
           await this.agent.login({ identifier: account.identifier, password: account.password });
           if (!this.agent.session?.did) { process.exitCode = 1; return; }
 
+          console.log(`Logged in as @${account.identifier}`);
           this.chosenCamera = cam;
           this.saveRecentCameraId(cam.id);
           console.log(`ID ${cam.id}: ${cam.name} (video)`);
@@ -200,6 +203,11 @@ class OhioBot extends TrafficBot {
           process.exitCode = 1;
         } finally {
           this.cleanup();
+          const elapsedMs = Date.now() - runStart;
+          const elapsedMin = Math.floor(elapsedMs / 60000);
+          const elapsedSec = Math.round((elapsedMs % 60000) / 1000);
+          const elapsedStr = elapsedMin > 0 ? `${elapsedMin}m ${elapsedSec}s` : `${elapsedSec}s`;
+          console.log(`Done in ${elapsedStr}`);
         }
         return;
       }

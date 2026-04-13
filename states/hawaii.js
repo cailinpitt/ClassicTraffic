@@ -120,7 +120,8 @@ class HawaiiBot extends TrafficBot {
   }
 
   async downloadVideoSegment(duration) {
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
+    this.getSetpts(duration);
+    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} at ${this.videoSpeedFactor}x...`);
 
     const tempPath = `${this.assetDirectory}raw.ts`;
     const MIN_FILE_SIZE = 500 * 1024; // 500KB minimum
@@ -144,7 +145,7 @@ class HawaiiBot extends TrafficBot {
     // Phase 2: Re-encode with 2x speed-up from local file
     // Use -preset fast for ARM devices, scale timeout to capture duration
     // (ARM encodes at ~0.3-0.5x realtime, so allow ~10x the duration)
-    const encodeCmd = `ffmpeg -y -err_detect ignore_err -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -max_muxing_queue_size 4096 -an "${this.pathToVideo}"`;
+    const encodeCmd = `ffmpeg -y -err_detect ignore_err -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -max_muxing_queue_size 4096 -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(encodeCmd, { timeout: Math.max(duration * 10, 300) * 1000 }, (error) => {

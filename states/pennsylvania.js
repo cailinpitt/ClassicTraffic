@@ -229,7 +229,8 @@ class PennsylvaniaBot extends TrafficBot {
   async downloadVideoSegment(duration) {
     const authenticatedUrl = await this.getAuthenticatedVideoUrl(this.chosenCamera.imageId, this.chosenCamera.url);
 
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
+    this.getSetpts(duration);
+    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} at ${this.videoSpeedFactor}x...`);
 
     const tempPath = `${this.assetDirectory}raw.ts`;
     const MIN_FILE_SIZE = 500 * 1024;
@@ -246,7 +247,7 @@ class PennsylvaniaBot extends TrafficBot {
       });
     });
 
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
       exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
