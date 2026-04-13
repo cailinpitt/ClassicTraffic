@@ -260,7 +260,7 @@ class IllinoisBot extends TrafficBot {
       if (this.chosenCamera.isEarthCam) return this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId, this.chosenCamera.pageUrl);
       if (this.chosenCamera.isEarthCamNet) return this.getEarthCamNetStreamUrl(this.chosenCamera.shareApiClient, this.chosenCamera.shareApiContext);
       if (this.chosenCamera.isWetMet) return this.getWetMetStreamUrl(this.chosenCamera.wetMetUid);
-      if (this.chosenCamera.isYouTube) return this.getYouTubeStreamUrl(this.chosenCamera.youtubeId);
+      if (this.chosenCamera.isYouTube) return Promise.resolve(null); // URL not needed; yt-dlp handles fetching inline
       return this.getCurrentChunklistUrl();
     };
 
@@ -288,8 +288,11 @@ class IllinoisBot extends TrafficBot {
         : this.chosenCamera.isEarthCamNet ? 'https://share.earthcam.net/'
         : null;
       const earthCamFlags = referer ? `-headers 'Referer: ${referer}\\r\\n' ` : '';
-      const ipv4Flag = this.chosenCamera.isYouTube ? '-4 ' : '';
-      const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${ipv4Flag}${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
+      // For YouTube: pipe yt-dlp output directly into ffmpeg so only yt-dlp (with --force-ipv4)
+      // makes network connections. This avoids the IPv6 privacy-extension IP mismatch that causes 403s.
+      const captureCmd = this.chosenCamera.isYouTube
+        ? `yt-dlp --force-ipv4 --format "best" --no-playlist -o - "https://www.youtube.com/watch?v=${this.chosenCamera.youtubeId}" | ffmpeg -y -t ${segDuration} -i pipe:0 -map 0:v:0 -c copy "${segPath}"`
+        : `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
         exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, (error, _stdout, stderr) => {
