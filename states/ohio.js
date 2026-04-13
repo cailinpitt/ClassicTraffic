@@ -2,8 +2,20 @@ const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
+const { exec } = require('child_process');
+const argv = require('minimist')(process.argv.slice(2));
 
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
+const videoDurationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
+
+const KITTY_BREW_CAMERA = {
+  id: 'kitty-brew',
+  name: 'Kitty Brew Cat Cafe',
+  url: 'https://kittybrew.lorexddns.net:8888/stream3/index.m3u8',
+  hasVideo: true,
+  latitude: 39.3601,
+  longitude: -84.3097,
+};
 
 class OhioBot extends TrafficBot {
   constructor() {
@@ -61,12 +73,42 @@ class OhioBot extends TrafficBot {
         }
       });
 
+      cameras.push(KITTY_BREW_CAMERA);
       console.log(`Fetched ${cameras.length} cameras from API`);
       return cameras;
     } catch (error) {
       console.error('Error fetching cameras:', error.message);
       return [];
     }
+  }
+
+  async downloadVideoSegment(duration) {
+    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
+
+    const tempPath = `${this.assetDirectory}raw.ts`;
+    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} -i "${this.chosenCamera.url}" -map 0:v:0 -c copy "${tempPath}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
+        if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > 500 * 1024) return resolve();
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+
+    Fs.removeSync(tempPath);
+
+    const stats = Fs.statSync(this.pathToVideo);
+    console.log(`Video saved: ${this.pathToVideo} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
   }
 
   async downloadImage(index, retries = 3) {
@@ -110,6 +152,61 @@ class OhioBot extends TrafficBot {
         await this.sleep(1000 * Math.pow(2, attempt - 1));
       }
     }
+  }
+
+  async run() {
+    this.cleanupStaleAssets();
+
+    if (argv.list) {
+      try {
+        await this.listCameras();
+      } catch (error) {
+        console.error(error);
+        process.exitCode = 1;
+      }
+      return;
+    }
+
+    // If a specific video camera is requested, handle it directly
+    if (!_.isUndefined(argv.id)) {
+      const cameras = await this.fetchCameras();
+      const cam = _.find(cameras, c => c.id == argv.id);
+      if (cam?.hasVideo) {
+        try {
+          const keys = require('../keys.js');
+          const account = keys.accounts[this.accountName];
+          if (!account) throw new Error(`Account '${this.accountName}' not found in keys.js`);
+          const { AtpAgent } = require('@atproto/api');
+          this.agent = new AtpAgent({ service: keys.service });
+          await this.agent.login({ identifier: account.identifier, password: account.password });
+          if (!this.agent.session?.did) { process.exitCode = 1; return; }
+
+          this.chosenCamera = cam;
+          this.saveRecentCameraId(cam.id);
+          console.log(`ID ${cam.id}: ${cam.name} (video)`);
+          Fs.ensureDirSync(this.assetDirectory);
+          this.startTime = new Date();
+          const duration = argv.duration ? parseInt(argv.duration) : _.sample(videoDurationOptions);
+          await this.downloadVideoSegment(duration);
+          this.endTime = new Date();
+
+          if (argv['dry-run']) {
+            console.log('Dry run - skipping post to Bluesky');
+          } else {
+            await this.postToBluesky();
+          }
+        } catch (error) {
+          console.error(error);
+          process.exitCode = 1;
+        } finally {
+          this.cleanup();
+        }
+        return;
+      }
+    }
+
+    // Default: use base class run() for image cameras
+    return super.run();
   }
 }
 

@@ -9,6 +9,71 @@ const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 10;
 
+const TIMES_SQUARE_PAGE_URL = 'https://www.earthcam.com/usa/newyork/timessquare/index.php';
+
+const TIMES_SQUARE_CAMERAS = [
+  {
+    id: 'times-square-47th',
+    name: 'Times Square (47th & Broadway)',
+    fecnetworkId: 'hdtimes10',
+    pageUrl: TIMES_SQUARE_PAGE_URL,
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 40.7580,
+    longitude: -73.9855,
+  },
+  {
+    id: 'times-square-street',
+    name: 'Times Square (Street Cam)',
+    fecnetworkId: '9974',
+    pageUrl: TIMES_SQUARE_PAGE_URL,
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 40.7580,
+    longitude: -73.9855,
+  },
+  {
+    id: 'times-square-crossroads',
+    name: 'Times Square (Crossroads)',
+    fecnetworkId: '15559',
+    pageUrl: TIMES_SQUARE_PAGE_URL,
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 40.7580,
+    longitude: -73.9855,
+  },
+  {
+    id: 'times-square-north',
+    name: 'Times Square (North View)',
+    fecnetworkId: '485',
+    pageUrl: TIMES_SQUARE_PAGE_URL,
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 40.7580,
+    longitude: -73.9855,
+  },
+  {
+    id: 'times-square-south',
+    name: 'Times Square (South View 4K)',
+    fecnetworkId: '1415',
+    pageUrl: TIMES_SQUARE_PAGE_URL,
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 40.7580,
+    longitude: -73.9855,
+  },
+  {
+    id: 'times-square-fancam',
+    name: 'Times Square (FanCam)',
+    fecnetworkId: '4717',
+    pageUrl: TIMES_SQUARE_PAGE_URL,
+    hasVideo: true,
+    isEarthCam: true,
+    latitude: 40.7580,
+    longitude: -73.9855,
+  },
+];
+
 class NewYorkBot extends TrafficBot {
   constructor() {
     super({
@@ -135,6 +200,7 @@ class NewYorkBot extends TrafficBot {
           };
         });
 
+      cameras.push(...TIMES_SQUARE_CAMERAS);
       const videoCount = cameras.filter(c => c.hasVideo).length;
       const imageCount = cameras.filter(c => !c.hasVideo).length;
       console.log(`${cameras.length} cameras (${videoCount} video, ${imageCount} image-only)`);
@@ -192,13 +258,31 @@ class NewYorkBot extends TrafficBot {
     }
   }
 
+  async getEarthCamStreamUrl(fecnetworkId, pageUrl) {
+    console.log(`Fetching EarthCam stream URL for fecnetwork ${fecnetworkId}...`);
+    const response = await Axios.get(pageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+      },
+    });
+    const match = response.data.match(new RegExp(`"html5_streampath":"(\\\\/fecnetwork\\\\/${fecnetworkId}[^"]+)"`));
+    if (!match) throw new Error(`Could not find stream URL for fecnetwork ID ${fecnetworkId}`);
+    const path = match[1].replace(/\\\//g, '/');
+    return `https://videos-3.earthcam.com${path}`;
+  }
+
   async downloadVideoSegment(duration) {
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
 
     const tempPath = `${this.assetDirectory}raw.ts`;
     const MIN_FILE_SIZE = 500 * 1024;
 
-    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} -i "${this.chosenCamera.url}" -map 0:v:0 -c copy "${tempPath}"`;
+    const streamUrl = this.chosenCamera.isEarthCam
+      ? await this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId, this.chosenCamera.pageUrl)
+      : this.chosenCamera.url;
+    const earthCamFlags = this.chosenCamera.isEarthCam ? `-headers 'Referer: https://www.earthcam.com/\\r\\n' ` : '';
+
+    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} ${earthCamFlags}-i "${streamUrl}" -map 0:v:0 -c copy "${tempPath}"`;
 
     await new Promise((resolve, reject) => {
       exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {

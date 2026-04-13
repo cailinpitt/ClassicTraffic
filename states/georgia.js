@@ -10,6 +10,31 @@ const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 10;
 const DIVAS_AUTH_URL = 'https://divas.cloud/VDS-API/SecureTokenUri/GetSecureTokenUriBySourceId';
 
+const GEORGIA_AQUARIUM_CAMERAS = [
+  { id: 'ga-aquarium-ocean-voyager',      name: 'Georgia Aquarium - Ocean Voyager',         ozolioOid: 'EMB_PNKJ00000043' },
+  { id: 'ga-aquarium-beluga',             name: 'Georgia Aquarium - Beluga Whales',          ozolioOid: 'EMB_MUFZ00000624' },
+  { id: 'ga-aquarium-sharks',             name: 'Georgia Aquarium - Predators of the Deep',  ozolioOid: 'EMB_OLQS00000697' },
+  { id: 'ga-aquarium-penguins',           name: 'Georgia Aquarium - African Penguins',       ozolioOid: 'EMB_TEEZ0000008E' },
+  { id: 'ga-aquarium-sea-lions',          name: 'Georgia Aquarium - California Sea Lions',   ozolioOid: 'EMB_GFVG0000003E' },
+  { id: 'ga-aquarium-barrier-reef',       name: 'Georgia Aquarium - Indo-Pacific Reef',      ozolioOid: 'EMB_EECM00000453' },
+  { id: 'ga-aquarium-jellies',            name: 'Georgia Aquarium - Jellies',                ozolioOid: 'EMB_AHAJ0000010B' },
+  { id: 'ga-aquarium-puffins',            name: 'Georgia Aquarium - Puffins',                ozolioOid: 'EMB_ZZKB00000796' },
+  { id: 'ga-aquarium-sea-otters',         name: 'Georgia Aquarium - Southern Sea Otters',    ozolioOid: 'EMB_TWUL00000089' },
+].map(c => ({ ...c, hasVideo: true, isOzolio: true, latitude: 33.7633, longitude: -84.3940 }));
+
+const ANF_WETMET_CAMERAS = [
+  { id: 'anf-atlanta-airport',    name: 'Hartsfield-Jackson Atlanta Airport', wetMetUid: 'a06f42ff3a95a5f55419bc079aee63c9', latitude: 33.6407, longitude: -84.4277 },
+  { id: 'anf-centennial-park',    name: 'Centennial Olympic Park',             wetMetUid: '90fb863b5c7d2eef0c3c762f49124b25', latitude: 33.7606, longitude: -84.3951 },
+  { id: 'anf-atlanta',            name: 'Atlanta',                             wetMetUid: '3710d34f691931e30aafe0ec521ebad5', latitude: 33.7490, longitude: -84.3880 },
+  { id: 'anf-stone-mountain',     name: 'Stone Mountain',                      wetMetUid: '81d98658a7c8e2572d82aa3e3730f76d', latitude: 33.8039, longitude: -84.1704 },
+  { id: 'anf-lake-lanier',        name: 'Lake Lanier',                         wetMetUid: 'c74c586d140dbf5da41cadc3afa772f0', latitude: 34.1870, longitude: -83.9710 },
+  { id: 'anf-sandy-springs',      name: 'Sandy Springs',                       wetMetUid: 'b2061239d5e3970ea83193ee89a9ead7', latitude: 33.9304, longitude: -84.3733 },
+  { id: 'anf-marietta',           name: 'Marietta',                            wetMetUid: '4fe18c0dd5ed97b0dc14dee71ea63a5a', latitude: 33.9526, longitude: -84.5499 },
+  { id: 'anf-cobb-county',        name: 'Cobb County',                         wetMetUid: 'f5a44a1c9ad2c07be2dd2f1cce2627d2', latitude: 33.9400, longitude: -84.5200 },
+  { id: 'anf-dekalb-i85',         name: 'I-85 in DeKalb County',               wetMetUid: 'd90996bd208c3de6612c9238890dcbaf', latitude: 33.7490, longitude: -84.2870 },
+  { id: 'anf-studios',            name: 'Atlanta News First Studios',           wetMetUid: '9666ec3fe12a3a9155e2052e726636e1', latitude: 33.7490, longitude: -84.3880 },
+].map(c => ({ ...c, hasVideo: true, isWetMet: true }));
+
 class GeorgiaBot extends TrafficBot {
   constructor() {
     super({
@@ -170,6 +195,8 @@ class GeorgiaBot extends TrafficBot {
           };
         });
 
+      cameras.push(...GEORGIA_AQUARIUM_CAMERAS);
+      cameras.push(...ANF_WETMET_CAMERAS);
       const videoCount = cameras.filter(c => c.hasVideo).length;
       const imageCount = cameras.filter(c => !c.hasVideo).length;
       console.log(`${cameras.length} cameras (${videoCount} video, ${imageCount} image-only)`);
@@ -227,8 +254,39 @@ class GeorgiaBot extends TrafficBot {
     }
   }
 
+  async getWetMetStreamUrl(uid) {
+    console.log(`Fetching WetMet stream URL for ${uid}...`);
+    const response = await Axios.get(`https://api.wetmet.net/widgets/stream/frame.php?uid=${uid}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+    });
+    const match = response.data.match(/var vurl = '([^']+)'/);
+    if (!match) throw new Error(`Could not find stream URL for WetMet uid ${uid}`);
+    return match[1];
+  }
+
+  async getOzolioStreamUrl(oid) {
+    console.log(`Fetching Ozolio stream URL for ${oid}...`);
+    const initResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=init&oid=${oid}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+    });
+    const sessionId = initResp.data?.session?.id;
+    if (!sessionId) throw new Error(`Could not get Ozolio session for ${oid}`);
+
+    const openResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=open&oid=${sessionId}&output=1&format=M3U8`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+    });
+    const streamUrl = openResp.data?.output?.source;
+    if (!streamUrl) throw new Error(`Could not get Ozolio stream URL for ${oid}`);
+    return streamUrl;
+  }
+
   async downloadVideoSegment(duration) {
-    const authenticatedUrl = await this.getAuthenticatedVideoUrl(this.chosenCamera.imageId, this.chosenCamera.url);
+    const streamUrl = this.chosenCamera.isOzolio
+      ? await this.getOzolioStreamUrl(this.chosenCamera.ozolioOid)
+      : this.chosenCamera.isWetMet
+        ? await this.getWetMetStreamUrl(this.chosenCamera.wetMetUid)
+        : await this.getAuthenticatedVideoUrl(this.chosenCamera.imageId, this.chosenCamera.url);
+    const authenticatedUrl = streamUrl;
 
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name}...`);
 
