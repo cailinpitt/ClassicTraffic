@@ -13,6 +13,7 @@ class AlabamaBot extends TrafficBot {
       tzAbbrev: 'CT',
       framerate: 5,
       delayBetweenImageFetches: 900000,
+      maxImageCollectionMs: 14400000, // 4 hours — stop collecting early if delays inflate
     });
   }
 
@@ -23,7 +24,7 @@ class AlabamaBot extends TrafficBot {
   }
 
   getTimeout() {
-    return (Math.max(...numImagesPerVideoOptions) - 1) * this.delayBetweenImageFetches / 1000 + 600;
+    return 18000; // 5 hours: up to 4h image collection + 1h buffer to process and post
   }
 
   async fetchCameras() {
