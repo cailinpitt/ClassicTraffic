@@ -291,11 +291,13 @@ class IllinoisBot extends TrafficBot {
       const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
-        exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, () => {
+        exec(captureCmd, { timeout: (segDuration + 30) * 1000 }, (error, _stdout, stderr) => {
           if (Fs.existsSync(segPath) && Fs.statSync(segPath).size > 100 * 1024) {
             segmentPaths.push(segPath);
           } else {
-            console.log(`Segment ${i + 1} too small or missing, skipping`);
+            const reason = error ? error.message : 'file too small or missing';
+            console.log(`Segment ${i + 1} failed: ${reason}`);
+            if (stderr) console.log(`ffmpeg stderr: ${stderr.slice(-500)}`);
             if (Fs.existsSync(segPath)) Fs.removeSync(segPath);
           }
           resolve();
