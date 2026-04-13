@@ -678,13 +678,13 @@ class TrafficBot {
     const videoServiceAgent = new AtpAgent({ service: keys.videoService });
     let lastLoggedState = null;
     let pollAttempts = 0;
-    const MAX_POLL_ATTEMPTS = 300; // 5 minutes at 1s intervals
+    const MAX_POLL_ATTEMPTS = 150; // 5 minutes at 2s intervals
 
     while (!blob) {
       if (++pollAttempts > MAX_POLL_ATTEMPTS) {
         throw new Error('Video processing timed out after 5 minutes');
       }
-      await this.sleep(1000);
+      await this.sleep(2000);
 
       try {
         const { data: status } = await videoServiceAgent.app.bsky.video.getJobStatus({
