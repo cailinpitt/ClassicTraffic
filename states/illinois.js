@@ -22,6 +22,7 @@ const SKYDECK_CAMERAS = [
     id: 'skydeck-east',
     name: 'Willis Tower Skydeck',
     fecnetworkId: '22820',
+    pageUrl: 'https://www.earthcam.com/usa/illinois/chicago/skydeck/',
     hasVideo: true,
     isEarthCam: true,
     latitude: 41.8789,
@@ -31,6 +32,7 @@ const SKYDECK_CAMERAS = [
     id: 'skydeck-west',
     name: 'Willis Tower Skydeck (West View)',
     fecnetworkId: '42881',
+    pageUrl: 'https://www.earthcam.com/usa/illinois/chicago/skydeck/',
     hasVideo: true,
     isEarthCam: true,
     latitude: 41.8789,
@@ -40,12 +42,75 @@ const SKYDECK_CAMERAS = [
     id: 'skydeck-north',
     name: 'Willis Tower Skydeck (North View)',
     fecnetworkId: '27623',
+    pageUrl: 'https://www.earthcam.com/usa/illinois/chicago/skydeck/',
     hasVideo: true,
     isEarthCam: true,
     latitude: 41.8789,
     longitude: -87.6359,
   },
 ];
+
+const MIDWAY_CAMERA = {
+  id: 'midway-airport',
+  name: 'Chicago Midway Airport',
+  fecnetworkId: '22172',
+  pageUrl: 'https://www.earthcam.com/usa/illinois/chicago/midwayairport/',
+  hasVideo: true,
+  isEarthCam: true,
+  latitude: 41.7868,
+  longitude: -87.7522,
+};
+
+const MIDWAY_YOUTUBE_CAMERA = {
+  id: 'midway-airport-youtube',
+  name: 'Chicago Midway Airport',
+  youtubeId: '67BCsiW-1Io',
+  hasVideo: true,
+  isYouTube: true,
+  latitude: 41.7868,
+  longitude: -87.7522,
+};
+
+const CINDYS_ROOFTOP_CAMERA = {
+  id: 'cindys-rooftop',
+  name: "Cindy's Rooftop",
+  wetMetUid: 'e610a1ff04cc219eb91c779e8861c124',
+  hasVideo: true,
+  isWetMet: true,
+  latitude: 41.8807,
+  longitude: -87.6279,
+};
+
+const CHICAGO_RIVER_CAMERA = {
+  id: 'chicago-river',
+  name: 'Chicago River',
+  wetMetUid: '4f3e81c8ba5bf5a0ff1768c88aba1f8c',
+  hasVideo: true,
+  isWetMet: true,
+  latitude: 41.8887,
+  longitude: -87.6281,
+};
+
+const CNW_POWERHOUSE_CAMERA = {
+  id: 'cnw-powerhouse',
+  name: 'Chicago & North Western Power House',
+  youtubeId: 'InQ0-b4DkCw',
+  hasVideo: true,
+  isYouTube: true,
+  latitude: 41.8819,
+  longitude: -87.6373,
+};
+
+const WRIGLEY_CAMERA = {
+  id: 'wrigley-field',
+  name: 'Wrigley Field',
+  shareApiClient: 'tJ90CoLmq7TzrY396Yd88LOc-jcDgi0ca-YNv3MI9rc!.tJ90CoLmq7TzrY396Yd88G8-6CLOrQYCFNszQ91PWAs!.tJ90CoLmq7TzrY396Yd88DGHDxm0NvViWeCn-Q5a6NQ!',
+  shareApiContext: 'tJ90CoLmq7TzrY396Yd88DGHDxm0NvViWeCn-Q5a6NQ!',
+  hasVideo: true,
+  isEarthCamNet: true,
+  latitude: 41.947119,
+  longitude: -87.656272,
+};
 
 class IllinoisBot extends TrafficBot {
   constructor() {
@@ -117,7 +182,13 @@ class IllinoisBot extends TrafficBot {
 
       cameras.push(JANE_BYRNE_CAMERA);
       cameras.push(...SKYDECK_CAMERAS);
-      console.log(`Found ${cameras.length} cameras (including Jane Byrne and Skydeck live video)`);
+      cameras.push(MIDWAY_CAMERA);
+      cameras.push(MIDWAY_YOUTUBE_CAMERA);
+      cameras.push(CINDYS_ROOFTOP_CAMERA);
+      cameras.push(CHICAGO_RIVER_CAMERA);
+      cameras.push(CNW_POWERHOUSE_CAMERA);
+      cameras.push(WRIGLEY_CAMERA);
+      console.log(`Found ${cameras.length} cameras (including Jane Byrne, Skydeck, and Midway Airport live video)`);
       return cameras;
     } catch (error) {
       console.error('Error fetching cameras:', error.message);
@@ -171,9 +242,9 @@ class IllinoisBot extends TrafficBot {
     }
   }
 
-  async getEarthCamStreamUrl(fecnetworkId) {
+  async getEarthCamStreamUrl(fecnetworkId, pageUrl) {
     console.log(`Fetching EarthCam stream URL for fecnetwork ${fecnetworkId}...`);
-    const response = await Axios.get('https://www.earthcam.com/usa/illinois/chicago/skydeck/', {
+    const response = await Axios.get(pageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
       },
@@ -182,6 +253,43 @@ class IllinoisBot extends TrafficBot {
     if (!match) throw new Error(`Could not find stream URL for fecnetwork ID ${fecnetworkId}`);
     const path = match[1].replace(/\\\//g, '/');
     return `https://videos-3.earthcam.com${path}`;
+  }
+
+  async getYouTubeStreamUrl(youtubeId) {
+    console.log(`Fetching YouTube stream URL for ${youtubeId}...`);
+    return new Promise((resolve, reject) => {
+      exec(`yt-dlp -g --format "best[ext=mp4]/best" "https://www.youtube.com/watch?v=${youtubeId}"`, (error, stdout) => {
+        if (error) return reject(new Error(`yt-dlp failed: ${error.message}`));
+        const url = stdout.trim().split('\n')[0];
+        if (!url) return reject(new Error('yt-dlp returned no URL'));
+        resolve(url);
+      });
+    });
+  }
+
+  async getWetMetStreamUrl(uid) {
+    console.log(`Fetching WetMet stream URL for ${uid}...`);
+    const response = await Axios.get(`https://api.wetmet.net/widgets/stream/frame.php?uid=${uid}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+      },
+    });
+    const match = response.data.match(/var vurl = '([^']+)'/);
+    if (!match) throw new Error(`Could not find stream URL for WetMet uid ${uid}`);
+    return match[1];
+  }
+
+  async getEarthCamNetStreamUrl(shareApiClient, shareApiContext) {
+    console.log(`Fetching EarthCam.net stream URL for ${shareApiContext}...`);
+    const response = await Axios.get(`https://share.earthcam.net/api/${shareApiClient}/${shareApiContext}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+        'Referer': 'https://share.earthcam.net/',
+      },
+    });
+    const stream = response.data?.views?.[0]?.live?.regular?.stream;
+    if (!stream) throw new Error(`No stream URL found for EarthCam.net context ${shareApiContext}`);
+    return stream;
   }
 
   async getCurrentChunklistUrl() {
@@ -195,14 +303,20 @@ class IllinoisBot extends TrafficBot {
   async downloadVideoSegment(duration) {
     console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} in 60s segments...`);
 
-    const SEG_DURATION = this.chosenCamera.isEarthCam ? 300 : 60;
+    const SEG_DURATION = (this.chosenCamera.isEarthCam || this.chosenCamera.isEarthCamNet || this.chosenCamera.isYouTube || this.chosenCamera.isWetMet) ? 300 : 60;
     const numSegments = Math.ceil(duration / SEG_DURATION);
     const segmentPaths = [];
 
+    const getNextUrl = () => {
+      if (this.chosenCamera.isEarthCam) return this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId, this.chosenCamera.pageUrl);
+      if (this.chosenCamera.isEarthCamNet) return this.getEarthCamNetStreamUrl(this.chosenCamera.shareApiClient, this.chosenCamera.shareApiContext);
+      if (this.chosenCamera.isWetMet) return this.getWetMetStreamUrl(this.chosenCamera.wetMetUid);
+      if (this.chosenCamera.isYouTube) return this.getYouTubeStreamUrl(this.chosenCamera.youtubeId);
+      return this.getCurrentChunklistUrl();
+    };
+
     // Pre-fetch the first URL before the loop starts
-    let nextUrlPromise = this.chosenCamera.isEarthCam
-      ? this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
-      : this.getCurrentChunklistUrl();
+    let nextUrlPromise = getNextUrl();
 
     for (let i = 0; i < numSegments; i++) {
       const segDuration = Math.min(SEG_DURATION, duration - i * SEG_DURATION);
@@ -216,16 +330,15 @@ class IllinoisBot extends TrafficBot {
         console.log(`Failed to get chunklist for segment ${i + 1}: ${err.message}`);
         // Fetch fresh for next segment before skipping
         if (i + 1 < numSegments) {
-          nextUrlPromise = this.chosenCamera.isEarthCam
-            ? this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
-            : this.getCurrentChunklistUrl();
+          nextUrlPromise = getNextUrl();
         }
         continue;
       }
 
-      const earthCamFlags = this.chosenCamera.isEarthCam
-        ? `-headers 'Referer: https://www.earthcam.com/\\r\\n' `
-        : '';
+      const referer = this.chosenCamera.isEarthCam ? 'https://www.earthcam.com/'
+        : this.chosenCamera.isEarthCamNet ? 'https://share.earthcam.net/'
+        : null;
+      const earthCamFlags = referer ? `-headers 'Referer: ${referer}\\r\\n' ` : '';
       const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
@@ -243,9 +356,7 @@ class IllinoisBot extends TrafficBot {
         if (i + 1 < numSegments) {
           const prefetchAfterMs = Math.max(0, (segDuration - 10) * 1000);
           setTimeout(() => {
-            nextUrlPromise = this.chosenCamera.isEarthCam
-              ? this.getEarthCamStreamUrl(this.chosenCamera.fecnetworkId)
-              : this.getCurrentChunklistUrl();
+            nextUrlPromise = getNextUrl();
           }, prefetchAfterMs);
         }
       });
