@@ -293,7 +293,7 @@ class IllinoisBot extends TrafficBot {
       // yt-dlp/ffmpeg use different IPv6 source addresses than the one the CDN URL was
       // signed for, causing 403s. ffmpeg reads the piped bytes and makes no network calls.
       const captureCmd = this.chosenCamera.isYouTube
-        ? `streamlink --force-ipv4 -o - "https://www.youtube.com/watch?v=${this.chosenCamera.youtubeId}" best | ffmpeg -y -t ${segDuration} -i pipe:0 -map 0:v:0 -c copy "${segPath}"`
+        ? `streamlink -o - "https://www.youtube.com/watch?v=${this.chosenCamera.youtubeId}" best | ffmpeg -y -t ${segDuration} -i pipe:0 -map 0:v:0 -c copy "${segPath}"`
         : `ffmpeg -y -rw_timeout 15000000 -t ${segDuration} ${earthCamFlags}-i "${chunklistUrl}" -map 0:v:0 -c copy "${segPath}"`;
 
       await new Promise((resolve) => {
