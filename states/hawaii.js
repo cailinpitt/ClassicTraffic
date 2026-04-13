@@ -27,13 +27,8 @@ class HawaiiBot extends TrafficBot {
     return (Math.max(...numImagesPerVideoOptions) - 1) * (this.delayBetweenImageFetches * 4) / 1000 + 600;
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1 || this.consecutiveDuplicates >= 3) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
+  getEncodeFlags() { return '-err_detect ignore_err -max_muxing_queue_size 4096'; }
+  getEncodeTimeout(duration) { return Math.max(duration * 10, 300) * 1000; }
 
   async fetchCameras() {
     console.log('Fetching cameras from GoAkamai...');
@@ -117,48 +112,6 @@ class HawaiiBot extends TrafficBot {
         await this.sleep(1000 * Math.pow(2, attempt - 1));
       }
     }
-  }
-
-  async downloadVideoSegment(duration) {
-    this.getSetpts(duration);
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} at ${this.videoSpeedFactor}x...`);
-
-    const tempPath = `${this.assetDirectory}raw.ts`;
-    const MIN_FILE_SIZE = 500 * 1024; // 500KB minimum
-
-    // Phase 1: Capture raw HLS stream to .ts container
-    // -t before -i limits input capture time (not output time)
-    // .ts is resilient to interruption (no moov atom finalization needed)
-    // -rw_timeout 15s bails on network-level stalls
-    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} -i "${this.chosenCamera.url}" -map 0:v:0 -c copy "${tempPath}"`;
-
-    await new Promise((resolve, reject) => {
-      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
-        if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > MIN_FILE_SIZE) {
-          return resolve(); // accept partial capture
-        }
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    // Phase 2: Re-encode with 2x speed-up from local file
-    // Use -preset fast for ARM devices, scale timeout to capture duration
-    // (ARM encodes at ~0.3-0.5x realtime, so allow ~10x the duration)
-    const encodeCmd = `ffmpeg -y -err_detect ignore_err -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -max_muxing_queue_size 4096 -an "${this.pathToVideo}"`;
-
-    await new Promise((resolve, reject) => {
-      exec(encodeCmd, { timeout: Math.max(duration * 10, 300) * 1000 }, (error) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    Fs.removeSync(tempPath);
-
-    const stats = Fs.statSync(this.pathToVideo);
-    const fileSizeInMB = stats.size / (1024 * 1024);
-    console.log(`Video saved: ${this.pathToVideo} (${fileSizeInMB.toFixed(2)} MB)`);
   }
 
   async run() {

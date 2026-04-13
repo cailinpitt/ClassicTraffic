@@ -27,14 +27,6 @@ class FloridaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
-
   async getSession() {
     console.log('Fetching session from fl511.com...');
     const response = await Axios.get('https://fl511.com/cctv', {

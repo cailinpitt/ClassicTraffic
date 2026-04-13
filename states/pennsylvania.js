@@ -27,14 +27,6 @@ class PennsylvaniaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
-
   async getSession() {
     console.log('Fetching session from 511pa.com...');
     const response = await Axios.get('https://www.511pa.com/cctv', {

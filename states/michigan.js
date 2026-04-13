@@ -17,16 +17,10 @@ class MichiganBot extends TrafficBot {
     });
   }
 
+  getImageHeaders() { return { Referer: 'https://mdotjboss.state.mi.us/MiDrive/cameras' }; }
+
   getNumImages() {
     return _.sample(numImagesPerVideoOptions);
-  }
-
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
   }
 
   async fetchCameras() {
@@ -66,52 +60,6 @@ class MichiganBot extends TrafficBot {
     } catch (error) {
       console.error('Error fetching Michigan cameras:', error.message);
       return [];
-    }
-  }
-
-  async downloadImage(index, retries = 3) {
-    const path = this.getImagePath(index);
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const writer = Fs.createWriteStream(path);
-
-        const response = await Axios({
-          url: this.chosenCamera.url,
-          method: 'GET',
-          responseType: 'stream',
-          timeout: 20000,
-          headers: {
-            'Referer': 'https://mdotjboss.state.mi.us/MiDrive/cameras',
-          },
-        });
-
-        return await new Promise((resolve, reject) => {
-          response.data.pipe(writer);
-          writer.on('finish', () => {
-            setTimeout(() => {
-              try {
-                const isUnique = this.checkAndStoreImage(path, index);
-                resolve(isUnique);
-              } catch (err) {
-                reject(err);
-              }
-            }, 100);
-          });
-          writer.on('error', reject);
-        });
-      } catch (error) {
-        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
-        if (Fs.existsSync(path)) {
-          Fs.removeSync(path);
-        }
-
-        if (attempt === retries) {
-          throw error;
-        }
-
-        await this.sleep(1000 * Math.pow(2, attempt - 1));
-      }
     }
   }
 }

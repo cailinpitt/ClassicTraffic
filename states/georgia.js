@@ -52,14 +52,6 @@ class GeorgiaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
-
   async getSession() {
     console.log('Fetching session from 511ga.org...');
     const response = await Axios.get('https://511ga.org/cctv', {
@@ -252,32 +244,6 @@ class GeorgiaBot extends TrafficBot {
         await this.sleep(1000 * Math.pow(2, attempt - 1));
       }
     }
-  }
-
-  async getWetMetStreamUrl(uid) {
-    console.log(`Fetching WetMet stream URL for ${uid}...`);
-    const response = await Axios.get(`https://api.wetmet.net/widgets/stream/frame.php?uid=${uid}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
-    });
-    const match = response.data.match(/var vurl = '([^']+)'/);
-    if (!match) throw new Error(`Could not find stream URL for WetMet uid ${uid}`);
-    return match[1];
-  }
-
-  async getOzolioStreamUrl(oid) {
-    console.log(`Fetching Ozolio stream URL for ${oid}...`);
-    const initResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=init&oid=${oid}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
-    });
-    const sessionId = initResp.data?.session?.id;
-    if (!sessionId) throw new Error(`Could not get Ozolio session for ${oid}`);
-
-    const openResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=open&oid=${sessionId}&output=1&format=M3U8`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
-    });
-    const streamUrl = openResp.data?.output?.source;
-    if (!streamUrl) throw new Error(`Could not get Ozolio stream URL for ${oid}`);
-    return streamUrl;
   }
 
   async downloadVideoSegment(duration) {

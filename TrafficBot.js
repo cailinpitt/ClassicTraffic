@@ -8,6 +8,7 @@ const { exec } = require('child_process');
 const { AtpAgent } = require('@atproto/api');
 const argv = require('minimist')(process.argv.slice(2));
 const crypto = require('crypto');
+const Axios = require('axios');
 
 /**
  * @typedef {Object} Camera
@@ -105,16 +106,144 @@ class TrafficBot {
   }
 
   /**
+   * Return the URL to fetch for image downloads.
+   * Override to add cache-busting query params.
+   * @returns {string}
+   */
+  getImageUrl() {
+    return this.chosenCamera.url;
+  }
+
+  /**
+   * Return extra HTTP headers to include in image download requests.
+   * Override to add Referer, User-Agent, etc.
+   * @returns {Object}
+   */
+  getImageHeaders() {
+    return {};
+  }
+
+  /**
    * Download a single image from the chosen camera.
-   * Must be implemented by subclasses.
-   * Use this.getImagePath(index) for the save location.
-   * Use this.checkAndStoreImage(path, index) to handle deduplication.
-   * @abstract
+   * Uses getImageUrl() and getImageHeaders() hooks — override those instead of this.
    * @param {number} index - Image index (0-based)
    * @returns {Promise<boolean>} True if image was unique, false if duplicate
    */
-  async downloadImage(index) {
-    throw new Error('downloadImage() must be implemented');
+  async downloadImage(index, retries = 3) {
+    const path = this.getImagePath(index);
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const writer = Fs.createWriteStream(path);
+
+        const response = await Axios({
+          url: this.getImageUrl(),
+          method: 'GET',
+          responseType: 'stream',
+          timeout: 20000,
+          headers: this.getImageHeaders(),
+        });
+
+        return await new Promise((resolve, reject) => {
+          response.data.pipe(writer);
+          writer.on('finish', () => {
+            setTimeout(() => {
+              try {
+                const isUnique = this.checkAndStoreImage(path, index);
+                resolve(isUnique);
+              } catch (err) {
+                reject(err);
+              }
+            }, 100);
+          });
+          writer.on('error', reject);
+        });
+      } catch (error) {
+        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
+        if (Fs.existsSync(path)) Fs.removeSync(path);
+        if (attempt === retries) throw error;
+        await this.sleep(1000 * Math.pow(2, attempt - 1));
+      }
+    }
+  }
+
+  /**
+   * Return ffmpeg flags placed between `ffmpeg -y` and `-t` in the capture command.
+   * Override to change protocol flags or add authentication headers.
+   * @returns {string}
+   */
+  getCaptureFlags() {
+    return '-rw_timeout 15000000';
+  }
+
+  /**
+   * Return the video stream URL to capture from.
+   * Override for bots that need to fetch an authenticated or dynamic URL.
+   * @returns {Promise<string>}
+   */
+  async getVideoUrl() {
+    return this.chosenCamera.url;
+  }
+
+  /**
+   * Return extra ffmpeg flags appended to the encode command.
+   * Override to add codec-specific flags (e.g. -err_detect ignore_err).
+   * @returns {string}
+   */
+  getEncodeFlags() {
+    return '';
+  }
+
+  /**
+   * Return the timeout (ms) for the ffmpeg encode exec call.
+   * Override on slow hardware where encoding takes longer.
+   * @param {number} duration - Capture duration in seconds
+   * @returns {number}
+   */
+  getEncodeTimeout(duration) {
+    return (duration * 2 + 300) * 1000;
+  }
+
+  /**
+   * Capture a video segment from the chosen camera and encode it as an MP4.
+   * Uses getCaptureFlags(), getVideoUrl(), getEncodeFlags(), getEncodeTimeout() hooks.
+   * @param {number} duration - Capture duration in seconds
+   * @returns {Promise<void>}
+   */
+  async downloadVideoSegment(duration) {
+    this.getSetpts(duration);
+    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} at ${this.videoSpeedFactor}x...`);
+
+    const tempPath = `${this.assetDirectory}raw.ts`;
+    const streamUrl = await this.getVideoUrl();
+    const captureCmd = `ffmpeg -y ${this.getCaptureFlags()} -t ${duration} -i "${streamUrl}" -map 0:v:0 -c copy "${tempPath}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
+        if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > 500 * 1024) return resolve();
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+
+    const encodeFlags = this.getEncodeFlags();
+    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p${encodeFlags ? ' ' + encodeFlags : ''} -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(encodeCmd, { timeout: this.getEncodeTimeout(duration) }, (error) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+
+    Fs.removeSync(tempPath);
+
+    if (!Fs.existsSync(this.pathToVideo) || Fs.statSync(this.pathToVideo).size === 0) {
+      throw new Error('ffmpeg encode produced no output');
+    }
+
+    const stats = Fs.statSync(this.pathToVideo);
+    console.log(`Video saved: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
   }
 
   /**
@@ -134,8 +263,11 @@ class TrafficBot {
    * @returns {boolean} True to abort (skip video creation and posting)
    */
   shouldAbort() {
-    if (this.consecutiveDuplicates >= 10) {
-      console.log(`Camera ${this.chosenCamera?.id}: ${this.chosenCamera?.name} frozen (${this.consecutiveDuplicates} consecutive duplicates). Exiting`);
+    if (this.uniqueImageCount === 1 || this.consecutiveDuplicates >= 3) {
+      const reason = this.consecutiveDuplicates >= 3
+        ? `${this.consecutiveDuplicates} consecutive duplicates`
+        : 'only 1 unique image';
+      console.log(`Camera ${this.chosenCamera?.id}: ${this.chosenCamera?.name} appears frozen (${reason}). Exiting`);
       return true;
     }
     return false;
@@ -268,7 +400,7 @@ class TrafficBot {
         this.consecutiveDuplicates++;
       }
 
-      if (i >= 9 && this.shouldAbort()) {
+      if (i >= 4 && this.shouldAbort()) {
         return true;
       }
 
@@ -519,19 +651,25 @@ class TrafficBot {
     uploadUrl.searchParams.append('did', this.agent.session.did);
     uploadUrl.searchParams.append('name', 'camera.mp4');
 
-    const uploadResponse = await fetch(uploadUrl.toString(), {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'video/mp4',
-        'Content-Length': stats.size.toString(),
-      },
-      body: videoBuffer,
-    });
-
-    if (!uploadResponse.ok) {
-      const error = await uploadResponse.json();
-      throw new Error(`Video upload failed: ${JSON.stringify(error)}`);
+    let uploadResponse;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      uploadResponse = await fetch(uploadUrl.toString(), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'video/mp4',
+          'Content-Length': stats.size.toString(),
+        },
+        body: videoBuffer,
+      });
+      if (uploadResponse.ok) break;
+      const errBody = await uploadResponse.json().catch(() => ({}));
+      if (attempt < 3) {
+        console.log(`Upload attempt ${attempt} failed (${uploadResponse.status}), retrying...`);
+        await this.sleep(1000 * attempt);
+      } else {
+        throw new Error(`Video upload failed after 3 attempts: ${JSON.stringify(errBody)}`);
+      }
     }
 
     const jobStatus = await uploadResponse.json();
@@ -539,8 +677,13 @@ class TrafficBot {
     let blob = jobStatus.blob;
     const videoServiceAgent = new AtpAgent({ service: keys.videoService });
     let lastLoggedState = null;
+    let pollAttempts = 0;
+    const MAX_POLL_ATTEMPTS = 300; // 5 minutes at 1s intervals
 
     while (!blob) {
+      if (++pollAttempts > MAX_POLL_ATTEMPTS) {
+        throw new Error('Video processing timed out after 5 minutes');
+      }
       await this.sleep(1000);
 
       try {
@@ -740,6 +883,75 @@ class TrafficBot {
       console.error(`Failed to cleanup ${this.assetDirectory}:`, err.message);
     }
   }
+
+  // ─── Stream URL helpers ───────────────────────────────────────────────────
+
+  async getEarthCamStreamUrl(fecnetworkId, pageUrl) {
+    console.log(`Fetching EarthCam stream URL for fecnetwork ${fecnetworkId}...`);
+    const Axios = require('axios');
+    const response = await Axios.get(pageUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+    });
+    const match = response.data.match(new RegExp(`"html5_streampath":"(\\\\/fecnetwork\\\\/${fecnetworkId}[^"]+)"`));
+    if (!match) throw new Error(`Could not find stream URL for fecnetwork ID ${fecnetworkId}`);
+    const path = match[1].replace(/\\\//g, '/');
+    return `https://videos-3.earthcam.com${path}`;
+  }
+
+  async getEarthCamNetStreamUrl(shareApiClient, shareApiContext) {
+    console.log(`Fetching EarthCam.net stream URL for ${shareApiContext}...`);
+    const Axios = require('axios');
+    const response = await Axios.get(`https://share.earthcam.net/api/${shareApiClient}/${shareApiContext}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+        'Referer': 'https://share.earthcam.net/',
+      },
+    });
+    const stream = response.data?.views?.[0]?.live?.regular?.stream;
+    if (!stream) throw new Error(`No stream URL found for EarthCam.net context ${shareApiContext}`);
+    return stream;
+  }
+
+  async getYouTubeStreamUrl(youtubeId) {
+    console.log(`Fetching YouTube stream URL for ${youtubeId}...`);
+    return new Promise((resolve, reject) => {
+      exec(`yt-dlp -g --format "best[ext=mp4]/best" "https://www.youtube.com/watch?v=${youtubeId}"`, (error, stdout) => {
+        if (error) return reject(new Error(`yt-dlp failed: ${error.message}`));
+        const url = stdout.trim().split('\n')[0];
+        if (!url) return reject(new Error('yt-dlp returned no URL'));
+        resolve(url);
+      });
+    });
+  }
+
+  async getWetMetStreamUrl(uid) {
+    console.log(`Fetching WetMet stream URL for ${uid}...`);
+    const Axios = require('axios');
+    const response = await Axios.get(`https://api.wetmet.net/widgets/stream/frame.php?uid=${uid}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+    });
+    const match = response.data.match(/var vurl = '([^']+)'/);
+    if (!match) throw new Error(`Could not find stream URL for WetMet uid ${uid}`);
+    return match[1];
+  }
+
+  async getOzolioStreamUrl(oid) {
+    console.log(`Fetching Ozolio stream URL for ${oid}...`);
+    const Axios = require('axios');
+    const initResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=init&oid=${oid}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+    });
+    const sessionId = initResp.data?.session?.id;
+    if (!sessionId) throw new Error(`Could not get Ozolio session for ${oid}`);
+    const openResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=open&oid=${sessionId}&output=1&format=M3U8`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+    });
+    const streamUrl = openResp.data?.output?.source;
+    if (!streamUrl) throw new Error(`Could not get Ozolio stream URL for ${oid}`);
+    return streamUrl;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   /**
    * List all available cameras and exit.

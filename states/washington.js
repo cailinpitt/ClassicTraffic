@@ -16,20 +16,14 @@ class WashingtonBot extends TrafficBot {
     });
   }
 
+  getImageUrl() { return `${this.chosenCamera.url}?a=${Date.now()}`; }
+
   getNumImages() {
     return _.sample(numImagesPerVideoOptions);
   }
 
   getTimeout() {
     return (Math.max(...numImagesPerVideoOptions) - 1) * (this.delayBetweenImageFetches * 4) / 1000 + 600;
-  }
-
-  shouldAbort() {
-    if (this.uniqueImageCount === 1 || this.consecutiveDuplicates >= 3) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
   }
 
   async fetchCameras() {

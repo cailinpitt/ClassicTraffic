@@ -16,20 +16,14 @@ class WyomingBot extends TrafficBot {
     });
   }
 
+  getImageHeaders() { return { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' }; }
+
   getNumImages() {
     return _.sample(numImagesPerVideoOptions);
   }
 
   getTimeout() {
     return (Math.max(...numImagesPerVideoOptions) - 1) * (this.delayBetweenImageFetches * 4) / 1000 + 600;
-  }
-
-  shouldAbort() {
-    if (this.uniqueImageCount === 1 || this.consecutiveDuplicates >= 3) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
   }
 
   async fetchCameras() {
@@ -89,52 +83,6 @@ class WyomingBot extends TrafficBot {
     } catch (error) {
       console.error('Error fetching WYDOT cameras:', error.message);
       return [];
-    }
-  }
-
-  async downloadImage(index, retries = 3) {
-    const path = this.getImagePath(index);
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const writer = Fs.createWriteStream(path);
-
-        const response = await Axios({
-          url: this.chosenCamera.url,
-          method: 'GET',
-          responseType: 'stream',
-          timeout: 20000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-          },
-        });
-
-        return await new Promise((resolve, reject) => {
-          response.data.pipe(writer);
-          writer.on('finish', () => {
-            setTimeout(() => {
-              try {
-                const isUnique = this.checkAndStoreImage(path, index);
-                resolve(isUnique);
-              } catch (err) {
-                reject(err);
-              }
-            }, 100);
-          });
-          writer.on('error', reject);
-        });
-      } catch (error) {
-        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
-        if (Fs.existsSync(path)) {
-          Fs.removeSync(path);
-        }
-
-        if (attempt === retries) {
-          throw error;
-        }
-
-        await this.sleep(1000 * Math.pow(2, attempt - 1));
-      }
     }
   }
 }

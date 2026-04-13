@@ -242,56 +242,6 @@ class IllinoisBot extends TrafficBot {
     }
   }
 
-  async getEarthCamStreamUrl(fecnetworkId, pageUrl) {
-    console.log(`Fetching EarthCam stream URL for fecnetwork ${fecnetworkId}...`);
-    const response = await Axios.get(pageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-      },
-    });
-    const match = response.data.match(new RegExp(`"html5_streampath":"(\\\\/fecnetwork\\\\/${fecnetworkId}[^"]+)"`));
-    if (!match) throw new Error(`Could not find stream URL for fecnetwork ID ${fecnetworkId}`);
-    const path = match[1].replace(/\\\//g, '/');
-    return `https://videos-3.earthcam.com${path}`;
-  }
-
-  async getYouTubeStreamUrl(youtubeId) {
-    console.log(`Fetching YouTube stream URL for ${youtubeId}...`);
-    return new Promise((resolve, reject) => {
-      exec(`yt-dlp -g --format "best[ext=mp4]/best" "https://www.youtube.com/watch?v=${youtubeId}"`, (error, stdout) => {
-        if (error) return reject(new Error(`yt-dlp failed: ${error.message}`));
-        const url = stdout.trim().split('\n')[0];
-        if (!url) return reject(new Error('yt-dlp returned no URL'));
-        resolve(url);
-      });
-    });
-  }
-
-  async getWetMetStreamUrl(uid) {
-    console.log(`Fetching WetMet stream URL for ${uid}...`);
-    const response = await Axios.get(`https://api.wetmet.net/widgets/stream/frame.php?uid=${uid}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-      },
-    });
-    const match = response.data.match(/var vurl = '([^']+)'/);
-    if (!match) throw new Error(`Could not find stream URL for WetMet uid ${uid}`);
-    return match[1];
-  }
-
-  async getEarthCamNetStreamUrl(shareApiClient, shareApiContext) {
-    console.log(`Fetching EarthCam.net stream URL for ${shareApiContext}...`);
-    const response = await Axios.get(`https://share.earthcam.net/api/${shareApiClient}/${shareApiContext}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-        'Referer': 'https://share.earthcam.net/',
-      },
-    });
-    const stream = response.data?.views?.[0]?.live?.regular?.stream;
-    if (!stream) throw new Error(`No stream URL found for EarthCam.net context ${shareApiContext}`);
-    return stream;
-  }
-
   async getCurrentChunklistUrl() {
     const masterResponse = await Axios.get(this.chosenCamera.url);
     const lines = masterResponse.data.split('\n').filter(l => l.trim() && !l.startsWith('#'));

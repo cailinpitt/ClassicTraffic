@@ -26,14 +26,6 @@ class LouisianaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
-
   async getSession() {
     console.log('Fetching session from 511la.org...');
     const response = await Axios.get('https://www.511la.org/cctv', {

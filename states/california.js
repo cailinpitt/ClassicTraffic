@@ -24,14 +24,6 @@ class CaliforniaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
-
   async fetchCameras() {
     const district = _.random(1, NUM_DISTRICTS);
     const districtPadded = String(district).padStart(2, '0');

@@ -72,14 +72,6 @@ class IndianaBot extends TrafficBot {
     }
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
-
   async fetchCameras() {
     console.log('Fetching cameras from INDOT...');
 

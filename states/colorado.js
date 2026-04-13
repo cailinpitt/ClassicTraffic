@@ -23,14 +23,6 @@ class ColoradoBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  shouldAbort() {
-    if (this.uniqueImageCount === 1) {
-      console.log(`Camera ${this.chosenCamera.id}: ${this.chosenCamera.name} is frozen. Exiting`);
-      return true;
-    }
-    return false;
-  }
-
   async fetchCameras() {
     console.log('Fetching cameras from CDOT...');
 
@@ -110,41 +102,6 @@ class ColoradoBot extends TrafficBot {
         await this.sleep(1000 * Math.pow(2, attempt - 1));
       }
     }
-  }
-
-  async downloadVideoSegment(duration) {
-    this.getSetpts(duration);
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} at ${this.videoSpeedFactor}x...`);
-
-    const tempPath = `${this.assetDirectory}raw.ts`;
-    const MIN_FILE_SIZE = 500 * 1024;
-
-    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -t ${duration} -i "${this.chosenCamera.url}" -map 0:v:0 -c copy "${tempPath}"`;
-
-    await new Promise((resolve, reject) => {
-      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
-        if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > MIN_FILE_SIZE) {
-          return resolve();
-        }
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
-
-    await new Promise((resolve, reject) => {
-      exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    Fs.removeSync(tempPath);
-
-    const stats = Fs.statSync(this.pathToVideo);
-    const fileSizeInMB = stats.size / (1024 * 1024);
-    console.log(`Video saved: ${this.pathToVideo} (${fileSizeInMB.toFixed(2)} MB)`);
   }
 
   async run() {
