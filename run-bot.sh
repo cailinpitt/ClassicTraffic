@@ -30,9 +30,10 @@ mkdir -p "$LOG_DIR"
 LOCKFILE="$LOG_DIR/$LOCK_KEY.lock"
 exec 9>"$LOCKFILE"
 if ! flock -n 9; then
-  echo "$(date): Bot $LOCK_KEY already running, skipping" >> "$LOG_FILE"
+  echo "$(date): [$$] Bot $LOCK_KEY already running, skipping" >> "$LOG_FILE"
   exit 0
 fi
+export RUN_ID="$$"
 
 # Load Grafana credentials from keys.js (single node invocation)
 read -r GRAFANA_LOKI_URL GRAFANA_USER GRAFANA_API_KEY < <(

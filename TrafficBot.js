@@ -69,7 +69,7 @@ class TrafficBot {
     /** @type {number} Probability (0-1) of posting a multi-camera thread instead of single post */
     this.threadProbability = config.threadProbability || 0;
     /** @type {string} Short ID for this run, prepended to all log output */
-    this.runId = uuidv4().split('-')[0];
+    this.runId = process.env.RUN_ID || String(process.pid);
 
     /** @type {string} */
     this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
