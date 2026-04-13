@@ -21,30 +21,7 @@ class ConnecticutBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  async getSession() {
-    console.log('Fetching session from ctroads.org...');
-    const response = await Axios.get('https://ctroads.org/cctv', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-      },
-      maxRedirects: 5,
-    });
-
-    const setCookies = response.headers['set-cookie'] || [];
-    const cookieString = setCookies.map(c => c.split(';')[0]).join('; ');
-
-    const tokenMatch = response.data.match(
-      /<input[^>]*name="__RequestVerificationToken"[^>]*value="([^"]+)"/
-    );
-    if (!tokenMatch) {
-      throw new Error('Could not find verification token in page');
-    }
-
-    return {
-      cookies: cookieString,
-      token: tokenMatch[1],
-    };
-  }
+  async getSession() { return this.get511DotSession('https://ctroads.org/cctv'); }
 
   async fetchCameras() {
     console.log('Fetching cameras from Connecticut DOT...');

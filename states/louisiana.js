@@ -5,7 +5,6 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 10;
 
@@ -26,30 +25,7 @@ class LouisianaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  async getSession() {
-    console.log('Fetching session from 511la.org...');
-    const response = await Axios.get('https://www.511la.org/cctv', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-      },
-      maxRedirects: 5,
-    });
-
-    const setCookies = response.headers['set-cookie'] || [];
-    const cookieString = setCookies.map(c => c.split(';')[0]).join('; ');
-
-    const tokenMatch = response.data.match(
-      /<input[^>]*name="__RequestVerificationToken"[^>]*value="([^"]+)"/
-    );
-    if (!tokenMatch) {
-      throw new Error('Could not find verification token in page');
-    }
-
-    return {
-      cookies: cookieString,
-      token: tokenMatch[1],
-    };
-  }
+  async getSession() { return this.get511DotSession('https://www.511la.org/cctv'); }
 
   async fetchCameras(options = {}) {
     console.log('Fetching cameras from Louisiana DOT...');
@@ -321,7 +297,7 @@ class LouisianaBot extends TrafficBot {
       this.startTime = new Date();
 
       if (this.chosenCamera.hasVideo) {
-        const duration = _.sample(durationOptions);
+        const duration = _.sample(TrafficBot.DEFAULT_DURATION_OPTIONS);
         await this.downloadVideoSegment(duration);
       } else {
         const numImages = this.getNumImages();

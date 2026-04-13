@@ -5,7 +5,6 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 
 class MissouriBot extends TrafficBot {
   constructor() {
@@ -112,7 +111,7 @@ class MissouriBot extends TrafficBot {
 
       this.startTime = new Date();
 
-      const duration = _.sample(durationOptions);
+      const duration = _.sample(TrafficBot.DEFAULT_DURATION_OPTIONS);
       await this.downloadVideoSegment(duration);
 
       this.endTime = new Date();

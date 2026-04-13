@@ -5,7 +5,6 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 
 class WestVirginiaBot extends TrafficBot {
   constructor() {
@@ -108,7 +107,7 @@ class WestVirginiaBot extends TrafficBot {
         }
         console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
         this.startTime = new Date();
-        await this.downloadVideoSegment(_.sample(durationOptions));
+        await this.downloadVideoSegment(_.sample(TrafficBot.DEFAULT_DURATION_OPTIONS));
       } else {
         const recentIds = this.getRecentCameraIds();
         const filtered = cameras.filter(c => !recentIds.includes(String(c.id)));
@@ -130,7 +129,7 @@ class WestVirginiaBot extends TrafficBot {
           this.startTime = new Date();
 
           try {
-            await this.downloadVideoSegment(_.sample(durationOptions));
+            await this.downloadVideoSegment(_.sample(TrafficBot.DEFAULT_DURATION_OPTIONS));
             downloaded = true;
           } catch (error) {
             console.log(`Stream unavailable for camera ${this.chosenCamera.id}, trying another...`);

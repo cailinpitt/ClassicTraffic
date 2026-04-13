@@ -5,7 +5,6 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 
 class MinnesotaBot extends TrafficBot {
@@ -128,7 +127,7 @@ class MinnesotaBot extends TrafficBot {
       this.startTime = new Date();
 
       if (this.chosenCamera.hasVideo) {
-        const duration = _.sample(durationOptions);
+        const duration = _.sample(TrafficBot.DEFAULT_DURATION_OPTIONS);
         await this.downloadVideoSegment(duration);
       } else {
         const numImages = this.getNumImages();

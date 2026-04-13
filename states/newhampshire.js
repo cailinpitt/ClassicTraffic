@@ -25,30 +25,7 @@ class NewHampshireBot extends TrafficBot {
     return (Math.max(...numImagesPerVideoOptions) - 1) * (this.delayBetweenImageFetches * 4) / 1000 + 600;
   }
 
-  async getSession() {
-    console.log('Fetching session from newengland511.org...');
-    const response = await Axios.get('https://newengland511.org/cctv', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-      },
-      maxRedirects: 5,
-    });
-
-    const setCookies = response.headers['set-cookie'] || [];
-    const cookieString = setCookies.map(c => c.split(';')[0]).join('; ');
-
-    const tokenMatch = response.data.match(
-      /<input[^>]*name="__RequestVerificationToken"[^>]*value="([^"]+)"/
-    );
-    if (!tokenMatch) {
-      throw new Error('Could not find verification token in page');
-    }
-
-    return {
-      cookies: cookieString,
-      token: tokenMatch[1],
-    };
-  }
+  async getSession() { return this.get511DotSession('https://newengland511.org/cctv'); }
 
   async fetchCameras() {
     console.log('Fetching cameras from New Hampshire DOT...');

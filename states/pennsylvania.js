@@ -2,10 +2,8 @@ const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
 const Fs = require('fs-extra');
 const _ = require('lodash');
-const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 30;
 const PA_AUTH_URL = 'https://pa.arcadis-ivds.com/api/SecureTokenUri/GetSecureTokenUriBySourceId';
@@ -27,30 +25,10 @@ class PennsylvaniaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
-  async getSession() {
-    console.log('Fetching session from 511pa.com...');
-    const response = await Axios.get('https://www.511pa.com/cctv', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-      },
-      maxRedirects: 5,
-    });
+  async getSession() { return this.get511DotSession('https://www.511pa.com/cctv'); }
 
-    const setCookies = response.headers['set-cookie'] || [];
-    const cookieString = setCookies.map(c => c.split(';')[0]).join('; ');
-
-    const tokenMatch = response.data.match(
-      /<input[^>]*name="__RequestVerificationToken"[^>]*value="([^"]+)"/
-    );
-    if (!tokenMatch) {
-      throw new Error('Could not find verification token in page');
-    }
-
-    return {
-      cookies: cookieString,
-      token: tokenMatch[1],
-    };
-  }
+  getCaptureFlags() { return '-rw_timeout 15000000 -headers "Referer: https://www.511pa.com/\\r\\nOrigin: https://www.511pa.com\\r\\n"'; }
+  async getVideoUrl() { return this.getAuthenticatedVideoUrl(this.chosenCamera.imageId, this.chosenCamera.url); }
 
   async getAuthenticatedVideoUrl(imageId, originalVideoUrl) {
     console.log('Authenticating video stream...');
@@ -175,86 +153,6 @@ class PennsylvaniaBot extends TrafficBot {
     }
   }
 
-  async downloadImage(index, retries = 3) {
-    const path = this.getImagePath(index);
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const writer = Fs.createWriteStream(path);
-
-        const response = await Axios({
-          url: this.chosenCamera.url,
-          method: 'GET',
-          responseType: 'stream',
-          timeout: 20000,
-        });
-
-        return await new Promise((resolve, reject) => {
-          response.data.pipe(writer);
-          writer.on('finish', () => {
-            setTimeout(() => {
-              try {
-                const isUnique = this.checkAndStoreImage(path, index);
-                resolve(isUnique);
-              } catch (err) {
-                reject(err);
-              }
-            }, 100);
-          });
-          writer.on('error', reject);
-        });
-      } catch (error) {
-        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
-        if (Fs.existsSync(path)) {
-          Fs.removeSync(path);
-        }
-
-        if (attempt === retries) {
-          throw error;
-        }
-
-        await this.sleep(1000 * Math.pow(2, attempt - 1));
-      }
-    }
-  }
-
-  async downloadVideoSegment(duration) {
-    const authenticatedUrl = await this.getAuthenticatedVideoUrl(this.chosenCamera.imageId, this.chosenCamera.url);
-
-    this.getSetpts(duration);
-    console.log(`Recording ${duration}s of video from ${this.chosenCamera.name} at ${this.videoSpeedFactor}x...`);
-
-    const tempPath = `${this.assetDirectory}raw.ts`;
-    const MIN_FILE_SIZE = 500 * 1024;
-
-    const captureCmd = `ffmpeg -y -rw_timeout 15000000 -headers "Referer: https://www.511pa.com/\r\nOrigin: https://www.511pa.com\r\n" -t ${duration} -i "${authenticatedUrl}" -map 0:v:0 -c copy "${tempPath}"`;
-
-    await new Promise((resolve, reject) => {
-      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
-        if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > MIN_FILE_SIZE) {
-          return resolve();
-        }
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
-
-    await new Promise((resolve, reject) => {
-      exec(encodeCmd, { timeout: (duration * 2 + 300) * 1000 }, (error) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    Fs.removeSync(tempPath);
-
-    const stats = Fs.statSync(this.pathToVideo);
-    const fileSizeInMB = stats.size / (1024 * 1024);
-    console.log(`Video saved: ${this.pathToVideo} (${fileSizeInMB.toFixed(2)} MB)`);
-  }
-
   async run() {
     this.cleanupStaleAssets();
 
@@ -318,7 +216,7 @@ class PennsylvaniaBot extends TrafficBot {
       this.startTime = new Date();
 
       if (this.chosenCamera.hasVideo) {
-        const duration = _.sample(durationOptions);
+        const duration = _.sample(TrafficBot.DEFAULT_DURATION_OPTIONS);
         if (_.isUndefined(argv.id)) {
           const videoCameras = _.shuffle(cameras.filter(c => c.hasVideo));
           // Start with the already-chosen camera, then try others in shuffled order

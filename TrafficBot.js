@@ -205,6 +205,15 @@ class TrafficBot {
   }
 
   /**
+   * Return duration options (in seconds) for video capture.
+   * Override to use a different set of durations.
+   * @returns {number[]}
+   */
+  getDurationOptions() {
+    return TrafficBot.DEFAULT_DURATION_OPTIONS;
+  }
+
+  /**
    * Capture a video segment from the chosen camera and encode it as an MP4.
    * Uses getCaptureFlags(), getVideoUrl(), getEncodeFlags(), getEncodeTimeout() hooks.
    * @param {number} duration - Capture duration in seconds
@@ -423,6 +432,11 @@ class TrafficBot {
         await this.sleep(currentDelay);
       }
     }
+    const totalImages = numImages;
+    const duplicates = totalImages - this.uniqueImageCount;
+    if (duplicates > 0) {
+      console.log(`${prefix}${this.uniqueImageCount}/${totalImages} unique images (${duplicates} duplicate${duplicates === 1 ? '' : 's'} skipped)`);
+    }
     return false;
   }
 
@@ -638,6 +652,7 @@ class TrafficBot {
     const fileSizeInMB = stats.size / (1024 * 1024);
 
     console.log(`Uploading video (${fileSizeInMB.toFixed(2)} MB)...`);
+    const uploadStart = Date.now();
 
     const { data: serviceAuth } = await this.agent.com.atproto.server.getServiceAuth({
       aud: `did:web:${this.agent.dispatchUrl.host}`,
@@ -671,6 +686,9 @@ class TrafficBot {
         throw new Error(`Video upload failed after 3 attempts: ${JSON.stringify(errBody)}`);
       }
     }
+
+    const uploadElapsed = ((Date.now() - uploadStart) / 1000).toFixed(1);
+    console.log(`Upload complete in ${uploadElapsed}s`);
 
     const jobStatus = await uploadResponse.json();
 
@@ -886,11 +904,30 @@ class TrafficBot {
 
   // ─── Stream URL helpers ───────────────────────────────────────────────────
 
+  async get511DotSession(cctvUrl) {
+    const hostname = new URL(cctvUrl).hostname;
+    console.log(`Fetching session from ${hostname}...`);
+    const response = await Axios.get(cctvUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+      },
+      maxRedirects: 5,
+      timeout: 15000,
+    });
+    const setCookies = response.headers['set-cookie'] || [];
+    const cookieString = setCookies.map(c => c.split(';')[0]).join('; ');
+    const tokenMatch = response.data.match(
+      /<input[^>]*name="__RequestVerificationToken"[^>]*value="([^"]+)"/
+    );
+    if (!tokenMatch) throw new Error('Could not find verification token in page');
+    return { cookies: cookieString, token: tokenMatch[1] };
+  }
+
   async getEarthCamStreamUrl(fecnetworkId, pageUrl) {
     console.log(`Fetching EarthCam stream URL for fecnetwork ${fecnetworkId}...`);
-    const Axios = require('axios');
     const response = await Axios.get(pageUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+      timeout: 15000,
     });
     const match = response.data.match(new RegExp(`"html5_streampath":"(\\\\/fecnetwork\\\\/${fecnetworkId}[^"]+)"`));
     if (!match) throw new Error(`Could not find stream URL for fecnetwork ID ${fecnetworkId}`);
@@ -900,12 +937,12 @@ class TrafficBot {
 
   async getEarthCamNetStreamUrl(shareApiClient, shareApiContext) {
     console.log(`Fetching EarthCam.net stream URL for ${shareApiContext}...`);
-    const Axios = require('axios');
     const response = await Axios.get(`https://share.earthcam.net/api/${shareApiClient}/${shareApiContext}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
         'Referer': 'https://share.earthcam.net/',
       },
+      timeout: 15000,
     });
     const stream = response.data?.views?.[0]?.live?.regular?.stream;
     if (!stream) throw new Error(`No stream URL found for EarthCam.net context ${shareApiContext}`);
@@ -915,7 +952,7 @@ class TrafficBot {
   async getYouTubeStreamUrl(youtubeId) {
     console.log(`Fetching YouTube stream URL for ${youtubeId}...`);
     return new Promise((resolve, reject) => {
-      exec(`yt-dlp -g --format "best[ext=mp4]/best" "https://www.youtube.com/watch?v=${youtubeId}"`, (error, stdout) => {
+      exec(`yt-dlp -g --format "best[ext=mp4]/best" "https://www.youtube.com/watch?v=${youtubeId}"`, { timeout: 30000 }, (error, stdout) => {
         if (error) return reject(new Error(`yt-dlp failed: ${error.message}`));
         const url = stdout.trim().split('\n')[0];
         if (!url) return reject(new Error('yt-dlp returned no URL'));
@@ -926,9 +963,9 @@ class TrafficBot {
 
   async getWetMetStreamUrl(uid) {
     console.log(`Fetching WetMet stream URL for ${uid}...`);
-    const Axios = require('axios');
     const response = await Axios.get(`https://api.wetmet.net/widgets/stream/frame.php?uid=${uid}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+      timeout: 15000,
     });
     const match = response.data.match(/var vurl = '([^']+)'/);
     if (!match) throw new Error(`Could not find stream URL for WetMet uid ${uid}`);
@@ -937,14 +974,15 @@ class TrafficBot {
 
   async getOzolioStreamUrl(oid) {
     console.log(`Fetching Ozolio stream URL for ${oid}...`);
-    const Axios = require('axios');
     const initResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=init&oid=${oid}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+      timeout: 15000,
     });
     const sessionId = initResp.data?.session?.id;
     if (!sessionId) throw new Error(`Could not get Ozolio session for ${oid}`);
     const openResp = await Axios.get(`https://relay.ozolio.com/ses.api?cmd=open&oid=${sessionId}&output=1&format=M3U8`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' },
+      timeout: 15000,
     });
     const streamUrl = openResp.data?.output?.source;
     if (!streamUrl) throw new Error(`Could not get Ozolio stream URL for ${oid}`);
@@ -1089,37 +1127,61 @@ class TrafficBot {
 
           this.startTime = new Date();
 
-          if (this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0) {
-            try {
-              this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
-              console.log(`${prefix}Weather: ${Math.round(this.weatherStart.tempF)}°F, ${this.weatherStart.description}`);
-            } catch (err) {
-              console.log(`${prefix}Weather fetch failed: ${err.message}`);
+          if (this.chosenCamera.hasVideo) {
+            const duration = _.sample(this.getDurationOptions());
+            // On stream failure, try up to 3 different cameras (only when auto-selecting)
+            const maxVideoRetries = _.isUndefined(argv.id) ? 3 : 1;
+            for (let vAttempt = 1; vAttempt <= maxVideoRetries; vAttempt++) {
+              try {
+                await this.downloadVideoSegment(duration);
+                break;
+              } catch (e) {
+                if (vAttempt === maxVideoRetries) throw e;
+                console.log(`${prefix}Stream failed for ${this.chosenCamera.id}, trying another camera...`);
+                this.cleanup();
+                this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
+                this.pathToVideo = `${this.assetDirectory}camera.mp4`;
+                const remaining = cameras.filter(c => c.hasVideo && !usedCameraIds.has(String(c.id)));
+                this.chosenCamera = _.sample(remaining.length > 0 ? remaining : cameras.filter(c => c.hasVideo));
+                usedCameraIds.add(String(this.chosenCamera.id));
+                this.saveRecentCameraId(this.chosenCamera.id);
+                console.log(`${prefix}ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
+                Fs.ensureDirSync(this.assetDirectory);
+              }
             }
+          } else {
+            if (this.chosenCamera.latitude !== 0 && this.chosenCamera.longitude !== 0) {
+              try {
+                this.weatherStart = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+                console.log(`${prefix}Weather: ${Math.round(this.weatherStart.tempF)}°F, ${this.weatherStart.description}`);
+              } catch (err) {
+                console.log(`${prefix}Weather fetch failed: ${err.message}`);
+              }
+            }
+
+            const numImages = this.getNumImages();
+            console.log(`${prefix}Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
+
+            const aborted = await this.collectImages(numImages, prefix);
+
+            if (this.weatherStart) {
+              try {
+                this.weatherEnd = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
+              } catch (err) {
+                // End weather is best-effort; no need to log failure
+              }
+            }
+
+            if (aborted || this.uniqueImageCount < 2) {
+              console.log(`${prefix}Only ${this.uniqueImageCount} unique image(s) captured, skipping`);
+              if (threadCount === 1) process.exitCode = 1;
+              continue;
+            }
+
+            await this.createVideo();
           }
-
-          const numImages = this.getNumImages();
-          console.log(`${prefix}Downloading ${numImages} images every ${this.delayBetweenImageFetches / 1000}s...`);
-
-          const aborted = await this.collectImages(numImages, prefix);
 
           this.endTime = new Date();
-
-          if (this.weatherStart) {
-            try {
-              this.weatherEnd = await this.fetchWeather(this.chosenCamera.latitude, this.chosenCamera.longitude);
-            } catch (err) {
-              // End weather is best-effort; no need to log failure
-            }
-          }
-
-          if (aborted || this.uniqueImageCount < 2) {
-            console.log(`${prefix}Only ${this.uniqueImageCount} unique image(s) captured, skipping`);
-            if (threadCount === 1) process.exitCode = 1;
-            continue;
-          }
-
-          await this.createVideo();
 
           if (argv['dry-run']) {
             console.log(`${prefix}Dry run - skipping post to Bluesky`);
@@ -1154,5 +1216,7 @@ class TrafficBot {
     }
   }
 }
+
+TrafficBot.DEFAULT_DURATION_OPTIONS = [60, 90, 120, 180, 240, 360, 480, 960];
 
 module.exports = TrafficBot;

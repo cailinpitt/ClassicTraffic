@@ -5,7 +5,6 @@ const _ = require('lodash');
 const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
-const durationOptions = [60, 90, 120, 180, 240, 360, 480, 960];
 const numImagesPerVideoOptions = [15, 30, 45, 60, 75, 90];
 
 const GRAPHQL_URL = 'https://511ia.org/api/graphql';
@@ -216,7 +215,7 @@ class IowaBot extends TrafficBot {
       this.startTime = new Date();
 
       if (this.chosenCamera.hasVideo) {
-        const duration = _.sample(durationOptions);
+        const duration = _.sample(TrafficBot.DEFAULT_DURATION_OPTIONS);
         await this.downloadVideoSegment(duration);
       } else {
         const numImages = this.getNumImages();
