@@ -11,7 +11,7 @@ const Path = require('path');
 
 const argv = require('minimist')(process.argv.slice(2));
 const HIGHWAYS_JSON = Path.join(__dirname, 'highways.json');
-const HIGHWAY_ROUTES_DIR = Path.join(__dirname, 'highway-routes');
+const HIGHWAY_ROUTES_DIR = Path.join(__dirname, '..', 'highway-routes');
 const allHighways = Object.keys(require('./highways.json'));
 // Usage: node fetch-highway-routes.js         (fetch all missing)
 //        node fetch-highway-routes.js I-26     (fetch specific, re-download even if cached)

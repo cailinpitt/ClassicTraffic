@@ -1,9 +1,12 @@
 'use strict';
 
+const Path = require('path');
 const { geoAlbersUsa, geoPath } = require('d3-geo');
 const topojson = require('topojson-client');
 const us = require('us-atlas/states-10m.json');
 const sharp = require('sharp');
+
+const HIGHWAY_ROUTES_DIR = Path.join(__dirname, '..', 'highway-routes');
 
 const STATE_FIPS = {
   alabama: '01', alaska: '02', arizona: '04', arkansas: '05',
@@ -52,7 +55,7 @@ async function generateRoadTripMap(highway, stateNames) {
   // Load pre-fetched route geometry if available
   let routePath = '';
   try {
-    const routeFeature = require(`./highway-routes/${highway}.json`);
+    const routeFeature = require(Path.join(HIGHWAY_ROUTES_DIR, `${highway}.json`));
     const d = path(routeFeature);
     if (d) routePath = `<path d="${d}" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
   } catch {}
