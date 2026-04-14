@@ -7,8 +7,11 @@
 
 const Axios = require('axios');
 const Fs = require('fs-extra');
+const Path = require('path');
 
 const argv = require('minimist')(process.argv.slice(2));
+const HIGHWAYS_JSON = Path.join(__dirname, 'highways.json');
+const HIGHWAY_ROUTES_DIR = Path.join(__dirname, 'highway-routes');
 const allHighways = Object.keys(require('./highways.json'));
 // Usage: node fetch-highway-routes.js         (fetch all missing)
 //        node fetch-highway-routes.js I-26     (fetch specific, re-download even if cached)
@@ -194,13 +197,12 @@ async function fetchHighwayRoute(highway) {
 }
 
 async function main() {
-  Fs.ensureDirSync('./highway-routes');
+  Fs.ensureDirSync(HIGHWAY_ROUTES_DIR);
 
-  const highwaysPath = './highways.json';
-  const highwaysData = JSON.parse(Fs.readFileSync(highwaysPath, 'utf8'));
+  const highwaysData = JSON.parse(Fs.readFileSync(HIGHWAYS_JSON, 'utf8'));
 
   for (const highway of HIGHWAYS) {
-    const outPath = `./highway-routes/${highway}.json`;
+    const outPath = Path.join(HIGHWAY_ROUTES_DIR, `${highway}.json`);
     if (Fs.existsSync(outPath) && !FORCE) {
       console.log(`${highway}: already cached, skipping`);
       continue;
@@ -222,7 +224,7 @@ async function main() {
           const miles = routeLengthMiles(feature);
           const states = await determineStates(feature);
           highwaysData[highway] = { miles, states };
-          Fs.writeFileSync(highwaysPath, JSON.stringify(highwaysData, null, 2) + '\n');
+          Fs.writeFileSync(HIGHWAYS_JSON, JSON.stringify(highwaysData, null, 2) + '\n');
           console.log(`${states.join(', ')} (${miles} mi)`);
         }
 

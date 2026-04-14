@@ -1,0 +1,132 @@
+{
+  "I-10": {
+    "miles": 2460,
+    "states": ["california", "arizona", "newmexico", "texas", "louisiana", "mississippi", "alabama", "florida"],
+    "endpoints": { "start": "Santa Monica, CA", "end": "Jacksonville, FL" }
+  },
+  "I-20": {
+    "miles": 1535,
+    "states": ["texas", "louisiana", "mississippi", "alabama", "georgia", "southcarolina"],
+    "endpoints": { "start": "Kent, TX", "end": "Florence, SC" }
+  },
+  "I-26": {
+    "miles": 346,
+    "states": ["tennessee", "northcarolina", "southcarolina"],
+    "endpoints": { "start": "Kingsport, TN", "end": "Charleston, SC" }
+  },
+  "I-35": {
+    "miles": 1568,
+    "states": ["texas", "oklahoma", "kansas", "missouri", "iowa", "minnesota"],
+    "endpoints": { "start": "Laredo, TX", "end": "Duluth, MN" }
+  },
+  "I-40": {
+    "miles": 2555,
+    "states": ["california", "arizona", "newmexico", "oklahoma", "arkansas", "tennessee", "northcarolina"],
+    "endpoints": { "start": "Barstow, CA", "end": "Wilmington, NC" }
+  },
+  "I-49": {
+    "miles": 535,
+    "states": ["louisiana", "arkansas", "missouri"],
+    "endpoints": { "start": "Lafayette, LA", "end": "Kansas City, MO" }
+  },
+  "I-55": {
+    "miles": 965,
+    "states": ["louisiana", "mississippi", "arkansas", "tennessee", "missouri", "illinois"],
+    "endpoints": { "start": "LaPlace, LA", "end": "Chicago, IL" }
+  },
+  "I-59": {
+    "miles": 447,
+    "states": ["louisiana", "mississippi", "alabama", "georgia"],
+    "endpoints": { "start": "Slidell, LA", "end": "Wildwood, GA" }
+  },
+  "I-64": {
+    "miles": 981,
+    "states": ["missouri", "illinois", "indiana", "kentucky", "westvirginia", "virginia"],
+    "endpoints": { "start": "Wentzville, MO", "end": "Chesapeake, VA" }
+  },
+  "I-70": {
+    "miles": 2153,
+    "states": ["utah", "colorado", "kansas", "missouri", "illinois", "indiana", "ohio", "westvirginia", "pennsylvania", "maryland"],
+    "endpoints": { "start": "Cove Fort, UT", "end": "Baltimore, MD" }
+  },
+  "I-75": {
+    "miles": 1786,
+    "states": ["florida", "georgia", "tennessee", "kentucky", "ohio", "michigan"],
+    "endpoints": { "start": "Hialeah, FL", "end": "Sault Ste. Marie, MI" }
+  },
+  "I-77": {
+    "miles": 610,
+    "states": ["southcarolina", "northcarolina", "virginia", "westvirginia", "ohio"],
+    "endpoints": { "start": "Columbia, SC", "end": "Cleveland, OH" }
+  },
+  "I-80": {
+    "miles": 2909,
+    "states": ["california", "nevada", "utah", "wyoming", "nebraska", "iowa", "illinois", "indiana", "ohio", "pennsylvania", "newjersey", "newyork"],
+    "endpoints": { "start": "San Francisco, CA", "end": "New York, NY" }
+  },
+  "I-81": {
+    "miles": 855,
+    "states": ["tennessee", "virginia", "westvirginia", "maryland", "pennsylvania", "newyork"],
+    "endpoints": { "start": "Dandridge, TN", "end": "Watertown, NY" }
+  },
+  "I-85": {
+    "miles": 666,
+    "states": ["alabama", "georgia", "southcarolina", "northcarolina", "virginia"],
+    "endpoints": { "start": "Montgomery, AL", "end": "Petersburg, VA" }
+  },
+  "I-90": {
+    "miles": 3020,
+    "states": ["washington", "idaho", "montana", "wyoming", "southdakota", "minnesota", "wisconsin", "illinois", "indiana", "ohio", "pennsylvania", "newyork", "massachusetts", "rhodeisland"],
+    "endpoints": { "start": "Seattle, WA", "end": "Boston, MA" }
+  },
+  "I-94": {
+    "miles": 1585,
+    "states": ["michigan", "indiana", "illinois", "wisconsin", "minnesota", "northdakota", "montana"],
+    "endpoints": { "start": "Port Huron, MI", "end": "Billings, MT" }
+  },
+  "I-95": {
+    "miles": 1920,
+    "states": ["florida", "georgia", "southcarolina", "northcarolina", "virginia", "maryland", "delaware", "newjersey", "newyork", "connecticut", "rhodeisland", "massachusetts", "newhampshire", "maine"],
+    "endpoints": { "start": "Miami, FL", "end": "Houlton, ME" }
+  },
+  "US-1": {
+    "miles": 2369,
+    "states": ["maine", "newhampshire", "massachusetts", "rhodeisland", "connecticut", "newyork", "newjersey", "delaware", "maryland", "virginia", "northcarolina", "southcarolina", "georgia", "florida"],
+    "endpoints": { "start": "Fort Kent, ME", "end": "Key West, FL" }
+  },
+  "US-2": {
+    "miles": 2571,
+    "states": ["maine", "vermont", "newyork", "michigan", "wisconsin", "minnesota", "northdakota", "montana", "idaho", "washington"],
+    "endpoints": { "start": "Houlton, ME", "end": "Everett, WA" }
+  },
+  "US-30": {
+    "miles": 3073,
+    "states": ["newjersey", "pennsylvania", "ohio", "indiana", "illinois", "iowa", "nebraska", "wyoming", "idaho", "oregon"],
+    "endpoints": { "start": "Atlantic City, NJ", "end": "Astoria, OR" }
+  },
+  "US-101": {
+    "miles": 1540,
+    "states": ["california", "oregon", "washington"],
+    "endpoints": { "start": "Los Angeles, CA", "end": "Tumwater, WA" }
+  },
+  "US-11": {
+    "miles": 1650,
+    "states": ["newyork", "pennsylvania", "maryland", "virginia", "westvirginia", "tennessee", "alabama", "mississippi", "louisiana"],
+    "endpoints": { "start": "Rouses Point, NY", "end": "New Orleans, LA" }
+  },
+  "US-20": {
+    "miles": 3365,
+    "states": ["massachusetts", "newyork", "pennsylvania", "ohio", "indiana", "illinois", "iowa", "nebraska", "wyoming", "idaho", "oregon"],
+    "endpoints": { "start": "Boston, MA", "end": "Newport, OR" }
+  },
+  "US-41": {
+    "miles": 1990,
+    "states": ["michigan", "wisconsin", "illinois", "indiana", "kentucky", "tennessee", "georgia", "florida"],
+    "endpoints": { "start": "Copper Harbor, MI", "end": "Miami, FL" }
+  },
+  "US-50": {
+    "miles": 3011,
+    "states": ["maryland", "westvirginia", "virginia", "ohio", "indiana", "illinois", "missouri", "kansas", "colorado", "utah", "nevada", "california"],
+    "endpoints": { "start": "Ocean City, MD", "end": "West Sacramento, CA" }
+  }
+}

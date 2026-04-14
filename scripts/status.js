@@ -6,8 +6,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const cronDir = path.join(__dirname, 'cron');
-const statesDir = path.join(__dirname, 'states');
+const cronDir = path.join(__dirname, '..', 'cron');
+const statesDir = path.join(__dirname, '..', 'states');
 const SUCCESS = 'Posted video to Bluesky successfully';
 const STALE_MS = 60 * 60 * 1000; // 1 hour = 2 missed runs
 

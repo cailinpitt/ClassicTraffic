@@ -516,7 +516,10 @@ class TrafficBot {
     return this.fetchCameras();
   }
 
-  async findCameraOnHighway(highway) {
+  async findCameraOnHighway(highway, opts = {}) {
+    const excludeIds = new Set((opts.excludeIds || []).map(String));
+    const geocodeSampleSize = opts.geocodeSampleSize ?? 15;
+
     const cameras = await this.fetchAllCameras(highway);
     if (cameras.length === 0) return null;
 
@@ -549,13 +552,90 @@ class TrafficBot {
 
     // Pass 1: camera name or route field contains the highway
     const byName = cameras.filter(c => patterns.some(p => p.test(c.name) || (c.route && p.test(c.route))));
-    if (byName.length > 0) {
-      console.log(`Found ${byName.length} cameras matching ${highway} by name`);
-      return _.sample(byName);
+    const byNameAvailable = byName.filter(c => !excludeIds.has(String(c.id)));
+    if (byNameAvailable.length > 0) {
+      const skipped = byName.length - byNameAvailable.length;
+      const skippedNote = skipped > 0 ? ` (${skipped} recently used, skipped)` : '';
+      console.log(`Found ${byNameAvailable.length} cameras matching ${highway} by name${skippedNote}`);
+      return _.sample(byNameAvailable);
     }
 
-    console.log(`No camera found on ${highway}`);
+    // Pass 2: reverse-geocode a sample of cameras and check their nearby routes
+    if (!keys.googleKey) {
+      console.log(`No name match for ${highway} and no googleKey configured for geocoding fallback`);
+      return null;
+    }
+
+    const geocodeCandidates = _.sampleSize(
+      cameras.filter(c => c.latitude && c.longitude && !excludeIds.has(String(c.id))),
+      geocodeSampleSize,
+    );
+    if (geocodeCandidates.length === 0) {
+      console.log(`No name match for ${highway}, no geocoding candidates available`);
+      return null;
+    }
+    console.log(`No name match for ${highway} — geocoding ${geocodeCandidates.length} candidate cameras...`);
+
+    for (const camera of geocodeCandidates) {
+      let routes;
+      try {
+        routes = await this.getNearbyRoutes(camera.latitude, camera.longitude);
+      } catch (err) {
+        console.log(`Geocoding failed for ${camera.id}: ${err.message}`);
+        continue;
+      }
+      if (routes.some(r => patterns.some(p => p.test(r)))) {
+        console.log(`Geocoding match: "${camera.name}" (routes: ${routes.join(', ')})`);
+        return camera;
+      }
+    }
+
+    console.log(`No camera found on ${highway} after geocoding ${geocodeCandidates.length} candidates`);
     return null;
+  }
+
+  /**
+   * Reverse-geocode a lat/lon to a formatted address string via Google Maps.
+   * @param {number} lat
+   * @param {number} lon
+   * @returns {Promise<string|null>}
+   */
+  async reverseGeocode(lat, lon) {
+    if (!keys.googleKey) throw new Error('googleKey not configured');
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${keys.googleKey}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Geocoding API returned ${response.status}`);
+    const data = await response.json();
+    if (data.status === 'ZERO_RESULTS') return null;
+    if (data.status !== 'OK') throw new Error(`Geocoding API: ${data.status}`);
+    return data.results?.[0]?.formatted_address || null;
+  }
+
+  /**
+   * Return distinct route names (short and long) near a lat/lon from Google Maps.
+   * Used by findCameraOnHighway's geocoding fallback.
+   * @param {number} lat
+   * @param {number} lon
+   * @returns {Promise<string[]>}
+   */
+  async getNearbyRoutes(lat, lon) {
+    if (!keys.googleKey) throw new Error('googleKey not configured');
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&result_type=route&key=${keys.googleKey}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Geocoding API returned ${response.status}`);
+    const data = await response.json();
+    if (data.status === 'ZERO_RESULTS') return [];
+    if (data.status !== 'OK') throw new Error(`Geocoding API: ${data.status}`);
+    const routes = new Set();
+    for (const r of data.results || []) {
+      for (const c of r.address_components || []) {
+        if (c.types?.includes('route')) {
+          if (c.short_name) routes.add(c.short_name);
+          if (c.long_name) routes.add(c.long_name);
+        }
+      }
+    }
+    return [...routes];
   }
 
   /**

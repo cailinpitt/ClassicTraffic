@@ -23,7 +23,7 @@ LNG=-87.6298
 TZ_NAME="America/Chicago"
 
 # Compute today's sunrise and sunset (outputs SUNRISE=HH:MM and SUNSET=HH:MM)
-eval "$(/usr/bin/node "$DIR/sun-times.js" "$LAT" "$LNG" "$TZ_NAME")"
+eval "$(/usr/bin/node "$DIR/scripts/sun-times.js" "$LAT" "$LNG" "$TZ_NAME")"
 
 # Start captures 5 minutes early to include the actual sunrise/sunset moment
 SUNRISE_START=$(date -d "$SUNRISE today - 5 minutes" +%H:%M)

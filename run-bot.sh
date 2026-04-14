@@ -42,7 +42,7 @@ read -r GRAFANA_LOKI_URL GRAFANA_USER GRAFANA_API_KEY < <(
 
 # Check if bot is enabled via LaunchDarkly
 FLAG_EXIT=0
-timeout 10 /usr/bin/node "$DIR/check-flag.js" "$STATE" 2>/dev/null || FLAG_EXIT=$?
+timeout 10 /usr/bin/node "$DIR/scripts/check-flag.js" "$STATE" 2>/dev/null || FLAG_EXIT=$?
 if [ "$FLAG_EXIT" -eq 1 ]; then
   echo "$(date): Bot $STATE is disabled via feature flag, skipping" >> "$LOG_FILE"
   exit 0

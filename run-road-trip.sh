@@ -24,7 +24,7 @@ done
 if [[ -z "$HIGHWAY" ]]; then
   HIGHWAY=$(timeout 10 /usr/bin/node -e "
     const Fs = require('fs');
-    const h = require('$DIR/highways.json');
+    const h = require('$DIR/roadtrip/highways.json');
     const all = Object.keys(h);
     const recentPath = '$DIR/cron/road-trip-recent-highways.json';
     let recent = [];
@@ -61,7 +61,7 @@ printf "\n\n=== $(date) ===\n" >> "$LOG_FILE" 2>&1
 STDERR_FILE=$(mktemp)
 EXIT_CODE=0
 
-timeout 7200 /usr/bin/node "$DIR/road-trip.js" "$@" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
+timeout 7200 /usr/bin/node "$DIR/roadtrip/road-trip.js" "$@" >> "$LOG_FILE" 2>"$STDERR_FILE" || EXIT_CODE=$?
 cat "$STDERR_FILE" >> "$LOG_FILE"
 DURATION=$(( $(date +%s) - START_TIME ))
 

@@ -7,9 +7,13 @@ const Path = require('path');
 const Fs = require('fs-extra');
 const { AtpAgent } = require('@atproto/api');
 
-const keys = require('./keys.js');
+const keys = require('../keys.js');
 const highways = require('./highways.json');
 const { generateRoadTripMap } = require('./generate-road-trip-map.js');
+
+const STATE_FILE = Path.join(__dirname, '..', 'cron', 'roadtrip-state.json');
+const RECENT_CAMERAS_PER_STATE = 5;
+const CAPTURE_CONCURRENCY = 6;
 
 // Display names for states where the account name differs from title case
 const STATE_DISPLAY_NAMES = {
@@ -30,9 +34,57 @@ function getDisplayName(accountName) {
 
 const DURATION_OPTIONS = [60, 90, 120, 180, 240, 360];
 
+function loadState() {
+  try {
+    return JSON.parse(Fs.readFileSync(STATE_FILE, 'utf8'));
+  } catch {
+    return { lastRunAt: {}, recentCameras: {} };
+  }
+}
+
+function saveState(state) {
+  Fs.ensureDirSync(Path.dirname(STATE_FILE));
+  Fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+}
+
+// Pick the highway that hasn't run for the longest time (or has never run).
+function pickStalestHighway(state) {
+  const highwayKeys = Object.keys(highways);
+  let best = null;
+  let bestTs = Infinity;
+  for (const h of highwayKeys) {
+    const ts = state.lastRunAt?.[h] ? new Date(state.lastRunAt[h]).getTime() : 0;
+    if (ts < bestTs) {
+      bestTs = ts;
+      best = h;
+    }
+  }
+  return best;
+}
+
+// Run async tasks with bounded concurrency. Returns results in the same order as `tasks`.
+async function runWithConcurrency(tasks, concurrency) {
+  const results = new Array(tasks.length);
+  let next = 0;
+  async function worker() {
+    while (true) {
+      const i = next++;
+      if (i >= tasks.length) return;
+      try {
+        results[i] = { status: 'fulfilled', value: await tasks[i]() };
+      } catch (err) {
+        results[i] = { status: 'rejected', reason: err };
+      }
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
 // Capture one state's video or image timelapse. Returns { bot, titleOverride } on success,
 // null if the state should be silently skipped (no camera found). Throws on hard errors.
-async function captureState(stateName, BotClass, highway, duration) {
+async function captureState(stateName, BotClass, highway, duration, excludeIds) {
   const bot = new BotClass();
   bot.targetOutputSeconds = duration / 4;
 
@@ -45,7 +97,7 @@ async function captureState(stateName, BotClass, highway, duration) {
   if (!bot.agent.session?.did) throw new Error('Login failed');
 
   console.log(`[${stateName}] Finding camera on ${highway}...`);
-  const camera = await bot.findCameraOnHighway(highway);
+  const camera = await bot.findCameraOnHighway(highway, { excludeIds });
 
   if (!camera || (!isImageBot && camera.hasVideo === false)) {
     console.log(`[${stateName}] No camera found on ${highway}, skipping`);
@@ -114,8 +166,9 @@ async function main() {
     return;
   }
 
+  const state = loadState();
   const highwayKeys = Object.keys(highways);
-  const highway = argv.highway || _.sample(highwayKeys);
+  const highway = argv.highway || pickStalestHighway(state);
 
   const highwayConfig = highways[highway];
   if (!highwayConfig) {
@@ -124,7 +177,12 @@ async function main() {
     return;
   }
 
-  console.log(`\n🛣️  Road Trip: ${highway}`);
+  const lastRun = state.lastRunAt?.[highway];
+  if (lastRun) {
+    console.log(`\n🛣️  Road Trip: ${highway} (last run: ${lastRun})`);
+  } else {
+    console.log(`\n🛣️  Road Trip: ${highway} (never run)`);
+  }
   console.log(`States: ${highwayConfig.states.join(', ')}\n`);
 
   const duration = _.sample(DURATION_OPTIONS);
@@ -133,7 +191,7 @@ async function main() {
   // Pre-filter to states that are eligible (have a file, are video bots, have credentials)
   const eligibleStates = [];
   for (const stateName of highwayConfig.states) {
-    const stateFile = Path.join(__dirname, 'states', `${stateName}.js`);
+    const stateFile = Path.join(__dirname, '..', 'states', `${stateName}.js`);
     if (!Fs.existsSync(stateFile)) {
       console.log(`[${stateName}] No bot file found, skipping`);
       continue;
@@ -159,12 +217,15 @@ async function main() {
     return;
   }
 
-  // Phase 1: capture all states in parallel
-  console.log(`\nCapturing ${eligibleStates.length} states in parallel...\n`);
-  const captureResults = await Promise.allSettled(
-    eligibleStates.map(({ stateName, BotClass }) =>
-      captureState(stateName, BotClass, highway, duration)
-    )
+  // Phase 1: capture states with bounded concurrency
+  const recentPerHighway = state.recentCameras?.[highway] || {};
+  console.log(`\nCapturing ${eligibleStates.length} states with concurrency ${CAPTURE_CONCURRENCY}...\n`);
+  const captureResults = await runWithConcurrency(
+    eligibleStates.map(({ stateName, BotClass }) => () => {
+      const excludeIds = recentPerHighway[stateName] || [];
+      return captureState(stateName, BotClass, highway, duration, excludeIds);
+    }),
+    CAPTURE_CONCURRENCY,
   );
 
   // Collect ordered successful captures; track hard errors for the summary
@@ -225,10 +286,18 @@ async function main() {
 
   const miles = highwayConfig.miles ? `${highwayConfig.miles.toLocaleString()} miles` : null;
   const weatherSummary = weatherParts.length > 0 ? weatherParts.join(', ') : null;
+  const endpoints = highwayConfig.endpoints;
 
-  let introText = `${highway} road trip!`;
-  if (miles) introText += ` ${miles} —`;
-  introText += ` Here's what traffic looks like right now 🛣️`;
+  let introText;
+  if (endpoints?.start && endpoints?.end) {
+    introText = `${highway} from ${endpoints.start} to ${endpoints.end} 🛣️`;
+    if (miles) introText += ` — ${miles}.`;
+    introText += `\n\nHere's what traffic looks like right now.`;
+  } else {
+    introText = `${highway} road trip!`;
+    if (miles) introText += ` ${miles} —`;
+    introText += ` Here's what traffic looks like right now 🛣️`;
+  }
   if (weatherSummary) introText += `\n\n${weatherSummary}`;
 
   let threadRoot = null;
@@ -275,14 +344,14 @@ async function main() {
       if (argv['dry-run']) {
         console.log(`[${stateName}] Would post: "${titleOverride}"`);
         successCount++;
-        results.push({ state: stateName, success: true });
+        results.push({ state: stateName, success: true, cameraId: bot.chosenCamera?.id });
       } else {
         const replyRef = threadRoot ? { root: threadRoot, parent: threadParent } : null;
         const postResult = await bot.postToBluesky(replyRef, titleOverride);
         if (!threadRoot) threadRoot = postResult;
         threadParent = postResult;
         successCount++;
-        results.push({ state: stateName, success: true });
+        results.push({ state: stateName, success: true, cameraId: bot.chosenCamera?.id });
         console.log(`[${stateName}] Posted successfully`);
       }
     } catch (err) {
@@ -291,6 +360,21 @@ async function main() {
     } finally {
       bot.cleanup();
     }
+  }
+
+  // Persist state: update last-run timestamp and prepend chosen camera IDs to recency list
+  if (!argv['dry-run'] && successCount > 0) {
+    state.lastRunAt = state.lastRunAt || {};
+    state.recentCameras = state.recentCameras || {};
+    state.recentCameras[highway] = state.recentCameras[highway] || {};
+    state.lastRunAt[highway] = new Date().toISOString();
+    for (const r of results) {
+      if (!r.success || !r.cameraId) continue;
+      const prev = state.recentCameras[highway][r.state] || [];
+      const id = String(r.cameraId);
+      state.recentCameras[highway][r.state] = [id, ...prev.filter(x => x !== id)].slice(0, RECENT_CAMERAS_PER_STATE);
+    }
+    saveState(state);
   }
 
   console.log(`\n=== Road Trip Complete: ${highway} ===`);

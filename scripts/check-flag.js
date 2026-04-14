@@ -1,5 +1,5 @@
 const LaunchDarkly = require('@launchdarkly/node-server-sdk');
-const keys = require('./keys');
+const keys = require('../keys');
 
 const stateName = process.argv[2];
 if (!stateName) {

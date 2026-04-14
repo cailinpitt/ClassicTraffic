@@ -95,15 +95,22 @@ These bots post a live video clip if the chosen camera has an HLS stream, or fal
 Road trip mode posts a Bluesky thread showing live traffic across multiple states along a single interstate — one post per state, each reply linking to the next.
 
 ```
+./run-road-trip.sh                       # picks the stalest highway automatically
 ./run-road-trip.sh --highway I-75
 ./run-road-trip.sh --highway I-95 --dry-run
 ```
 
-The thread is started by a dedicated `roadtrip` Bluesky account, which posts an intro with a generated map image showing the highway's route. Each state bot then replies using its own account, with a post title like `"I-75 through Tennessee 🛣️"` including the clip time range, speed, and weather.
+The thread is started by a dedicated `roadtrip` Bluesky account, which posts an intro with a generated map image showing the highway's route. The intro names the highway's endpoints, e.g. `"I-75 from Hialeah, FL to Sault Ste. Marie, MI 🛣️ — 1,786 miles."`. Each state bot then replies using its own account, with a post title like `"I-75 through Tennessee 🛣️"` including the clip time range, speed, and weather.
 
-The thread requires at least 2 states to succeed. All states use the same randomly sampled clip duration (1–8 minutes). The bot finds a camera on the target highway by searching camera names first, then falling back to reverse geocoding a sample of cameras. States with slow-refresh image cameras (60s+ intervals) are unlikely to produce enough unique frames within the clip window and are soft-skipped.
+The thread requires at least 2 states to succeed. All states use the same randomly sampled clip duration (1–8 minutes). States with slow-refresh image cameras (60s+ intervals) are unlikely to produce enough unique frames within the clip window and are soft-skipped.
 
-**Supported interstates**: I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95
+**Camera selection** (`findCameraOnHighway`) happens in two passes. Pass 1 matches camera names against the highway (`I-75`, `I 75`, `Interstate 75`). Pass 2 — the fallback — reverse-geocodes a random sample of cameras via the Google Maps Geocoding API (`result_type=route`) and keeps any whose nearby routes include the target highway.
+
+**Fair highway rotation**: when invoked without `--highway`, the stalest highway (oldest `lastRunAt`, or never-run) is chosen. Per-highway last-run timestamps and the last 5 camera IDs picked per state are persisted to `cron/roadtrip-state.json`, so subsequent road trips on the same highway avoid repeating recent cameras.
+
+**Concurrency**: state captures run with a bounded concurrency of 6 (see `CAPTURE_CONCURRENCY` in `road-trip.js`) rather than sequentially, which meaningfully shortens longer road trips (e.g. I-95's 14 states).
+
+**Supported interstates and US highways**: see `roadtrip/highways.json` (I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95, US-1, US-2, US-11, US-20, US-30, US-41, US-50, US-101). Each entry defines ordered states, total miles, and start/end endpoints.
 
 ## Meta Account
 
@@ -123,10 +130,10 @@ Tune the constants at the top of the file. Suggested cadence: 1–2× per day vi
 ### Adding Interstates
 
 ```
-node fetch-highway-routes.js I-22 I-68 I-82
+node roadtrip/fetch-highway-routes.js I-22 I-68 I-82
 ```
 
-This fetches route geometry from OpenStreetMap, computes total mileage, determines the ordered list of states via Nominatim reverse geocoding, and writes the entry to `highways.json`. Re-run with a highway name to force a refresh.
+This fetches route geometry from OpenStreetMap, computes total mileage, determines the ordered list of states via Nominatim reverse geocoding, and writes the entry to `roadtrip/highways.json`. Re-run with a highway name to force a refresh.
 
 ## Installation
 
@@ -180,18 +187,23 @@ Bots are normally invoked by `run-bot.sh`, which adds file locking (prevents ove
 TrafficBot.js             # Base class: image loop, deduplication, video encoding, Bluesky posting
 states/                   # One file per state, extends TrafficBot
 meta/                     # Scripts for the @classictraffic umbrella account
-run-meta.sh               # Cron wrapper for meta/ scripts: locking, timeouts, logging
+roadtrip/                 # Road trip thread logic
+  road-trip.js                # Entry point invoked by run-road-trip.sh
+  generate-road-trip-map.js   # Generates the highway map image for intro posts
+  fetch-highway-routes.js     # Fetches route GeoJSON from Overpass API, populates highways.json
+  highways.json               # Interstate/US-highway definitions (ordered states, miles, endpoints)
+  highway-routes/             # Cached route GeoJSON per highway (gitignored)
+scripts/                  # Standalone utility scripts
+  status.js                   # Reports last successful post time per bot
+  check-flag.js               # LaunchDarkly per-bot enabled check (called by run-bot.sh)
+  sun-times.js                # NOAA sunrise/sunset calculator (called by schedule-skydeck.sh)
 run-bot.sh                # Cron wrapper: locking, timeouts, feature flags, telemetry
+run-meta.sh               # Cron wrapper for meta/ scripts: locking, timeouts, logging
 run-road-trip.sh          # Cron wrapper for road trip mode
-road-trip.js              # Road trip thread logic
-generate-road-trip-map.js # Generates the highway map image for road trip intro posts
-fetch-highway-routes.js   # Fetches route GeoJSON from Overpass API, populates highways.json
-highways.json             # Interstate definitions (ordered state list, total miles)
-highway-routes/           # Cached route GeoJSON per highway (gitignored)
-status.js                 # Reports last successful post time per bot
+schedule-skydeck.sh       # Schedules Chicago skydeck sunrise/sunset captures via `at`
 keys.js                   # Credentials (gitignored)
 assets/                   # Temporary download directory (gitignored)
-cron/                     # Per-bot logs, lock files, recent camera lists (gitignored)
+cron/                     # Per-bot logs, lock files, recent camera lists, roadtrip-state.json (gitignored)
 ```
 
 ### TrafficBot Base Class
@@ -274,7 +286,7 @@ Handles the shared workflow for image timelapse bots:
 `status.js` reads all `cron/*.log` files and reports when each bot last successfully posted. Bots run every 30 minutes, so any bot without a post in over an hour is flagged as stale.
 
 ```
-node status.js
+node scripts/status.js
 ```
 
 Example output:
