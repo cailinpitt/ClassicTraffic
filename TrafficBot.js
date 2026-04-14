@@ -228,10 +228,12 @@ class TrafficBot {
     const captureCmd = `ffmpeg -y ${this.getCaptureFlags()} -t ${duration} -i "${streamUrl}" -map 0:v:0 -c copy "${tempPath}"`;
 
     await new Promise((resolve, reject) => {
-      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error) => {
+      exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error, _stdout, stderr) => {
+        // ffmpeg often exits non-zero on partial HLS captures even when output is usable,
+        // so we accept any capture above 500KB. Below that, surface the real error.
         if (Fs.existsSync(tempPath) && Fs.statSync(tempPath).size > 500 * 1024) return resolve();
-        if (error) return reject(error);
-        resolve();
+        if (error) return reject(new Error(`ffmpeg capture failed: ${error.message}${stderr ? `\n${stderr.trim().split('\n').slice(-5).join('\n')}` : ''}`));
+        reject(new Error(`ffmpeg capture produced no usable output (tempPath missing or <500KB)`));
       });
     });
 
@@ -239,16 +241,17 @@ class TrafficBot {
     const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p${encodeFlags ? ' ' + encodeFlags : ''} -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
 
     await new Promise((resolve, reject) => {
-      exec(encodeCmd, { timeout: this.getEncodeTimeout(duration) }, (error) => {
-        if (error) return reject(error);
+      exec(encodeCmd, { timeout: this.getEncodeTimeout(duration) }, (error, _stdout, stderr) => {
+        if (error) return reject(new Error(`ffmpeg encode failed: ${error.message}${stderr ? `\n${stderr.trim().split('\n').slice(-5).join('\n')}` : ''}`));
         resolve();
       });
     });
 
     Fs.removeSync(tempPath);
 
-    if (!Fs.existsSync(this.pathToVideo) || Fs.statSync(this.pathToVideo).size === 0) {
-      throw new Error('ffmpeg encode produced no output');
+    const MIN_OUTPUT_BYTES = 10 * 1024;
+    if (!Fs.existsSync(this.pathToVideo) || Fs.statSync(this.pathToVideo).size < MIN_OUTPUT_BYTES) {
+      throw new Error(`ffmpeg encode produced no usable output (< ${MIN_OUTPUT_BYTES} bytes)`);
     }
 
     const stats = Fs.statSync(this.pathToVideo);
@@ -309,6 +312,18 @@ class TrafficBot {
     console.log = (...args) => origLog(tag, ...args);
     console.error = (...args) => origError(tag, ...args);
 
+    // Clean up temp assets if the process is killed (e.g. run-bot.sh timeout, cron SIGTERM)
+    let shuttingDown = false;
+    const shutdown = (signal) => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      console.error(`Received ${signal}, cleaning up and exiting`);
+      try { this.cleanup(); } catch {}
+      process.exit(130);
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+
     await this.run();
   }
 
@@ -332,8 +347,9 @@ class TrafficBot {
   }
 
   /**
-   * Check if a file is a valid JPEG image.
-   * Verifies SOI marker and minimum file size.
+   * Check if a file is a valid, complete JPEG image.
+   * Verifies SOI marker (FF D8) at start and EOI marker (FF D9) at end
+   * to catch truncated downloads from flaky networks.
    * @param {string} filePath - Path to the image file
    * @returns {boolean} True if the file appears to be a valid JPEG
    */
@@ -341,8 +357,8 @@ class TrafficBot {
     try {
       const buf = Fs.readFileSync(filePath);
       if (buf.length < 100) return false;
-      // Check JPEG SOI marker (FF D8)
       if (buf[0] !== 0xFF || buf[1] !== 0xD8) return false;
+      if (buf[buf.length - 2] !== 0xFF || buf[buf.length - 1] !== 0xD9) return false;
       return true;
     } catch {
       return false;
@@ -479,11 +495,16 @@ class TrafficBot {
     const cmd = `ffmpeg -y -framerate ${this.framerate} -i ${this.assetDirectory}seq-%d.jpg -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p ${this.pathToVideo}`;
 
     await new Promise((resolve, reject) => {
-      exec(cmd, (error, stdout, stderr) => {
-        if (error) return reject(error);
+      exec(cmd, (error, _stdout, stderr) => {
+        if (error) return reject(new Error(`ffmpeg createVideo failed: ${error.message}${stderr ? `\n${stderr.trim().split('\n').slice(-5).join('\n')}` : ''}`));
         resolve();
       });
     });
+
+    const MIN_OUTPUT_BYTES = 10 * 1024;
+    if (!Fs.existsSync(this.pathToVideo) || Fs.statSync(this.pathToVideo).size < MIN_OUTPUT_BYTES) {
+      throw new Error(`ffmpeg createVideo produced no usable output (< ${MIN_OUTPUT_BYTES} bytes)`);
+    }
 
     const stats = Fs.statSync(this.pathToVideo);
     const fileSizeInMB = stats.size / (1024 * 1024);
@@ -935,10 +956,39 @@ class TrafficBot {
   }
 
   /**
+   * Create the asset directory and stamp it with this process's PID.
+   * The pidfile lets concurrent instances skip our dir in cleanupStaleAssets
+   * instead of deleting it because mtime happens to be stale (e.g. long
+   * image intervals on Montana can easily exceed the 1-hour threshold).
+   */
+  ensureAssetDir() {
+    Fs.ensureDirSync(this.assetDirectory);
+    try {
+      Fs.writeFileSync(Path.join(this.assetDirectory, '.pid'), String(process.pid));
+    } catch (err) {
+      console.error(`Failed to write .pid in ${this.assetDirectory}:`, err.message);
+    }
+  }
+
+  /**
+   * Check whether the given PID is a running process. False on any error
+   * (including ESRCH from `process.kill(pid, 0)` when the process is gone).
+   */
+  isPidAlive(pid) {
+    if (!pid) return false;
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Remove stale asset directories from previous runs of this bot.
    * Called at startup to clean up after crashed or killed processes.
-   * Only removes directories not modified in the last hour to avoid
-   * interfering with concurrently running instances.
+   * Skips any dir whose .pid file names a currently running process so
+   * a concurrent same-account run (e.g. road-trip + cron) isn't disturbed.
    */
   cleanupStaleAssets() {
     const assetsDir = './assets';
@@ -954,6 +1004,11 @@ class TrafficBot {
     for (const dir of dirs) {
       const fullPath = Path.join(assetsDir, dir);
       try {
+        const pidPath = Path.join(fullPath, '.pid');
+        if (Fs.existsSync(pidPath)) {
+          const pid = parseInt(Fs.readFileSync(pidPath, 'utf8'), 10);
+          if (this.isPidAlive(pid)) continue;
+        }
         const stat = Fs.statSync(fullPath);
         if (now - stat.mtimeMs > staleThreshold) {
           Fs.removeSync(fullPath);
@@ -1203,7 +1258,7 @@ class TrafficBot {
           this.saveRecentCameraId(this.chosenCamera.id);
 
           console.log(`${prefix}ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-          Fs.ensureDirSync(this.assetDirectory);
+          this.ensureAssetDir();
 
           this.startTime = new Date();
 
@@ -1226,7 +1281,7 @@ class TrafficBot {
                 usedCameraIds.add(String(this.chosenCamera.id));
                 this.saveRecentCameraId(this.chosenCamera.id);
                 console.log(`${prefix}ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-                Fs.ensureDirSync(this.assetDirectory);
+                this.ensureAssetDir();
               }
             }
           } else {

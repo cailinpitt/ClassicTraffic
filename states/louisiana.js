@@ -116,49 +116,6 @@ class LouisianaBot extends TrafficBot {
     return this.fetchCameras({ search: highway, limit: 500 });
   }
 
-  async downloadImage(index, retries = 3) {
-    const path = this.getImagePath(index);
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const writer = Fs.createWriteStream(path);
-
-        const response = await Axios({
-          url: this.chosenCamera.url,
-          method: 'GET',
-          responseType: 'stream',
-          timeout: 20000,
-        });
-
-        return await new Promise((resolve, reject) => {
-          response.data.pipe(writer);
-          writer.on('finish', () => {
-            setTimeout(() => {
-              try {
-                const isUnique = this.checkAndStoreImage(path, index);
-                resolve(isUnique);
-              } catch (err) {
-                reject(err);
-              }
-            }, 100);
-          });
-          writer.on('error', reject);
-        });
-      } catch (error) {
-        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
-        if (Fs.existsSync(path)) {
-          Fs.removeSync(path);
-        }
-
-        if (attempt === retries) {
-          throw error;
-        }
-
-        await this.sleep(1000 * Math.pow(2, attempt - 1));
-      }
-    }
-  }
-
   async getVideoUrl(imageId) {
     const response = await Axios.get(`https://www.511la.org/Camera/GetVideoUrl?imageId=${imageId}`, {
       headers: {
@@ -292,7 +249,7 @@ class LouisianaBot extends TrafficBot {
 
       this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
 
       this.startTime = new Date();
 

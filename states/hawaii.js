@@ -1,8 +1,6 @@
 const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
-const Fs = require('fs-extra');
 const _ = require('lodash');
-const { exec } = require('child_process');
 const argv = require('minimist')(process.argv.slice(2));
 
 const durationOptions = [60, 90, 120, 180, 480, 960];
@@ -71,48 +69,6 @@ class HawaiiBot extends TrafficBot {
     }
   }
 
-  async downloadImage(index, retries = 3) {
-    const path = this.getImagePath(index);
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const writer = Fs.createWriteStream(path);
-
-        const response = await Axios({
-          url: this.chosenCamera.url,
-          method: 'GET',
-          responseType: 'stream',
-          timeout: 20000,
-        });
-
-        return await new Promise((resolve, reject) => {
-          response.data.pipe(writer);
-          writer.on('finish', () => {
-            setTimeout(() => {
-              try {
-                const isUnique = this.checkAndStoreImage(path, index);
-                resolve(isUnique);
-              } catch (err) {
-                reject(err);
-              }
-            }, 100);
-          });
-          writer.on('error', reject);
-        });
-      } catch (error) {
-        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
-        if (Fs.existsSync(path)) {
-          Fs.removeSync(path);
-        }
-
-        if (attempt === retries) {
-          throw error;
-        }
-
-        await this.sleep(1000 * Math.pow(2, attempt - 1));
-      }
-    }
-  }
 
   async run() {
     this.cleanupStaleAssets();
@@ -188,7 +144,7 @@ class HawaiiBot extends TrafficBot {
 
       this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
 
       this.startTime = new Date();
 

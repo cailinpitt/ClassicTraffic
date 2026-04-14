@@ -1,6 +1,5 @@
 const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
-const Fs = require('fs-extra');
 const _ = require('lodash');
 
 const numImagesPerVideoOptions = [15, 20, 30, 45];
@@ -57,48 +56,6 @@ class WashingtonBot extends TrafficBot {
     }
   }
 
-  async downloadImage(index, retries = 3) {
-    const path = this.getImagePath(index);
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const writer = Fs.createWriteStream(path);
-
-        const response = await Axios({
-          url: `${this.chosenCamera.url}?a=${Date.now()}`,
-          method: 'GET',
-          responseType: 'stream',
-          timeout: 20000,
-        });
-
-        return await new Promise((resolve, reject) => {
-          response.data.pipe(writer);
-          writer.on('finish', () => {
-            setTimeout(() => {
-              try {
-                const isUnique = this.checkAndStoreImage(path, index);
-                resolve(isUnique);
-              } catch (err) {
-                reject(err);
-              }
-            }, 100);
-          });
-          writer.on('error', reject);
-        });
-      } catch (error) {
-        console.log(`Error downloading image ${index} (attempt ${attempt}/${retries}): ${error.message}`);
-        if (Fs.existsSync(path)) {
-          Fs.removeSync(path);
-        }
-
-        if (attempt === retries) {
-          throw error;
-        }
-
-        await this.sleep(1000 * Math.pow(2, attempt - 1));
-      }
-    }
-  }
 }
 
 const bot = new WashingtonBot();

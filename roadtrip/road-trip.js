@@ -86,6 +86,7 @@ async function runWithConcurrency(tasks, concurrency) {
 // null if the state should be silently skipped (no camera found). Throws on hard errors.
 async function captureState(stateName, BotClass, highway, duration, excludeIds) {
   const bot = new BotClass();
+  activeBots.add(bot);
   bot.targetOutputSeconds = duration / 4;
 
   const isImageBot = typeof bot.downloadVideoSegment !== 'function';
@@ -102,13 +103,14 @@ async function captureState(stateName, BotClass, highway, duration, excludeIds) 
   if (!camera || (!isImageBot && camera.hasVideo === false)) {
     console.log(`[${stateName}] No camera found on ${highway}, skipping`);
     bot.cleanup();
+    activeBots.delete(bot);
     return null;
   }
 
   bot.chosenCamera = camera;
   console.log(`[${stateName}] Camera: ${camera.name}`);
 
-  Fs.ensureDirSync(bot.assetDirectory);
+  bot.ensureAssetDir();
   bot.startTime = new Date();
 
   if (camera.latitude && camera.longitude && camera.latitude !== 0) {
@@ -130,6 +132,7 @@ async function captureState(stateName, BotClass, highway, duration, excludeIds) 
     if (bot.uniqueImageCount < 2) {
       console.log(`[${stateName}] Only ${bot.uniqueImageCount} unique image(s), skipping`);
       bot.cleanup();
+      activeBots.delete(bot);
       return null;
     }
     await bot.createVideo();
@@ -150,7 +153,26 @@ async function captureState(stateName, BotClass, highway, duration, excludeIds) 
   return { bot, titleOverride: `${highway} through ${getDisplayName(stateName)} 🛣️` };
 }
 
+// Bots registered here will be cleaned up if the process is killed mid-run
+const activeBots = new Set();
+let shuttingDown = false;
+function installShutdownHandler() {
+  const shutdown = (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.error(`Received ${signal}, cleaning up ${activeBots.size} bot(s) and exiting`);
+    for (const bot of activeBots) {
+      try { bot.cleanup(); } catch {}
+    }
+    process.exit(130);
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
+
 async function main() {
+  installShutdownHandler();
+
   // Login the shared road trip account used for the intro post
   const roadtripAccount = keys.accounts.roadtrip;
   if (!roadtripAccount) {
@@ -247,7 +269,7 @@ async function main() {
 
   if (captured.length < 2) {
     console.log(`\nOnly ${captured.length} state(s) captured — not enough for a thread`);
-    captured.forEach(c => c.bot.cleanup());
+    captured.forEach(c => { c.bot.cleanup(); activeBots.delete(c.bot); });
     process.exitCode = 1;
     return;
   }
@@ -335,7 +357,10 @@ async function main() {
       threadParent = introPost;
       console.log(`Intro posted: "${introText}"`);
     } catch (err) {
-      console.error(`Failed to post intro: ${err.message}`);
+      console.error(`Failed to post intro: ${err.message} — aborting thread to avoid orphan posts`);
+      captured.forEach(c => { c.bot.cleanup(); activeBots.delete(c.bot); });
+      process.exitCode = 1;
+      return;
     }
   }
 
@@ -359,6 +384,7 @@ async function main() {
       results.push({ state: stateName, success: false, error: err.message });
     } finally {
       bot.cleanup();
+      activeBots.delete(bot);
     }
   }
 

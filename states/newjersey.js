@@ -167,7 +167,7 @@ class NewJerseyBot extends TrafficBot {
 
       this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name}`);
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
 
       this.startTime = new Date();
 

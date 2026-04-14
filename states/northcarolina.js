@@ -173,7 +173,7 @@ class NorthCarolinaBot extends TrafficBot {
 
       this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
 
       this.startTime = new Date();
 

@@ -196,7 +196,7 @@ class MississippiBot extends TrafficBot {
         longitude: selectedSite.longitude,
       };
 
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
       this.startTime = new Date();
 
       const duration = _.sample(durationOptions);

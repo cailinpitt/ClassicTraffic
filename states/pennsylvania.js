@@ -211,7 +211,7 @@ class PennsylvaniaBot extends TrafficBot {
 
       this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
 
       this.startTime = new Date();
 
@@ -240,7 +240,7 @@ class PennsylvaniaBot extends TrafficBot {
             } catch (e) {
               console.log(`Stream failed for ${this.chosenCamera.id}, trying another camera...`);
               this.cleanup();
-              Fs.ensureDirSync(this.assetDirectory);
+              this.ensureAssetDir();
             }
           }
           if (!succeeded) throw new Error('All video cameras failed');

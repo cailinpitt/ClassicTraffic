@@ -1,9 +1,9 @@
 const TrafficBot = require('../TrafficBot.js');
 const Axios = require('axios');
-const Fs = require('fs-extra');
 const _ = require('lodash');
-const { exec } = require('child_process');
+const { AtpAgent } = require('@atproto/api');
 const argv = require('minimist')(process.argv.slice(2));
+const keys = require('../keys.js');
 
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 10;
@@ -131,13 +131,11 @@ class NevadaBot extends TrafficBot {
     }
 
     try {
-      const keys = require('../keys.js');
       const account = keys.accounts[this.accountName];
       if (!account) {
         throw new Error(`Account '${this.accountName}' not found in keys.js`);
       }
 
-      const { AtpAgent } = require('@atproto/api');
       this.agent = new AtpAgent({ service: keys.service });
 
       await this.agent.login({
@@ -175,7 +173,7 @@ class NevadaBot extends TrafficBot {
 
       this.saveRecentCameraId(this.chosenCamera.id);
       console.log(`ID ${this.chosenCamera.id}: ${this.chosenCamera.name} (${this.chosenCamera.hasVideo ? 'video' : 'image'})`);
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
 
       this.startTime = new Date();
 

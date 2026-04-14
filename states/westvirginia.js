@@ -96,7 +96,7 @@ class WestVirginiaBot extends TrafficBot {
         return;
       }
 
-      Fs.ensureDirSync(this.assetDirectory);
+      this.ensureAssetDir();
 
       if (!_.isUndefined(argv.id)) {
         this.chosenCamera = _.find(cameras, { id: argv.id });
