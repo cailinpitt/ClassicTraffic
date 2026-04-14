@@ -105,6 +105,21 @@ The thread requires at least 2 states to succeed. All states use the same random
 
 **Supported interstates**: I-10, I-20, I-26, I-35, I-40, I-49, I-55, I-59, I-64, I-70, I-75, I-77, I-80, I-81, I-85, I-90, I-94, I-95
 
+## Meta Account
+
+[@classictraffic.bsky.social](https://bsky.app/profile/classictraffic.bsky.social) is the project's umbrella account. It doesn't post original content — it exists to host the fleet-wide [starter pack](https://bsky.app/starter-pack/classictraffic.bsky.social) and surface notable posts from the state bots. Credentials live in `keys.js` under the `meta` key.
+
+### Engagement-Based Reposts
+
+`meta/engagement-repost.js` scans each state bot's recent posts, scores by engagement, and reposts the top N from the meta account. It's idempotent — re-reading the meta account's existing repost records on each run to skip anything already reposted. Each run:
+
+1. Fetches the meta account's existing repost records so posts aren't reposted twice.
+2. For each state bot, pulls posts from the last `LOOKBACK_DAYS` (default 3) that are older than `POST_AGE_MIN_HOURS` (default 6, so posts have time to accumulate engagement).
+3. Scores each candidate: `likes + 2·reposts + 3·replies`, filtered by `MIN_LIKES` (default 3).
+4. Reposts the top `MAX_REPOSTS_PER_RUN` (default 3) from the meta account.
+
+Tune the constants at the top of the file. Suggested cadence: 1–2× per day via cron. Supports `--dry-run`.
+
 ### Adding Interstates
 
 ```
@@ -164,6 +179,8 @@ Bots are normally invoked by `run-bot.sh`, which adds file locking (prevents ove
 ```
 TrafficBot.js             # Base class: image loop, deduplication, video encoding, Bluesky posting
 states/                   # One file per state, extends TrafficBot
+meta/                     # Scripts for the @classictraffic umbrella account
+run-meta.sh               # Cron wrapper for meta/ scripts: locking, timeouts, logging
 run-bot.sh                # Cron wrapper: locking, timeouts, feature flags, telemetry
 run-road-trip.sh          # Cron wrapper for road trip mode
 road-trip.js              # Road trip thread logic
