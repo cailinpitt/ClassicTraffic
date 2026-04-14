@@ -223,7 +223,7 @@ async function main() {
           process.stdout.write(`  Determining states via geocoding... `);
           const miles = routeLengthMiles(feature);
           const states = await determineStates(feature);
-          highwaysData[highway] = { miles, states };
+          highwaysData[highway] = { ...(highwaysData[highway] || {}), miles, states };
           Fs.writeFileSync(HIGHWAYS_JSON, JSON.stringify(highwaysData, null, 2) + '\n');
           console.log(`${states.join(', ')} (${miles} mi)`);
         }

@@ -21,7 +21,7 @@
   },
   "I-40": {
     "miles": 2555,
-    "states": ["california", "arizona", "newmexico", "oklahoma", "arkansas", "tennessee", "northcarolina"],
+    "states": ["california", "arizona", "newmexico", "texas", "oklahoma", "arkansas", "tennessee", "northcarolina"],
     "endpoints": { "start": "Barstow, CA", "end": "Wilmington, NC" }
   },
   "I-49": {
@@ -31,7 +31,7 @@
   },
   "I-55": {
     "miles": 965,
-    "states": ["louisiana", "mississippi", "arkansas", "tennessee", "missouri", "illinois"],
+    "states": ["louisiana", "mississippi", "tennessee", "arkansas", "missouri", "illinois"],
     "endpoints": { "start": "LaPlace, LA", "end": "Chicago, IL" }
   },
   "I-59": {
@@ -76,7 +76,7 @@
   },
   "I-90": {
     "miles": 3020,
-    "states": ["washington", "idaho", "montana", "wyoming", "southdakota", "minnesota", "wisconsin", "illinois", "indiana", "ohio", "pennsylvania", "newyork", "massachusetts", "rhodeisland"],
+    "states": ["washington", "idaho", "montana", "wyoming", "southdakota", "minnesota", "wisconsin", "illinois", "indiana", "ohio", "pennsylvania", "newyork", "massachusetts"],
     "endpoints": { "start": "Seattle, WA", "end": "Boston, MA" }
   },
   "I-94": {
@@ -91,12 +91,12 @@
   },
   "US-1": {
     "miles": 2369,
-    "states": ["maine", "newhampshire", "massachusetts", "rhodeisland", "connecticut", "newyork", "newjersey", "delaware", "maryland", "virginia", "northcarolina", "southcarolina", "georgia", "florida"],
+    "states": ["maine", "newhampshire", "massachusetts", "rhodeisland", "connecticut", "newyork", "newjersey", "pennsylvania", "delaware", "maryland", "virginia", "northcarolina", "southcarolina", "georgia", "florida"],
     "endpoints": { "start": "Fort Kent, ME", "end": "Key West, FL" }
   },
   "US-2": {
     "miles": 2571,
-    "states": ["maine", "vermont", "newyork", "michigan", "wisconsin", "minnesota", "northdakota", "montana", "idaho", "washington"],
+    "states": ["maine", "newhampshire", "vermont", "newyork", "michigan", "wisconsin", "minnesota", "northdakota", "montana", "idaho", "washington"],
     "endpoints": { "start": "Houlton, ME", "end": "Everett, WA" }
   },
   "US-30": {
