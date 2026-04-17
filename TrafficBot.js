@@ -1276,7 +1276,12 @@ class TrafficBot {
                 this.cleanup();
                 this.assetDirectory = `./assets/${this.accountName}-${uuidv4()}/`;
                 this.pathToVideo = `${this.assetDirectory}camera.mp4`;
-                const remaining = cameras.filter(c => c.hasVideo && !usedCameraIds.has(String(c.id)));
+                const freshRemaining = cameras.filter(c =>
+                  c.hasVideo && !usedCameraIds.has(String(c.id)) && !recentIds.includes(String(c.id))
+                );
+                const remaining = freshRemaining.length > 0
+                  ? freshRemaining
+                  : cameras.filter(c => c.hasVideo && !usedCameraIds.has(String(c.id)));
                 this.chosenCamera = _.sample(remaining.length > 0 ? remaining : cameras.filter(c => c.hasVideo));
                 usedCameraIds.add(String(this.chosenCamera.id));
                 this.saveRecentCameraId(this.chosenCamera.id);
