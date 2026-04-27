@@ -4,7 +4,8 @@ camera.gif
 .DS_Store
 node_modules/
 log/
-cron/
+cron/*
+!cron/crontab.txt
 yarn.lock
 assets/
 highway-routes/

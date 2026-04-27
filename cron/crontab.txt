@@ -1,0 +1,80 @@
+# ClassicTraffic crontab — source of truth.
+# Install: append between # CLASSICTRAFFIC-START / # CLASSICTRAFFIC-END
+# markers in the live crontab. Do NOT `crontab cron/crontab.txt` directly,
+# that wipes other jobs (e.g. cta-bot).
+#
+# State bots run via run-bot.sh which handles locking, logging, telemetry,
+# and LaunchDarkly feature flag checks. Each state has a unique minute
+# offset so they don't all fire at once; states are grouped 3 per slot
+# alphabetically.
+
+CT=/home/cailin/Development/ClassicTraffic
+
+# CLASSICTRAFFIC-START
+
+# --- State bots (every 30 min, staggered 3 per minute alphabetically) ---
+0,30  * * * * $CT/run-bot.sh alabama
+0,30  * * * * $CT/run-bot.sh alaska
+0,30  * * * * $CT/run-bot.sh arizona
+1,31  * * * * $CT/run-bot.sh arkansas
+1,31  * * * * $CT/run-bot.sh california
+1,31  * * * * $CT/run-bot.sh colorado
+2,32  * * * * $CT/run-bot.sh connecticut
+2,32  * * * * $CT/run-bot.sh delaware
+2,32  * * * * $CT/run-bot.sh florida
+3,33  * * * * $CT/run-bot.sh georgia
+3,33  * * * * $CT/run-bot.sh hawaii
+3,33  * * * * $CT/run-bot.sh idaho
+4,34  * * * * $CT/run-bot.sh illinois
+4,34  * * * * $CT/run-bot.sh indiana
+4,34  * * * * $CT/run-bot.sh iowa
+5,35  * * * * $CT/run-bot.sh kansas
+5,35  * * * * $CT/run-bot.sh kentucky
+5,35  * * * * $CT/run-bot.sh louisiana
+6,36  * * * * $CT/run-bot.sh maine
+6,36  * * * * $CT/run-bot.sh maryland
+6,36  * * * * $CT/run-bot.sh massachusetts
+7,37  * * * * $CT/run-bot.sh michigan
+7,37  * * * * $CT/run-bot.sh minnesota
+7,37  * * * * $CT/run-bot.sh mississippi
+8,38  * * * * $CT/run-bot.sh missouri
+8,38  * * * * $CT/run-bot.sh montana
+8,38  * * * * $CT/run-bot.sh nebraska
+9,39  * * * * $CT/run-bot.sh nevada
+9,39  * * * * $CT/run-bot.sh newhampshire
+9,39  * * * * $CT/run-bot.sh newjersey
+10,40 * * * * $CT/run-bot.sh newmexico
+10,40 * * * * $CT/run-bot.sh newyork
+10,40 * * * * $CT/run-bot.sh northcarolina
+11,41 * * * * $CT/run-bot.sh northdakota
+11,41 * * * * $CT/run-bot.sh ohio
+11,41 * * * * $CT/run-bot.sh oklahoma
+12,42 * * * * $CT/run-bot.sh oregon
+12,42 * * * * $CT/run-bot.sh pennsylvania
+12,42 * * * * $CT/run-bot.sh rhodeisland
+13,43 * * * * $CT/run-bot.sh southcarolina
+13,43 * * * * $CT/run-bot.sh southdakota
+13,43 * * * * $CT/run-bot.sh tennessee
+14,44 * * * * $CT/run-bot.sh texas
+14,44 * * * * $CT/run-bot.sh utah
+14,44 * * * * $CT/run-bot.sh vermont
+15,45 * * * * $CT/run-bot.sh virginia
+15,45 * * * * $CT/run-bot.sh washington
+15,45 * * * * $CT/run-bot.sh westvirginia
+16,46 * * * * $CT/run-bot.sh wisconsin
+16,46 * * * * $CT/run-bot.sh wyoming
+
+# --- Specials ---
+# Road trip thread every 2 hours; picks stalest highway when no --highway given.
+0 */2 * * * $CT/run-road-trip.sh
+
+# Daily 5pm Jane Byrne Interchange capture (uses illinois bot with override).
+0 17  * * * $CT/run-bot.sh illinois --lock-key illinois-janebyrne --id jane-byrne
+
+# Schedule today's skydeck sunrise/sunset captures via `at` (runs at midnight).
+0 0   * * * $CT/schedule-skydeck.sh
+
+# Engagement repost every 6 hours.
+0 */6 * * * $CT/run-meta.sh engagement-repost
+
+# CLASSICTRAFFIC-END
