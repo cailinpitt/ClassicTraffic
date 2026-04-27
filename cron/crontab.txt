@@ -1,7 +1,7 @@
 # ClassicTraffic crontab — source of truth.
-# Install: append between # CLASSICTRAFFIC-START / # CLASSICTRAFFIC-END
-# markers in the live crontab. Do NOT `crontab cron/crontab.txt` directly,
-# that wipes other jobs (e.g. cta-bot).
+# Append between # CLASSICTRAFFIC-START / # CLASSICTRAFFIC-END markers in
+# the live crontab. Don't `crontab cron/crontab.txt` directly — that wipes
+# any other unrelated jobs.
 #
 # State bots run via run-bot.sh which handles locking, logging, telemetry,
 # and LaunchDarkly feature flag checks. Each state has a unique minute
