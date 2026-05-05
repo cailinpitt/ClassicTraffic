@@ -27,7 +27,7 @@ const ANF_WETMET_CAMERAS = [
   { id: 'anf-lake-lanier',        name: 'Lake Lanier',                         wetMetUid: 'c74c586d140dbf5da41cadc3afa772f0', latitude: 34.1870, longitude: -83.9710 },
   { id: 'anf-sandy-springs',      name: 'Sandy Springs',                       wetMetUid: 'b2061239d5e3970ea83193ee89a9ead7', latitude: 33.9304, longitude: -84.3733 },
   { id: 'anf-marietta',           name: 'Marietta',                            wetMetUid: '4fe18c0dd5ed97b0dc14dee71ea63a5a', latitude: 33.9526, longitude: -84.5499 },
-  { id: 'anf-cobb-county',        name: 'Cobb County',                         wetMetUid: 'f5a44a1c9ad2c07be2dd2f1cce2627d2', latitude: 33.9400, longitude: -84.5200 },
+  { id: 'anf-cobb-county',        name: 'Truist Park',                         wetMetUid: 'f5a44a1c9ad2c07be2dd2f1cce2627d2', latitude: 33.8910, longitude: -84.4679 },
   { id: 'anf-dekalb-i85',         name: 'I-85 in DeKalb County',               wetMetUid: 'd90996bd208c3de6612c9238890dcbaf', latitude: 33.7490, longitude: -84.2870 },
   { id: 'anf-studios',            name: 'Atlanta News First Studios',           wetMetUid: '9666ec3fe12a3a9155e2052e726636e1', latitude: 33.7490, longitude: -84.3880 },
 ].map(c => ({ ...c, hasVideo: true, isWetMet: true }));
