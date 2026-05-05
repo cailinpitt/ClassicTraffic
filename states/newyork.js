@@ -138,13 +138,23 @@ class NewYorkBot extends TrafficBot {
         `https://511ny.org/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en-US`;
 
       let response;
+      let includeFixed = !!options.limit; // search/highway path: include and let caller filter
       if (options.limit) {
         response = await Axios.get(makeUrl(makeQuery(0, options.limit)), { headers: apiHeaders });
       } else {
         // Fetch one record to get the total count
         const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
         const totalCameras = countResponse.data.recordsTotal;
-        console.log(`Total cameras: ${totalCameras}`);
+        console.log(`Total cameras: ${totalCameras} (+ ${TIMES_SQUARE_CAMERAS.length} fixed)`);
+
+        // Treat the fixed list as a virtual page so each fixed camera has the same
+        // per-run odds as any NY-DOT camera, instead of dominating a 10-cam page.
+        const grandTotal = totalCameras + TIMES_SQUARE_CAMERAS.length;
+        if (Math.random() < TIMES_SQUARE_CAMERAS.length / grandTotal) {
+          console.log(`Returning ${TIMES_SQUARE_CAMERAS.length} fixed cameras`);
+          return [...TIMES_SQUARE_CAMERAS];
+        }
+
         const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
         const randomStart = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
         console.log(`Fetching page at offset ${randomStart}...`);
@@ -178,7 +188,7 @@ class NewYorkBot extends TrafficBot {
           };
         });
 
-      cameras.push(...TIMES_SQUARE_CAMERAS);
+      if (includeFixed) cameras.push(...TIMES_SQUARE_CAMERAS);
       const videoCount = cameras.filter(c => c.hasVideo).length;
       const imageCount = cameras.filter(c => !c.hasVideo).length;
       console.log(`${cameras.length} cameras (${videoCount} video, ${imageCount} image-only)`);

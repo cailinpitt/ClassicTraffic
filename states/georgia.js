@@ -127,14 +127,26 @@ class GeorgiaBot extends TrafficBot {
       const makeUrl = (query) =>
         `https://511ga.org/List/GetData/Cameras?query=${encodeURIComponent(JSON.stringify(query))}&lang=en-US`;
 
+      const fixedCameras = [...GEORGIA_AQUARIUM_CAMERAS, ...ANF_WETMET_CAMERAS];
+
       let response;
+      let includeFixed = !!options.limit; // search/highway path: include and let caller filter
       if (options.limit) {
         response = await Axios.get(makeUrl(makeQuery(0, options.limit)), { headers: apiHeaders });
       } else {
         // Fetch one record to get the total count
         const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
         const totalCameras = countResponse.data.recordsTotal;
-        console.log(`Total cameras: ${totalCameras}`);
+        console.log(`Total cameras: ${totalCameras} (+ ${fixedCameras.length} fixed)`);
+
+        // Treat the fixed list as a virtual page so each fixed camera has the same
+        // per-run odds as any GA-DOT camera, instead of dominating a 10-cam page.
+        const grandTotal = totalCameras + fixedCameras.length;
+        if (Math.random() < fixedCameras.length / grandTotal) {
+          console.log(`Returning ${fixedCameras.length} fixed cameras`);
+          return fixedCameras;
+        }
+
         const maxPage = Math.ceil(totalCameras / CAMERAS_PER_PAGE);
         const randomStart = Math.floor(Math.random() * maxPage) * CAMERAS_PER_PAGE;
         console.log(`Fetching page at offset ${randomStart}...`);
@@ -169,8 +181,7 @@ class GeorgiaBot extends TrafficBot {
           };
         });
 
-      cameras.push(...GEORGIA_AQUARIUM_CAMERAS);
-      cameras.push(...ANF_WETMET_CAMERAS);
+      if (includeFixed) cameras.push(...fixedCameras);
       const videoCount = cameras.filter(c => c.hasVideo).length;
       const imageCount = cameras.filter(c => !c.hasVideo).length;
       console.log(`${cameras.length} cameras (${videoCount} video, ${imageCount} image-only)`);
