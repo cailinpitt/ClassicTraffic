@@ -74,6 +74,11 @@ CT=/home/cailin/Development/ClassicTraffic
 # Schedule today's skydeck sunrise/sunset captures via `at` (runs at midnight).
 0 0   * * * $CT/schedule-skydeck.sh
 
+# Schedule today's MLB home-game captures via `at` (runs at midnight). Each
+# script no-ops on off-days/away days; doubleheaders schedule both games.
+0 0   * * * $CT/schedule-mlb-game.sh --team-id 112 --tz America/Chicago --state illinois --camera-id wrigley-field --lock-prefix illinois-cubs
+0 0   * * * $CT/schedule-mlb-game.sh --team-id 144 --tz America/New_York --state georgia  --camera-id truist-park    --lock-prefix georgia-braves
+
 # Engagement repost every 6 hours.
 0 */6 * * * $CT/run-meta.sh engagement-repost
 

@@ -1263,7 +1263,9 @@ class TrafficBot {
           this.startTime = new Date();
 
           if (this.chosenCamera.hasVideo) {
-            const duration = _.sample(this.getDurationOptions());
+            const duration = !_.isUndefined(argv.duration)
+              ? parseInt(argv.duration, 10)
+              : _.sample(this.getDurationOptions());
             // On stream failure, try up to 3 different cameras (only when auto-selecting)
             const maxVideoRetries = _.isUndefined(argv.id) ? 3 : 1;
             for (let vAttempt = 1; vAttempt <= maxVideoRetries; vAttempt++) {

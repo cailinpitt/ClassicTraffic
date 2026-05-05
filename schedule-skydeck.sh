@@ -11,11 +11,10 @@ if [[ "${1:-}" == "--dry-run" ]]; then
 fi
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-LOG_DIR="$DIR/cron"
-LOG_FILE="$LOG_DIR/skydeck-schedule-$(date +%Y-%m-%d).log"
-mkdir -p "$LOG_DIR"
+source "$DIR/scripts/schedule-lib.sh"
+init_log_file skydeck-schedule
 
-echo "$(date): Scheduling skydeck sunrise/sunset posts" >> "$LOG_FILE"
+log "Scheduling skydeck sunrise/sunset posts"
 
 # Chicago coordinates and timezone
 LAT=41.8781
@@ -29,21 +28,11 @@ eval "$(/usr/bin/node "$DIR/scripts/sun-times.js" "$LAT" "$LNG" "$TZ_NAME")"
 SUNRISE_START=$(date -d "$SUNRISE today - 5 minutes" +%H:%M)
 SUNSET_START=$(date -d "$SUNSET today - 5 minutes" +%H:%M)
 
-echo "$(date): Sunrise=$SUNRISE (capture starts $SUNRISE_START) Sunset=$SUNSET (capture starts $SUNSET_START)" >> "$LOG_FILE"
+log "Sunrise=$SUNRISE (capture starts $SUNRISE_START) Sunset=$SUNSET (capture starts $SUNSET_START)"
 
-SUNRISE_CMD="$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunrise --id skydeck-east --duration 600 --speed 16 --event sunrise"
-SUNSET_CMD="$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunset --id skydeck-west --duration 600 --speed 16 --event sunset"
+schedule_at "$SUNRISE_START" "$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunrise --id skydeck-east --duration 600 --speed 16 --event sunrise"
+schedule_at "$SUNSET_START"  "$DIR/run-bot.sh illinois --lock-key illinois-skydeck-sunset --id skydeck-west --duration 600 --speed 16 --event sunset"
 
-if $DRY_RUN; then
-  echo "DRY RUN — would schedule:"
-  echo "  [$SUNRISE_START] $SUNRISE_CMD"
-  echo "  [$SUNSET_START]  $SUNSET_CMD"
-else
-  echo "$SUNRISE_CMD" | at "$SUNRISE_START" >> "$LOG_FILE" 2>&1
-  echo "$SUNSET_CMD"  | at "$SUNSET_START"  >> "$LOG_FILE" 2>&1
-fi
+log "Done scheduling"
 
-echo "$(date): Done scheduling" >> "$LOG_FILE"
-
-# Rotate logs older than 7 days
-find "$LOG_DIR" -name "skydeck-schedule-*.log" -mtime +7 -delete 2>/dev/null || true
+rotate_logs skydeck-schedule
