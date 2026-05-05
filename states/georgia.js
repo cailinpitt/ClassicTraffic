@@ -22,7 +22,7 @@ const GEORGIA_AQUARIUM_CAMERAS = [
 const ANF_WETMET_CAMERAS = [
   { id: 'anf-atlanta-airport',    name: 'Hartsfield-Jackson Atlanta Airport', wetMetUid: 'a06f42ff3a95a5f55419bc079aee63c9', latitude: 33.6407, longitude: -84.4277 },
   { id: 'anf-centennial-park',    name: 'Centennial Olympic Park',             wetMetUid: '90fb863b5c7d2eef0c3c762f49124b25', latitude: 33.7606, longitude: -84.3951 },
-  { id: 'anf-atlanta',            name: 'Atlanta',                             wetMetUid: '3710d34f691931e30aafe0ec521ebad5', latitude: 33.7490, longitude: -84.3880 },
+  { id: 'anf-atlanta',            name: 'Midtown, Atlanta',                    wetMetUid: '3710d34f691931e30aafe0ec521ebad5', latitude: 33.7490, longitude: -84.3880 },
   { id: 'anf-stone-mountain',     name: 'Stone Mountain',                      wetMetUid: '81d98658a7c8e2572d82aa3e3730f76d', latitude: 33.8039, longitude: -84.1704 },
   { id: 'anf-lake-lanier',        name: 'Lake Lanier',                         wetMetUid: 'c74c586d140dbf5da41cadc3afa772f0', latitude: 34.1870, longitude: -83.9710 },
   { id: 'anf-sandy-springs',      name: 'Sandy Springs',                       wetMetUid: 'b2061239d5e3970ea83193ee89a9ead7', latitude: 33.9304, longitude: -84.3733 },

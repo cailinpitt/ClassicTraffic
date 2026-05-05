@@ -19,7 +19,7 @@ const JANE_BYRNE_CAMERA = {
 const SKYDECK_CAMERAS = [
   {
     id: 'skydeck-east',
-    name: 'Willis Tower Skydeck',
+    name: 'Willis Tower Skydeck (East View)',
     fecnetworkId: '22820',
     pageUrl: 'https://www.earthcam.com/usa/illinois/chicago/skydeck/',
     hasVideo: true,
@@ -70,14 +70,14 @@ const MIDWAY_YOUTUBE_CAMERA = {
   longitude: -87.7522,
 };
 
-const CINDYS_ROOFTOP_CAMERA = {
-  id: 'cindys-rooftop',
-  name: "Cindy's Rooftop",
+const MILLENNIUM_PARK_CAMERA = {
+  id: 'millennium-park',
+  name: "Millennium Park",
   wetMetUid: 'e610a1ff04cc219eb91c779e8861c124',
   hasVideo: true,
   isWetMet: true,
-  latitude: 41.8807,
-  longitude: -87.6279,
+  latitude: 41.8817,
+  longitude:-87.6248,
 };
 
 const CHICAGO_RIVER_CAMERA = {
@@ -183,7 +183,7 @@ class IllinoisBot extends TrafficBot {
       cameras.push(...SKYDECK_CAMERAS);
       cameras.push(MIDWAY_CAMERA);
       cameras.push(MIDWAY_YOUTUBE_CAMERA);
-      cameras.push(CINDYS_ROOFTOP_CAMERA);
+      cameras.push(MILLENNIUM_PARK_CAMERA);
       cameras.push(CHICAGO_RIVER_CAMERA);
       cameras.push(CNW_POWERHOUSE_CAMERA);
       cameras.push(WRIGLEY_CAMERA);
