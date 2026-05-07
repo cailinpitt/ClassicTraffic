@@ -8,78 +8,76 @@
 # offset so they don't all fire at once; states are grouped 3 per slot
 # alphabetically.
 
-CT=/home/cailin/Development/ClassicTraffic
-
 # CLASSICTRAFFIC-START
 
 # --- State bots (every 30 min, staggered 3 per minute alphabetically) ---
-0,30  * * * * $CT/run-bot.sh alabama
-0,30  * * * * $CT/run-bot.sh alaska
-0,30  * * * * $CT/run-bot.sh arizona
-1,31  * * * * $CT/run-bot.sh arkansas
-1,31  * * * * $CT/run-bot.sh california
-1,31  * * * * $CT/run-bot.sh colorado
-2,32  * * * * $CT/run-bot.sh connecticut
-2,32  * * * * $CT/run-bot.sh delaware
-2,32  * * * * $CT/run-bot.sh florida
-3,33  * * * * $CT/run-bot.sh georgia
-3,33  * * * * $CT/run-bot.sh hawaii
-3,33  * * * * $CT/run-bot.sh idaho
-4,34  * * * * $CT/run-bot.sh illinois
-4,34  * * * * $CT/run-bot.sh indiana
-4,34  * * * * $CT/run-bot.sh iowa
-5,35  * * * * $CT/run-bot.sh kansas
-5,35  * * * * $CT/run-bot.sh kentucky
-5,35  * * * * $CT/run-bot.sh louisiana
-6,36  * * * * $CT/run-bot.sh maine
-6,36  * * * * $CT/run-bot.sh maryland
-6,36  * * * * $CT/run-bot.sh massachusetts
-7,37  * * * * $CT/run-bot.sh michigan
-7,37  * * * * $CT/run-bot.sh minnesota
-7,37  * * * * $CT/run-bot.sh mississippi
-8,38  * * * * $CT/run-bot.sh missouri
-8,38  * * * * $CT/run-bot.sh montana
-8,38  * * * * $CT/run-bot.sh nebraska
-9,39  * * * * $CT/run-bot.sh nevada
-9,39  * * * * $CT/run-bot.sh newhampshire
-9,39  * * * * $CT/run-bot.sh newjersey
-10,40 * * * * $CT/run-bot.sh newmexico
-10,40 * * * * $CT/run-bot.sh newyork
-10,40 * * * * $CT/run-bot.sh northcarolina
-11,41 * * * * $CT/run-bot.sh northdakota
-11,41 * * * * $CT/run-bot.sh ohio
-11,41 * * * * $CT/run-bot.sh oklahoma
-12,42 * * * * $CT/run-bot.sh oregon
-12,42 * * * * $CT/run-bot.sh pennsylvania
-12,42 * * * * $CT/run-bot.sh rhodeisland
-13,43 * * * * $CT/run-bot.sh southcarolina
-13,43 * * * * $CT/run-bot.sh southdakota
-13,43 * * * * $CT/run-bot.sh tennessee
-14,44 * * * * $CT/run-bot.sh texas
-14,44 * * * * $CT/run-bot.sh utah
-14,44 * * * * $CT/run-bot.sh vermont
-15,45 * * * * $CT/run-bot.sh virginia
-15,45 * * * * $CT/run-bot.sh washington
-15,45 * * * * $CT/run-bot.sh westvirginia
-16,46 * * * * $CT/run-bot.sh wisconsin
-16,46 * * * * $CT/run-bot.sh wyoming
+0,30  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh alabama
+0,30  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh alaska
+0,30  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh arizona
+1,31  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh arkansas
+1,31  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh california
+1,31  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh colorado
+2,32  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh connecticut
+2,32  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh delaware
+2,32  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh florida
+3,33  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh georgia
+3,33  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh hawaii
+3,33  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh idaho
+4,34  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh illinois
+4,34  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh indiana
+4,34  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh iowa
+5,35  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh kansas
+5,35  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh kentucky
+5,35  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh louisiana
+6,36  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh maine
+6,36  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh maryland
+6,36  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh massachusetts
+7,37  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh michigan
+7,37  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh minnesota
+7,37  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh mississippi
+8,38  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh missouri
+8,38  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh montana
+8,38  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh nebraska
+9,39  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh nevada
+9,39  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh newhampshire
+9,39  * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh newjersey
+10,40 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh newmexico
+10,40 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh newyork
+10,40 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh northcarolina
+11,41 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh northdakota
+11,41 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh ohio
+11,41 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh oklahoma
+12,42 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh oregon
+12,42 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh pennsylvania
+12,42 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh rhodeisland
+13,43 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh southcarolina
+13,43 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh southdakota
+13,43 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh tennessee
+14,44 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh texas
+14,44 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh utah
+14,44 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh vermont
+15,45 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh virginia
+15,45 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh washington
+15,45 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh westvirginia
+16,46 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh wisconsin
+16,46 * * * * /home/cailin/Development/ClassicTraffic/run-bot.sh wyoming
 
 # --- Specials ---
 # Road trip thread every 2 hours; picks stalest highway when no --highway given.
-0 */2 * * * $CT/run-road-trip.sh
+0 */2 * * * /home/cailin/Development/ClassicTraffic/run-road-trip.sh
 
 # Daily 5pm Jane Byrne Interchange capture (uses illinois bot with override).
-0 17  * * * $CT/run-bot.sh illinois --lock-key illinois-janebyrne --id jane-byrne
+0 17  * * * /home/cailin/Development/ClassicTraffic/run-bot.sh illinois --lock-key illinois-janebyrne --id jane-byrne
 
 # Schedule today's skydeck sunrise/sunset captures via `at` (runs at midnight).
-0 0   * * * $CT/schedule-skydeck.sh
+0 0   * * * /home/cailin/Development/ClassicTraffic/schedule-skydeck.sh
 
 # Schedule today's MLB home-game captures via `at` (runs at midnight). Each
 # script no-ops on off-days/away days; doubleheaders schedule both games.
-0 0   * * * $CT/schedule-mlb-game.sh --team-id 112 --tz America/Chicago --state illinois --camera-id wrigley-field --lock-prefix illinois-cubs
-0 0   * * * $CT/schedule-mlb-game.sh --team-id 144 --tz America/New_York --state georgia  --camera-id truist-park    --lock-prefix georgia-braves
+0 0   * * * /home/cailin/Development/ClassicTraffic/schedule-mlb-game.sh --team-id 112 --tz America/Chicago --state illinois --camera-id wrigley-field --lock-prefix illinois-cubs
+0 0   * * * /home/cailin/Development/ClassicTraffic/schedule-mlb-game.sh --team-id 144 --tz America/New_York --state georgia  --camera-id truist-park    --lock-prefix georgia-braves
 
 # Engagement repost every 6 hours.
-0 */6 * * * $CT/run-meta.sh engagement-repost
+0 */6 * * * /home/cailin/Development/ClassicTraffic/run-meta.sh engagement-repost
 
 # CLASSICTRAFFIC-END
