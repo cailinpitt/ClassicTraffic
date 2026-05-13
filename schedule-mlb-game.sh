@@ -65,8 +65,16 @@ fi
 
 log "Home game start times: $GAME_TIMES"
 
+NOW_EPOCH=$(TZ="$TZ_NAME" date +%s)
+
 i=0
 for game_time in $GAME_TIMES; do
+  GAME_EPOCH=$(TZ="$TZ_NAME" date -d "today $game_time" +%s)
+  if (( GAME_EPOCH <= NOW_EPOCH )); then
+    log "Skipping $game_time — already in the past"
+    i=$((i + 1))
+    continue
+  fi
   LOCK_KEY="${LOCK_PREFIX}-game-${i}"
   CMD="$DIR/run-bot.sh $STATE --lock-key $LOCK_KEY --id $CAMERA_ID --duration $DURATION"
   schedule_at "$game_time" "$CMD"
