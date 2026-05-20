@@ -130,9 +130,13 @@ class GeorgiaBot extends TrafficBot {
       const fixedCameras = [...GEORGIA_AQUARIUM_CAMERAS, ...ANF_WETMET_CAMERAS];
 
       let response;
-      let includeFixed = !!options.limit; // search/highway path: include and let caller filter
+      let includeFixed = !!options.limit || !_.isUndefined(argv.id); // search/highway path: include and let caller filter. With --id, always include so fixed cameras are reachable.
       if (options.limit) {
         response = await Axios.get(makeUrl(makeQuery(0, options.limit)), { headers: apiHeaders });
+      } else if (!_.isUndefined(argv.id)) {
+        // --id path: just fetch one page to satisfy the pagination contract; the
+        // selector matches by id, and the fixed list is appended below.
+        response = await Axios.get(makeUrl(makeQuery(0, CAMERAS_PER_PAGE)), { headers: apiHeaders });
       } else {
         // Fetch one record to get the total count
         const countResponse = await Axios.get(makeUrl(makeQuery(0, 1)), { headers: apiHeaders });
