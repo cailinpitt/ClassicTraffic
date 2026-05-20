@@ -26,6 +26,7 @@ STATE=""
 CAMERA_ID=""
 LOCK_PREFIX=""
 DURATION=1800
+NOTE=""
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
@@ -36,6 +37,7 @@ while [[ $# -gt 0 ]]; do
     --camera-id)   CAMERA_ID="$2"; shift 2;;
     --lock-prefix) LOCK_PREFIX="$2"; shift 2;;
     --duration)    DURATION="$2"; shift 2;;
+    --note)        NOTE="$2"; shift 2;;
     --dry-run)     DRY_RUN=true; shift;;
     *) echo "Unknown arg: $1" >&2; exit 2;;
   esac
@@ -77,6 +79,11 @@ for game_time in $GAME_TIMES; do
   fi
   LOCK_KEY="${LOCK_PREFIX}-game-${i}"
   CMD="$DIR/run-bot.sh $STATE --lock-key $LOCK_KEY --id $CAMERA_ID --duration $DURATION"
+  if [[ -n "$NOTE" ]]; then
+    # Single-quote the note so the `at` shell sees it as one argument.
+    ESCAPED_NOTE=${NOTE//\'/\'\\\'\'}
+    CMD="$CMD --note '$ESCAPED_NOTE'"
+  fi
   schedule_at "$game_time" "$CMD"
   log "Scheduled $LOCK_KEY at $game_time"
   i=$((i + 1))

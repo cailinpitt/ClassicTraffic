@@ -74,8 +74,8 @@
 
 # Schedule today's MLB home-game captures via `at` (runs at midnight). Each
 # script no-ops on off-days/away days; doubleheaders schedule both games.
-0 0   * * * /home/cailin/Development/ClassicTraffic/schedule-mlb-game.sh --team-id 112 --tz America/Chicago --state illinois --camera-id wrigley-field --lock-prefix illinois-cubs
-0 0   * * * /home/cailin/Development/ClassicTraffic/schedule-mlb-game.sh --team-id 144 --tz America/New_York --state georgia  --camera-id truist-park    --lock-prefix georgia-braves
+0 0   * * * /home/cailin/Development/ClassicTraffic/schedule-mlb-game.sh --team-id 112 --tz America/Chicago --state illinois --camera-id wrigley-field --lock-prefix illinois-cubs   --note '⚾ Live during today'\''s Cubs home game ⚾'
+0 0   * * * /home/cailin/Development/ClassicTraffic/schedule-mlb-game.sh --team-id 144 --tz America/New_York --state georgia  --camera-id truist-park    --lock-prefix georgia-braves --note '⚾ Live during today'\''s Braves home game ⚾'
 
 # Engagement repost every 6 hours.
 0 */6 * * * /home/cailin/Development/ClassicTraffic/run-meta.sh engagement-repost

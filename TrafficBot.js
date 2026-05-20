@@ -877,6 +877,8 @@ class TrafficBot {
       }
     }
 
+    const noteLine = argv.note ? `\n${argv.note}` : '';
+
     if (hasCoordinates) {
       const lat = this.chosenCamera.latitude.toFixed(6);
       const lon = this.chosenCamera.longitude.toFixed(6);
@@ -885,9 +887,9 @@ class TrafficBot {
 
       let postTitle = titleOverride || this.chosenCamera.name;
 
-      postText = `${postTitle}\n${clockEmoji} ${timeLabel}${weatherLine}\n\n📍: ${coordinates}`;
+      postText = `${postTitle}${noteLine}\n${clockEmoji} ${timeLabel}${weatherLine}\n\n📍: ${coordinates}`;
 
-      const byteStart = Buffer.from(`${postTitle}\n${clockEmoji} ${timeLabel}${weatherLine}\n\n📍: `).length;
+      const byteStart = Buffer.from(`${postTitle}${noteLine}\n${clockEmoji} ${timeLabel}${weatherLine}\n\n📍: `).length;
       const byteEnd = byteStart + Buffer.from(coordinates).length;
 
       facets = [
@@ -906,12 +908,12 @@ class TrafficBot {
       ];
     } else {
       const noCoordTitle = titleOverride || this.chosenCamera.name;
-      postText = `${noCoordTitle}\n${clockEmoji} ${timeLabel}${weatherLine}`;
+      postText = `${noCoordTitle}${noteLine}\n${clockEmoji} ${timeLabel}${weatherLine}`;
     }
 
     const altText = this.buildAltText(this.weatherStart, this.weatherEnd);
 
-    const result = await this.agent.post({
+    const postBody = {
       text: postText,
       ...(facets.length > 0 && { facets }),
       ...(replyRef && { reply: replyRef }),
@@ -921,7 +923,20 @@ class TrafficBot {
         aspectRatio: aspectRatio,
         alt: altText,
       },
-    });
+    };
+
+    let result;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        result = await this.agent.post(postBody);
+        break;
+      } catch (e) {
+        if (attempt === 3) throw e;
+        const status = e?.status || 'unknown';
+        console.log(`Post attempt ${attempt} failed (${status}), retrying...`);
+        await this.sleep(2000 * attempt);
+      }
+    }
 
     const rkey = result.uri.split('/').pop();
     const did = result.uri.split('/')[2];
@@ -1187,10 +1202,19 @@ class TrafficBot {
       }
 
       this.agent = new AtpAgent({ service: keys.service });
-      await this.agent.login({
-        identifier: account.identifier,
-        password: account.password,
-      });
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await this.agent.login({
+            identifier: account.identifier,
+            password: account.password,
+          });
+          break;
+        } catch (e) {
+          if (attempt === 3) throw e;
+          console.log(`Login attempt ${attempt} failed (${e?.error || e?.message || 'unknown'}), retrying...`);
+          await this.sleep(2000 * attempt);
+        }
+      }
 
       if (!this.agent.session?.did) {
         console.error('Failed to get DID after login');
