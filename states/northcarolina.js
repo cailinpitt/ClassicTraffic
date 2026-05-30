@@ -8,6 +8,10 @@ const argv = require('minimist')(process.argv.slice(2));
 const numImagesPerVideoOptions = [150, 300, 450, 600, 750, 900];
 const CAMERAS_PER_PAGE = 10;
 
+// NC video streams require a per-stream secure token (img.isVideoAuthRequired).
+// The token is minted by NC's IVDS backend, the same platform Pennsylvania uses.
+const NC_AUTH_URL = 'https://vds.nc.insight-atms.com/api/SecureTokenUri/GetSecureTokenUriBySourceId';
+
 class NorthCarolinaBot extends TrafficBot {
   constructor() {
     super({
@@ -23,6 +27,43 @@ class NorthCarolinaBot extends TrafficBot {
     return _.sample(numImagesPerVideoOptions);
   }
 
+  async getVideoUrl() {
+    return this.getAuthenticatedVideoUrl(this.chosenCamera.imageId, this.chosenCamera.url);
+  }
+
+  // Mint a secure token for a video stream and append it to the stream URL.
+  // Step 1: ask the NC 511 site for the stream's auth data. Step 2: exchange it
+  // for a token query string via NC's IVDS endpoint. Step 3: append the token.
+  async getAuthenticatedVideoUrl(imageId, originalVideoUrl) {
+    console.log('Authenticating video stream...');
+
+    const authResp = await Axios.get(`https://nc.prod.traveliq.co/Camera/GetVideoUrl?imageId=${imageId}`, {
+      headers: {
+        Cookie: this.session.cookies,
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+        '__requestverificationtoken': this.session.token,
+      },
+    });
+
+    // A string response is already the final URL; an object needs exchanging.
+    if (typeof authResp.data === 'string') {
+      return authResp.data;
+    }
+
+    const tokenResp = await Axios.post(NC_AUTH_URL, authResp.data, {
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+        'Origin': 'https://nc.prod.traveliq.co',
+        'Referer': 'https://nc.prod.traveliq.co/',
+      },
+    });
+
+    console.log('Video stream authenticated');
+    return originalVideoUrl + tokenResp.data;
+  }
+
   async getSession() { return this.get511DotSession('https://nc.prod.traveliq.co/cctv'); }
 
   async fetchCameras(options = {}) {
@@ -30,6 +71,7 @@ class NorthCarolinaBot extends TrafficBot {
 
     try {
       const session = await this.getSession();
+      this.session = session;
 
       const apiHeaders = {
         '__requestverificationtoken': session.token,
@@ -94,6 +136,7 @@ class NorthCarolinaBot extends TrafficBot {
             id: cam.id,
             name: cam.location || cam.roadway,
             url: hasVideo ? img.videoUrl : `https://nc.prod.traveliq.co${img.imageUrl}`,
+            imageId: img.id,
             hasVideo,
             latitude,
             longitude,
