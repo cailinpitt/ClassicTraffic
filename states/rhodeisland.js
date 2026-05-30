@@ -24,6 +24,10 @@ class RhodeIslandBot extends TrafficBot {
     });
   }
 
+  // The Wowza CDN rejects the stream (HTTP 403) unless the RIDOT camera page
+  // is sent as the Referer.
+  getCaptureFlags() { return '-rw_timeout 15000000 -headers "Referer: https://www.dot.ri.gov/\\r\\n"'; }
+
   parseCamerasFromHtml(html) {
     const cameras = [];
     const urlRegex = /openVideoPopup2\('(https:\/\/cdn3\.wowza\.com\/[^']+\.m3u8)'\)/g;
