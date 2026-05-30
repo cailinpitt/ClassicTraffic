@@ -10,6 +10,27 @@ const argv = require('minimist')(process.argv.slice(2));
 const crypto = require('crypto');
 const Axios = require('axios');
 
+// Disk-backed cache for reverse-geocode lookups. Traffic cameras sit at fixed
+// coordinates, so the routes near a location never change — we only ever need
+// to ask Google once per camera. Shared across runs via cron/geocode-cache.json.
+const GEOCODE_CACHE_FILE = Path.join(__dirname, 'cron', 'geocode-cache.json');
+let _geocodeCache = null;
+
+function loadGeocodeCache() {
+  if (_geocodeCache) return _geocodeCache;
+  try {
+    _geocodeCache = JSON.parse(Fs.readFileSync(GEOCODE_CACHE_FILE, 'utf8'));
+  } catch {
+    _geocodeCache = {};
+  }
+  return _geocodeCache;
+}
+
+function saveGeocodeCache(cache) {
+  Fs.ensureDirSync(Path.dirname(GEOCODE_CACHE_FILE));
+  Fs.writeFileSync(GEOCODE_CACHE_FILE, JSON.stringify(cache, null, 2));
+}
+
 /**
  * @typedef {Object} Camera
  * @property {string} id - Unique identifier for the camera
@@ -539,7 +560,7 @@ class TrafficBot {
 
   async findCameraOnHighway(highway, opts = {}) {
     const excludeIds = new Set((opts.excludeIds || []).map(String));
-    const geocodeSampleSize = opts.geocodeSampleSize ?? 15;
+    const geocodeSampleSize = opts.geocodeSampleSize ?? 6;
 
     const cameras = await this.fetchAllCameras(highway);
     if (cameras.length === 0) return null;
@@ -641,12 +662,20 @@ class TrafficBot {
    */
   async getNearbyRoutes(lat, lon) {
     if (!keys.googleKey) throw new Error('googleKey not configured');
+
+    // Serve from the on-disk cache when we've seen this location before. The
+    // 5-decimal key (~1m precision) normalizes the fixed camera coordinates.
+    const cache = loadGeocodeCache();
+    const key = `${Number(lat).toFixed(5)},${Number(lon).toFixed(5)}`;
+    if (cache[key]) return cache[key].routes;
+
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&result_type=route&key=${keys.googleKey}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Geocoding API returned ${response.status}`);
     const data = await response.json();
-    if (data.status === 'ZERO_RESULTS') return [];
-    if (data.status !== 'OK') throw new Error(`Geocoding API: ${data.status}`);
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      throw new Error(`Geocoding API: ${data.status}`);
+    }
     const routes = new Set();
     for (const r of data.results || []) {
       for (const c of r.address_components || []) {
@@ -656,7 +685,14 @@ class TrafficBot {
         }
       }
     }
-    return [...routes];
+
+    // Persist the result (including an empty list for ZERO_RESULTS) so this
+    // location is never billed again. Errors above throw before reaching here,
+    // so we only ever cache definitive answers.
+    const result = [...routes];
+    cache[key] = { routes: result, cachedAt: new Date().toISOString() };
+    saveGeocodeCache(cache);
+    return result;
   }
 
   /**
