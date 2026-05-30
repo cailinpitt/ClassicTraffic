@@ -8,8 +8,25 @@ const Fs = require('fs-extra');
 const { AtpAgent } = require('@atproto/api');
 
 const keys = require('../keys.js');
+const TrafficBot = require('../TrafficBot.js');
 const highways = require('./highways.json');
 const { generateRoadTripMap } = require('./generate-road-trip-map.js');
+
+// Decide whether to capture a camera as a video stream or as a sequence of
+// still images — the road trip can't call each state's bespoke run(), so it
+// replicates that decision here, per camera, exactly as the standalone bots do:
+//   - Image-only states use the base run() and never set camera.hasVideo, so
+//     their snapshot URLs must be captured as stills (recording a still URL as
+//     video yields a data-only .ts and silently breaks the whole trip).
+//   - Video-capable states override run(). Hybrid states (e.g. Nevada) set
+//     camera.hasVideo per camera; pure-video states (e.g. Mississippi) always
+//     stream and leave hasVideo unset.
+function shouldCaptureVideo(bot, camera) {
+  const videoCapable = bot.run !== TrafficBot.prototype.run;
+  if (!videoCapable) return false;
+  if (typeof camera.hasVideo === 'boolean') return camera.hasVideo;
+  return true;
+}
 
 const STATE_FILE = Path.join(__dirname, '..', 'cron', 'roadtrip-state.json');
 const RECENT_CAMERAS_PER_STATE = 5;
@@ -89,8 +106,6 @@ async function captureState(stateName, BotClass, highway, duration, excludeIds) 
   activeBots.add(bot);
   bot.targetOutputSeconds = duration / 4;
 
-  const isImageBot = typeof bot.downloadVideoSegment !== 'function';
-
   const account = keys.accounts[bot.accountName];
   bot.agent = new AtpAgent({ service: keys.service });
   await bot.agent.login({ identifier: account.identifier, password: account.password });
@@ -100,12 +115,14 @@ async function captureState(stateName, BotClass, highway, duration, excludeIds) 
   console.log(`[${stateName}] Finding camera on ${highway}...`);
   const camera = await bot.findCameraOnHighway(highway, { excludeIds });
 
-  if (!camera || (!isImageBot && camera.hasVideo === false)) {
+  if (!camera) {
     console.log(`[${stateName}] No camera found on ${highway}, skipping`);
     bot.cleanup();
     activeBots.delete(bot);
     return null;
   }
+
+  const useVideo = shouldCaptureVideo(bot, camera);
 
   bot.chosenCamera = camera;
   console.log(`[${stateName}] Camera: ${camera.name}`);
@@ -121,7 +138,7 @@ async function captureState(stateName, BotClass, highway, duration, excludeIds) 
     }
   }
 
-  if (isImageBot) {
+  if (!useVideo) {
     const delayMs = bot.delayBetweenImageFetches;
     const imageCount = Math.max(1, Math.min(20, Math.floor((duration * 1000) / delayMs)));
     console.log(`[${stateName}] Capturing ${imageCount} images (${delayMs / 1000}s interval) from ${camera.name}...`);
