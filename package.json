@@ -15,7 +15,7 @@
     "sharp": "^0.34.5",
     "topojson-client": "^3.1.0",
     "us-atlas": "^3.0.1",
-    "uuid": "^8.3.2"
+    "uuid": "^14.0.0"
   },
   "scripts": {
     "ohio": "node states/ohio.js",
