@@ -5,6 +5,15 @@ const _ = require('lodash');
 
 const numImagesPerVideoOptions = [10, 15, 20];
 
+// WYDOT hex-encodes slashes and ampersands in both hrefs and titles.
+function decodeEntities(str) {
+  return String(str)
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&');
+}
+
 class WyomingBot extends TrafficBot {
   constructor() {
     super({
@@ -39,18 +48,19 @@ class WyomingBot extends TrafficBot {
 
       const html = response.data;
 
-      // Parse images: src="/web-cam/cache?ref=..." alt="Web Camera at LOCATION - DIRECTION showing ROUTE"
-      const imgRegex = /src="(\/web-cam\/cache\?ref=[^"]+)"[^>]*alt="Web Camera at ([^"]+)"/g;
+      // Parse links: <a href="/web-cam/cache?ref=..." title="View camera at LOCATION - DIRECTION on ROUTE">
+      const imgRegex = /<a\s+href="(\/web-cam\/cache\?ref=[^"]+)"[^>]*?title="View camera at ([^"]+)"/g;
       const locations = new Map();
       let match;
 
       while ((match = imgRegex.exec(html)) !== null) {
-        let src = match[1].replace(/&#x3D;/g, '=').replace(/&amp;/g, '&').replace(/&thumb=true$/i, '');
-        const alt = match[2];
+        let src = decodeEntities(match[1]).replace(/&thumb=true$/i, '');
+        const alt = decodeEntities(match[2]);
 
-        // Parse: "I 80 Evanston - West showing I80 near Evanston"
-        // or: "I 25 Cheyenne Port of Entry showing I25 near Cheyenne"
-        const parts = alt.match(/^(.+?) showing (.+)$/);
+        // Parse: "I 80 Evanston - West on I80"
+        // or: "I 25 Cheyenne Port of Entry on I25"
+        // Greedy first group so the split lands on the final " on ".
+        const parts = alt.match(/^(.*) on (.+)$/);
         if (!parts) continue;
 
         const fullName = parts[1].trim();

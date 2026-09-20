@@ -10,6 +10,16 @@ const CAMERAS_PER_PAGE = 10;
 const MAPLARGE_HOST = 'https://dtx-e-cdn.maplarge.com';
 const CAMERA_TABLE = 'appgeo/cameraPoint';
 
+// DriveTexas dropped the route/jurisdiction columns and now returns them
+// inside a JSON string in `metadata`.
+function parseMetadata(raw) {
+  try {
+    return JSON.parse(raw || '{}');
+  } catch {
+    return {};
+  }
+}
+
 class TexasBot extends TrafficBot {
   constructor() {
     super({
@@ -33,8 +43,10 @@ class TexasBot extends TrafficBot {
       },
     };
 
+    // The CDN serves a stale cached body for this exact query, and the stream
+    // tokens inside it expire 300s after issue — so ask for a fresh one.
     const response = await Axios.get(`${MAPLARGE_HOST}/Api/ProcessDirect`, {
-      params: { request: JSON.stringify(request) },
+      params: { request: JSON.stringify(request), _: Date.now() },
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
       },
@@ -48,17 +60,23 @@ class TexasBot extends TrafficBot {
 
     // MapLarge returns columnar data: { field: [val0, val1, ...], ... }
     const cols = data.data.data;
+    const missing = ['id', 'active', 'problemstream', 'httpsurl', 'description', 'name']
+      .filter((c) => !cols[c]);
+    if (missing.length) {
+      throw new Error(`MapLarge response missing columns: ${missing.join(', ')}`);
+    }
     const count = cols.id.length;
 
     const cameras = [];
     for (let i = 0; i < count; i++) {
       if (cols.active[i] !== 1 || cols.problemstream[i] !== 0 || !cols.httpsurl[i]) continue;
+      const meta = parseMetadata(cols.metadata?.[i]);
       cameras.push({
         id: cols.id[i],
         name: cols.description[i] || cols.name[i],
         description: cols.description[i],
-        route: cols.route[i],
-        jurisdiction: cols.jurisdiction[i],
+        route: meta.route,
+        jurisdiction: meta.jurisdiction,
         url: cols.httpsurl[i],
         latitude: 0,
         longitude: 0,
