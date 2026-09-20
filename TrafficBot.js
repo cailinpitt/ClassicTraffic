@@ -10,6 +10,12 @@ const argv = require('minimist')(process.argv.slice(2));
 const crypto = require('crypto');
 const Axios = require('axios');
 
+// ffmpeg's -t caps stream time, not wall-clock, so a stalled source blocks
+// forever; and exec's own timeout dies with this process, orphaning the child.
+// `timeout` is an independent process, so it fires in either case.
+const CREATE_VIDEO_TIMEOUT_S = 900;
+const guard = (secs, cmd) => `timeout -k 10 ${Math.ceil(secs)} ${cmd}`;
+
 // Disk-backed cache for reverse-geocode lookups. Traffic cameras sit at fixed
 // coordinates, so the routes near a location never change — we only ever need
 // to ask Google once per camera. Shared across runs via cron/geocode-cache.json.
@@ -246,7 +252,7 @@ class TrafficBot {
 
     const tempPath = `${this.assetDirectory}raw.ts`;
     const streamUrl = await this.getVideoUrl();
-    const captureCmd = `ffmpeg -y ${this.getCaptureFlags()} -t ${duration} -i "${streamUrl}" -map 0:v:0 -c copy "${tempPath}"`;
+    const captureCmd = guard(duration + 60, `ffmpeg -y ${this.getCaptureFlags()} -t ${duration} -i "${streamUrl}" -map 0:v:0 -c copy "${tempPath}"`);
 
     await new Promise((resolve, reject) => {
       exec(captureCmd, { timeout: (duration + 60) * 1000 }, (error, _stdout, stderr) => {
@@ -259,7 +265,7 @@ class TrafficBot {
     });
 
     const encodeFlags = this.getEncodeFlags();
-    const encodeCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p${encodeFlags ? ' ' + encodeFlags : ''} -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`;
+    const encodeCmd = guard(this.getEncodeTimeout(duration) / 1000, `ffmpeg -y -i "${tempPath}" -c:v libx264 -preset ultrafast -crf 28 -maxrate 10M -bufsize 20M -pix_fmt yuv420p${encodeFlags ? ' ' + encodeFlags : ''} -vf "setpts=${this.getSetpts(duration)}*PTS" -an "${this.pathToVideo}"`);
 
     await new Promise((resolve, reject) => {
       exec(encodeCmd, { timeout: this.getEncodeTimeout(duration) }, (error, _stdout, stderr) => {
@@ -513,10 +519,10 @@ class TrafficBot {
       Fs.renameSync(oldPath, newPath);
     });
 
-    const cmd = `ffmpeg -y -framerate ${this.framerate} -i ${this.assetDirectory}seq-%d.jpg -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p ${this.pathToVideo}`;
+    const cmd = guard(CREATE_VIDEO_TIMEOUT_S, `ffmpeg -y -framerate ${this.framerate} -i ${this.assetDirectory}seq-%d.jpg -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p ${this.pathToVideo}`);
 
     await new Promise((resolve, reject) => {
-      exec(cmd, (error, _stdout, stderr) => {
+      exec(cmd, { timeout: CREATE_VIDEO_TIMEOUT_S * 1000 }, (error, _stdout, stderr) => {
         if (error) return reject(new Error(`ffmpeg createVideo failed: ${error.message}${stderr ? `\n${stderr.trim().split('\n').slice(-5).join('\n')}` : ''}`));
         resolve();
       });
